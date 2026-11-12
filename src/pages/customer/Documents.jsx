@@ -1,0 +1,2 @@
+import { createPlaceholderPage } from '../../components/shared/createPlaceholderPage.jsx';
+export default createPlaceholderPage('My documents', 'Review travel documents associated with your account.');

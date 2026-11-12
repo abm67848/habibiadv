@@ -1,0 +1,14 @@
+export { default as Dashboard } from './Dashboard.jsx';
+export { default as Analytics } from './analytics/page.jsx';
+export { default as Bookings } from './Bookings/page.jsx';
+export { default as Customers } from './Customers/page.jsx';
+export { default as CustomerDetails } from './Customers/[id]/page.jsx';
+export { default as Expenses } from './Expenses/page.jsx';
+export { default as Finance } from './finance/page.jsx';
+export { default as PackagesAndServices } from './Packages & Services/page.jsx';
+export { default as PackageDetails } from './Packages & Services/[id]/page.jsx';
+export { default as PaymentsAndTransactions } from './Payments & Transactions/page.jsx';
+export { default as TransactionDetails } from './Payments & Transactions/[id]/page.jsx';
+export { default as Settings } from './settings/page.jsx';
+export { default as Suppliers } from './Suppliers/page.jsx';
+export { default as Travel } from './travel/page.jsx';

@@ -1,0 +1,2 @@
+import { createPlaceholderPage } from '../../components/shared/createPlaceholderPage.jsx';
+export default createPlaceholderPage('Destination details', 'View information about a selected destination.');

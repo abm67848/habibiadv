@@ -1,0 +1,2 @@
+import { createPlaceholderPage } from '../../components/shared/createPlaceholderPage.jsx';
+export default createPlaceholderPage('Destinations', 'Browse destinations available for future travel planning.');

@@ -1,0 +1,9 @@
+export { default as Dashboard } from './Dashboard.jsx';
+export { default as Bookings } from './Bookings.jsx';
+export { default as BookingDetails } from './BookingDetails.jsx';
+export { default as Payments } from './Payments.jsx';
+export { default as Documents } from './Documents.jsx';
+export { default as Profile } from './Profile.jsx';
+export { default as Support } from './Support.jsx';
+export { default as Notifications } from './Notifications.jsx';
+export { default as Settings } from './Settings.jsx';
