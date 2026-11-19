@@ -1,10 +1,13 @@
-import { AuthProvider } from './context/index.jsx';
+import { AuthProvider, AppSettingsProvider } from './context/index.jsx';
 import AppRoutes from './routes/AppRoutes.jsx';
 
+import './i18n';
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <AppSettingsProvider>
+        <AppRoutes />
+      </AppSettingsProvider>
     </AuthProvider>
   );
 }

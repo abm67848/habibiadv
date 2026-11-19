@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Phone, Mail, MapPin, MessageCircle, Clock, Send, Check, ChevronDown, ArrowUpRight,
   AlertCircle, Loader2,
@@ -98,6 +99,7 @@ function Field({ id, label, error, hint, children }) {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function ContactPage() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const packageRef = params.get('package') || '';
   const initialTopic = TOPICS.includes(params.get('topic')) ? params.get('topic') : TOPICS[0];
@@ -192,19 +194,19 @@ export default function ContactPage() {
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/90 ring-1 ring-white/25 backdrop-blur">
             <span className={`h-2 w-2 rounded-full ${office.open ? 'bg-emerald-400' : 'bg-[#e6c877]'}`} />
-            {office.open ? 'We’re online now' : 'We’ll reply when we’re back'}
+            {t(office.open ? 'We’re online now' : 'We’ll reply when we’re back')}
           </p>
           <h1 className="rise mt-6 max-w-3xl text-4xl leading-[1.05] sm:text-6xl lg:text-7xl" style={{ ...display, animationDelay: '.15s' }}>
-            Tell us where you want to go
+            {t('Tell us where you want to go')}
           </h1>
           <p className="rise mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg" style={{ animationDelay: '.3s' }}>
-            A real planner reads every message. Send your dates, your group and your ideas, and we’ll come back with a plan and a price.
+            {t('A real planner reads every message. Send your dates, your group and your ideas, and we’ll come back with a plan and a price.')}
           </p>
         </div>
       </header>
 
       {/* CONTACT CHANNELS */}
-      <section className="relative z-10 mx-auto -mt-32 max-w-7xl px-5 lg:px-8" aria-label="Ways to reach us">
+      <section className="relative z-10 mx-auto -mt-32 max-w-7xl px-5 lg:px-8" aria-label={t('Ways to reach us')}>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {channels.map(({ icon: Icon, title, text, href, note, external }) => (
             <li key={title}>
@@ -219,9 +221,9 @@ export default function ContactPage() {
                   </span>
                   <ArrowUpRight className="h-5 w-5 text-slate-300 transition group-hover:text-[#c9a24b]" />
                 </span>
-                <span className="mt-5 text-lg text-[#0a2a20]" style={display}>{title}</span>
-                <span className="mt-1 break-words text-sm font-semibold text-[#0f3d2e]">{text}</span>
-                <span className="mt-1 text-xs text-slate-500">{note}</span>
+                <span className="mt-5 text-lg text-[#0a2a20]" style={display}>{t(title)}</span>
+                <span className="mt-1 break-words text-sm font-semibold text-[#0f3d2e]">{t(text)}</span>
+                <span className="mt-1 text-xs text-slate-500">{t(note)}</span>
               </a>
             </li>
           ))}
@@ -235,52 +237,56 @@ export default function ContactPage() {
           {status === 'done' ? (
             <div className="py-10 text-center" role="status">
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#0f3d2e] text-[#e6c877]"><Check className="h-8 w-8" /></span>
-              <h2 className="mt-6 text-3xl text-[#0a2a20]" style={display}>Message sent</h2>
+              <h2 className="mt-6 text-3xl text-[#0a2a20]" style={display}>{t('Message sent')}</h2>
               <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">
-                Thanks, {form.name.split(' ')[0] || 'friend'}. We’ll reply to {form.reply === 'phone' ? form.phone : form.email}
-                {office.open ? ' within a few hours.' : ' as soon as the office reopens.'}
+                {t(office.open
+                  ? 'Thanks, {{name}}. We’ll reply to {{contact}} within a few hours.'
+                  : 'Thanks, {{name}}. We’ll reply to {{contact}} as soon as the office reopens.', {
+                  name: form.name.split(' ')[0] || t('friend'),
+                  contact: form.reply === 'phone' ? form.phone : form.email,
+                })}
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <Link to="/packages" className={`inline-flex items-center gap-2 rounded-full bg-[#c9a24b] px-6 py-3 text-sm font-bold text-[#082a1f] transition hover:bg-[#e6c877] ${ring}`}>Browse packages</Link>
-                <button onClick={reset} className={`rounded-full px-6 py-3 text-sm font-semibold text-[#0f3d2e] ring-1 ring-[#0f3d2e]/20 hover:bg-[#f3f6f1] ${ring}`}>Send another message</button>
+                <Link to="/packages" className={`inline-flex items-center gap-2 rounded-full bg-[#c9a24b] px-6 py-3 text-sm font-bold text-[#082a1f] transition hover:bg-[#e6c877] ${ring}`}>{t('Browse packages')}</Link>
+                <button onClick={reset} className={`rounded-full px-6 py-3 text-sm font-semibold text-[#0f3d2e] ring-1 ring-[#0f3d2e]/20 hover:bg-[#f3f6f1] ${ring}`}>{t('Send another message')}</button>
               </div>
             </div>
           ) : (
-            <form onSubmit={onSubmit} noValidate aria-label="Contact form">
-              <h2 className="text-3xl text-[#0a2a20]" style={display}>Send us a message</h2>
-              <p className="mt-2 text-sm text-slate-600">Fields marked with a star are required.</p>
+            <form onSubmit={onSubmit} noValidate aria-label={t('Contact form')}>
+              <h2 className="text-3xl text-[#0a2a20]" style={display}>{t('Send us a message')}</h2>
+              <p className="mt-2 text-sm text-slate-600">{t('Fields marked with a star are required.')}</p>
 
               <div className="mt-8 grid gap-5 sm:grid-cols-2">
-                <Field id="name" label="Full name ★" error={errors.name}>
-                  <input id="name" value={form.name} onChange={set('name')} autoComplete="name" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : undefined} placeholder="Your name" className={inputBase} />
+                <Field id="name" label={t('Full name ★')} error={errors.name && t(errors.name)}>
+                  <input id="name" value={form.name} onChange={set('name')} autoComplete="name" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : undefined} placeholder={t('Your name')} className={inputBase} />
                 </Field>
-                <Field id="email" label="Email ★" error={errors.email}>
+                <Field id="email" label={t('Email ★')} error={errors.email && t(errors.email)}>
                   <input id="email" type="email" value={form.email} onChange={set('email')} autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : undefined} placeholder="name@example.com" className={inputBase} />
                 </Field>
-                <Field id="phone" label="Phone or WhatsApp" error={errors.phone} hint="Include the country code.">
+                <Field id="phone" label={t('Phone or WhatsApp')} error={errors.phone && t(errors.phone)} hint={t('Include the country code.')}>
                   <input id="phone" type="tel" value={form.phone} onChange={set('phone')} autoComplete="tel" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'phone-error' : undefined} placeholder="+212 600 000 000" className={inputBase} />
                 </Field>
-                <Field id="topic" label="What’s this about?">
+                <Field id="topic" label={t('What’s this about?')}>
                   <select id="topic" value={form.topic} onChange={set('topic')} className={inputBase}>
-                    {TOPICS.map((t) => <option key={t}>{t}</option>)}
+                    {TOPICS.map((topic) => <option key={topic}>{t(topic)}</option>)}
                   </select>
                 </Field>
               </div>
 
               <fieldset className="mt-5">
-                <legend className="text-sm font-semibold text-[#0a2a20]">How should we reply?</legend>
+                <legend className="text-sm font-semibold text-[#0a2a20]">{t('How should we reply?')}</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {[['email', 'Email'], ['phone', 'Phone call'], ['whatsapp', 'WhatsApp']].map(([val, label]) => (
                     <label key={val} className={`cursor-pointer rounded-full px-5 py-2.5 text-sm font-medium transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#c9a24b] ${form.reply === val ? 'bg-[#0f3d2e] text-white' : 'bg-[#f3f6f1] text-slate-600 hover:bg-[#e4ecdf]'}`}>
                       <input type="radio" name="reply" value={val} checked={form.reply === val} onChange={set('reply')} className="sr-only" />
-                      {label}
+                      {t(label)}
                     </label>
                   ))}
                 </div>
               </fieldset>
 
               <div className="mt-5">
-                <Field id="message" label="Your message ★" error={errors.message}>
+                <Field id="message" label={t('Your message ★')} error={errors.message && t(errors.message)}>
                   <textarea
                     id="message"
                     rows={6}
@@ -289,7 +295,7 @@ export default function ContactPage() {
                     onChange={set('message')}
                     aria-invalid={Boolean(errors.message)}
                     aria-describedby={errors.message ? 'message-error' : 'message-count'}
-                    placeholder="Where, when, how many people, and anything we should know."
+                    placeholder={t('Where, when, how many people, and anything we should know.')}
                     className={`${inputBase} resize-y leading-relaxed`}
                   />
                 </Field>
@@ -298,13 +304,13 @@ export default function ContactPage() {
 
               {/* Honeypot: hidden from people, visible to bots */}
               <div className="absolute -left-[9999px]" aria-hidden="true">
-                <label>Leave this empty<input tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label>
+                <label>{t('Leave this empty')}<input tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label>
               </div>
 
               {status === 'error' && (
                 <p className="mt-5 flex items-start gap-2 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800" role="alert">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  We couldn’t send your message. Try again, or reach us on {CONTACT.phone} or {CONTACT.email}.
+                  {t('We couldn’t send your message. Try again, or reach us on {{phone}} or {{email}}.', { phone: CONTACT.phone, email: CONTACT.email })}
                 </p>
               )}
 
@@ -313,9 +319,9 @@ export default function ContactPage() {
                 disabled={status === 'sending'}
                 className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a24b] px-8 py-4 text-sm font-bold text-[#082a1f] shadow-lg shadow-[#c9a24b]/30 transition hover:bg-[#e6c877] disabled:cursor-wait disabled:opacity-70 sm:w-auto ${ring}`}
               >
-                {status === 'sending' ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : <>Send message <Send className="h-4 w-4" /></>}
+                {status === 'sending' ? <><Loader2 className="h-4 w-4 animate-spin" /> {t('Sending…')}</> : <>{t('Send message')} <Send className="h-4 w-4" /></>}
               </button>
-              <p className="mt-4 text-xs text-slate-500">We only use your details to answer this message.</p>
+              <p className="mt-4 text-xs text-slate-500">{t('We only use your details to answer this message.')}</p>
             </form>
           )}
         </div>
@@ -324,17 +330,17 @@ export default function ContactPage() {
         <aside className="space-y-6 lg:col-span-2">
           <div className="rounded-3xl bg-[#0f3d2e] p-7 text-white">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-2xl" style={display}><Clock className="h-5 w-5 text-[#e6c877]" /> Office hours</h2>
+              <h2 className="flex items-center gap-2 text-2xl" style={display}><Clock className="h-5 w-5 text-[#e6c877]" /> {t('Office hours')}</h2>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${office.open ? 'bg-emerald-400/20 text-emerald-300' : 'bg-[#c9a24b]/20 text-[#e6c877]'}`}>
-                {office.open ? 'Open now' : 'Closed now'}
+                {t(office.open ? 'Open now' : 'Closed now')}
               </span>
             </div>
-            <p className="mt-2 text-sm text-white/70">Today: {todayHours} (Morocco time)</p>
+            <p className="mt-2 text-sm text-white/70">{t('Today: {{hours}} (Morocco time)', { hours: todayHours })}</p>
             <dl className="mt-5 divide-y divide-white/10 text-sm">
               {orderedDays.map(([day, h]) => (
                 <div key={day} className={`flex justify-between py-2.5 ${day === office.day ? 'font-semibold text-[#e6c877]' : 'text-white/80'}`}>
-                  <dt>{day}</dt>
-                  <dd>{h ? `${fmtHour(h[0])} to ${fmtHour(h[1])}` : 'Closed'}</dd>
+                  <dt>{t(day)}</dt>
+                  <dd>{h ? `${fmtHour(h[0])} ${t('to')} ${fmtHour(h[1])}` : t('Closed')}</dd>
                 </div>
               ))}
             </dl>
@@ -346,18 +352,18 @@ export default function ContactPage() {
               <span className="relative grid h-12 w-12 place-items-center rounded-full bg-[#0f3d2e] text-[#e6c877] shadow-lg"><MapPin className="h-6 w-6" /></span>
             </div>
             <div className="p-6">
-              <h2 className="text-xl text-[#0a2a20]" style={display}>Visit the office</h2>
+              <h2 className="text-xl text-[#0a2a20]" style={display}>{t('Visit the office')}</h2>
               <address className="mt-2 text-sm not-italic leading-relaxed text-slate-600">
                 {CONTACT.address.map((line) => <span key={line} className="block">{line}</span>)}
               </address>
               <a href={CONTACT.mapsHref} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>
-                Get directions <ArrowUpRight className="h-4 w-4" />
+                {t('Get directions')} <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
           </div>
 
           <div className="rounded-3xl bg-white p-6 ring-1 ring-[#0f3d2e]/10">
-            <h2 className="text-xl text-[#0a2a20]" style={display}>Follow our trips</h2>
+            <h2 className="text-xl text-[#0a2a20]" style={display}>{t('Follow our trips')}</h2>
             <div className="mt-4 flex gap-3">
               {CONTACT.socials.map(({ label, href }) => (
                 href ? (
@@ -377,15 +383,15 @@ export default function ContactPage() {
 
       {/* FAQ */}
       <section className="mx-auto max-w-4xl px-5 pb-24 lg:px-8">
-        <h2 className="text-3xl text-[#0a2a20] sm:text-4xl" style={display}>Before you write</h2>
+        <h2 className="text-3xl text-[#0a2a20] sm:text-4xl" style={display}>{t('Before you write')}</h2>
         <div className="mt-6 divide-y divide-[#0f3d2e]/10 rounded-3xl bg-white px-6 ring-1 ring-[#0f3d2e]/10 sm:px-8">
           {FAQS.map(({ q, a }) => (
             <details key={q} className="group py-5">
               <summary className={`flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[#0a2a20] ${ring} rounded`}>
-                {q}
+                {t(q)}
                 <ChevronDown className="h-5 w-5 shrink-0 text-[#c9a24b] transition-transform group-open:rotate-180" />
               </summary>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">{a}</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">{t(a)}</p>
             </details>
           ))}
         </div>

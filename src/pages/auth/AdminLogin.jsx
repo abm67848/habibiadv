@@ -91,6 +91,9 @@ export default function AdminLogin() {
 
   const onKey = (e) => setCapsLock(e.getModifierState?.('CapsLock') ?? false);
 
+  // Detect if the error is specifically about a pending/suspended account
+  const isPendingError = error && (error.toLowerCase().includes('pending') || error.toLowerCase().includes('suspended'));
+
   const inputClass = (hasError) =>
     `w-full rounded-2xl border bg-[#f3f6f1] py-3.5 pl-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 ${
       hasError ? 'border-rose-400 focus:ring-rose-500' : 'border-transparent focus:border-[#c9a24b] focus:ring-[#c9a24b]'
@@ -167,18 +170,48 @@ export default function AdminLogin() {
             <h2 className="text-3xl text-[#0a2a20]" style={display}>Admin sign in</h2>
             <p className="mt-2 text-sm text-slate-600">Use your administrator credentials to continue.</p>
 
-            {error && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 ring-1 ring-rose-200" role="alert">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            {location.state?.message && !error && (
+              <div className="mt-6 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-300" role="status">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                 <div className="flex-1 leading-snug">
-                  {error}
-                  {attempts >= 3 && (
-                    <span className="mt-2 block text-rose-700">
-                      Still stuck? <Link to="/auth/forgot-password" className="font-semibold text-[#0f3d2e] underline underline-offset-2">Reset your password</Link>.
-                    </span>
-                  )}
+                  {location.state.message}
                 </div>
               </div>
+            )}
+
+            {error && (
+              isPendingError ? (
+                /* ── Pending / Suspended Account Banner ── */
+                <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 ring-1 ring-amber-200" role="alert">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 ring-1 ring-amber-300">
+                      <TriangleAlert className="h-5 w-5 text-amber-700" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-amber-900">Account Pending Approval</p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                        {error}
+                      </p>
+                      <p className="mt-2 text-xs text-amber-700">
+                        Please contact your <strong>Manager</strong> or <strong>Administrator</strong> to get your account activated.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ── Standard Error Banner ── */
+                <div className="mt-6 flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 ring-1 ring-rose-200" role="alert">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                  <div className="flex-1 leading-snug">
+                    {error}
+                    {attempts >= 3 && (
+                      <span className="mt-2 block text-rose-700">
+                        Still stuck? <Link to="/auth/forgot-password" className="font-semibold text-[#0f3d2e] underline underline-offset-2">Reset your password</Link>.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
             )}
 
             <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-5">

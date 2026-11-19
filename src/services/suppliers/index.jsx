@@ -1,1 +1,1 @@
-export {};
+export { suppliersApi } from '../../pages/admin/Suppliers/page.jsx';

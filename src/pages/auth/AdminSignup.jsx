@@ -159,18 +159,14 @@ export default function AdminSignup() {
       });
 
       setSuccess(true);
-
-      // If the project requires email confirmation
-      if (data?.user && (!data.session || data.user.identities?.length === 0)) {
-        setInfoMessage('Account created. If email confirmation is required, check the inbox and confirm the email address before signing in.');
-      } else {
-        setInfoMessage('Account created. Redirecting you to sign in…');
-        redirectTimer.current = setTimeout(() => {
-          navigate('/auth/admin-login', {
-            state: { message: 'Account registered successfully! You can now log in.' },
-          });
-        }, 2000);
-      }
+      setInfoMessage('Account registered successfully! Your account is currently in PENDING APPROVAL status. A manager or super admin must approve and activate your account before you can log in.');
+      redirectTimer.current = setTimeout(() => {
+        navigate('/auth/admin-login', {
+          state: {
+            message: 'Registration submitted! Your account is pending approval. You will be able to log in once activated by a manager or super admin.',
+          },
+        });
+      }, 4000);
     } catch (err) {
       console.error('Registration failed:', err);
       setError(getSignupErrorMessage(err));
