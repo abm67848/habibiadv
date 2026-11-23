@@ -13,7 +13,17 @@ import {
   fetchRolePagePermissions,
   saveRolePagePermissions,
   buildDefaultRolePagePermissions,
+  fetchOrSyncRoles,
+  ALWAYS_FULL_ACCESS_ROLES,
 } from '@/services/roleAccessService.js';
+import {
+  SYSTEM_ROLES,
+  formatRoleLabel,
+  formatRoleDescription,
+  getRoleBadgeStyle,
+  getRoleDotStyle,
+  isImmutableRole,
+} from '@/config/rolesConfig.js';
 
 /* ---------- Constants ---------- */
 const PAGE_SIZE = 10;
@@ -48,7 +58,8 @@ const btnPrimary = 'inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 
 const btnDanger = 'inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
 
 const initials = (n = '') => n.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0].toUpperCase()).join('') || '?';
-const roleLabel = (n = '') => n.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+const roleLabel = (n = '') => formatRoleLabel(n, translate);
+const roleDescription = (n = '') => formatRoleDescription(n, translate);
 const isAdminRole = (n = '') => /admin|manager/i.test(n);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const rolesOf = (e) => (e.user_roles || []).map((r) => r.roles).filter(Boolean);
@@ -267,7 +278,7 @@ export default function TeamDirectory() {
 
   // Role Access Matrix State
   const [rolePermissions, setRolePermissions] = useState(() => buildDefaultRolePagePermissions());
-  const [selectedRoleForPerms, setSelectedRoleForPerms] = useState('sales_agent');
+  const [selectedRoleForPerms, setSelectedRoleForPerms] = useState('receptionist');
   const [isPermsSaved, setIsPermsSaved] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [permissionSaving, setPermissionSaving] = useState(false);
@@ -291,12 +302,11 @@ export default function TeamDirectory() {
       setLoading(true); setError(null);
       const [p, r] = await Promise.all([
         supabase.from('profiles').select('*, user_roles!user_id (role_id, roles (id, name, description))').is('deleted_at', null).order('created_at', { ascending: false }),
-        supabase.from('roles').select('*').order('name'),
+        fetchOrSyncRoles(),
       ]);
       if (p.error) throw p.error;
-      if (r.error) throw r.error;
       setEmployees(p.data || []);
-      setRoles(r.data || []);
+      setRoles(r || []);
       try {
         setRolePermissions(await fetchRolePagePermissions());
         setPermissionError(null);
@@ -329,7 +339,12 @@ export default function TeamDirectory() {
 
   /* ----- Derived Lists ----- */
   const selectedEmp = employees.find((e) => e.id === selectedId) || null;
-  const roleOptions = useMemo(() => roles.map((r) => ({ value: r.id, label: roleLabel(r.name), hint: r.description || undefined })), [roles]);
+  const roleOptions = useMemo(() => roles.map((r) => ({
+    value: r.id,
+    label: roleLabel(r.name),
+    hint: roleDescription(r.name) || r.description || undefined,
+    dot: getRoleDotStyle(r.name),
+  })), [roles]);
 
   const pendingEmployees = useMemo(() => {
     return employees.filter((e) => !e.account_status || e.account_status === 'pending');
@@ -554,7 +569,7 @@ export default function TeamDirectory() {
   /* ----- Role Page Access Permission Matrix Handlers ----- */
   const handleTogglePageAccess = (roleKey, pagePath) => {
     if (!canManage) return notify('Solo los managers pueden modificar los permisos de acceso a páginas.', 'error');
-    if (roleKey === 'super_admin' || roleKey === 'manager') return;
+    if (isImmutableRole(roleKey)) return;
     const currentAllowed = rolePermissions[roleKey] || [];
     const isAllowed = currentAllowed.includes(pagePath);
     const updated = isAllowed
@@ -883,12 +898,13 @@ export default function TeamDirectory() {
                 <div className="flex flex-wrap gap-2">
                   {roles.map((role) => {
                     const isSelected = selectedRoleForPerms === role.name;
+                    const immutable = isImmutableRole(role.name);
                     return (
                       <button
-                        key={role.id}
+                        key={role.id || role.name}
                         type="button"
                         onClick={() => setSelectedRoleForPerms(role.name)}
-                        title={role.description || roleLabel(role.name)}
+                        title={roleDescription(role.name)}
                         className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition ${
                           isSelected
                             ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
@@ -897,10 +913,31 @@ export default function TeamDirectory() {
                       >
                         <Shield className={`h-3.5 w-3.5 ${isSelected ? 'text-white' : 'text-amber-600'}`} />
                         <span>{roleLabel(role.name)}</span>
+                        {immutable ? (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-amber-600/70 text-amber-100' : 'bg-slate-200 text-slate-600'}`}>
+                            {translate('Fijo')}
+                          </span>
+                        ) : (
+                          <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : getRoleDotStyle(role.name)}`} />
+                        )}
                       </button>
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Role Description Card */}
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${getRoleDotStyle(selectedRoleForPerms)}`} />
+                  <div>
+                    <span className="font-bold text-slate-900 mr-2">{roleLabel(selectedRoleForPerms)}:</span>
+                    <span className="text-slate-600">{roleDescription(selectedRoleForPerms)}</span>
+                  </div>
+                </div>
+                <Badge cls={getRoleBadgeStyle(selectedRoleForPerms)} dot={getRoleDotStyle(selectedRoleForPerms)}>
+                  {isImmutableRole(selectedRoleForPerms) ? translate('Acceso total permanente') : translate('Permisos configurables')}
+                </Badge>
               </div>
 
               {/* Page Permissions Matrix for Selected Role */}
@@ -915,23 +952,23 @@ export default function TeamDirectory() {
                 </div>
 
                 {/* Managers and super admins retain full access by policy. */}
-                {['manager', 'super_admin'].includes(selectedRoleForPerms) && (
+                {isImmutableRole(selectedRoleForPerms) && (
                   <div className="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
                     <ShieldCheck className="h-5 w-5 shrink-0 text-indigo-600" />
                     <span>
-                      <strong>{roleLabel(selectedRoleForPerms)}</strong> siempre tiene acceso sin restricciones a todas las páginas. Los interruptores de abajo se muestran solo como referencia y no pueden modificarse.
+                      <strong>{roleLabel(selectedRoleForPerms)}</strong> {translate('siempre tiene acceso sin restricciones a todas las páginas de la agencia. Los interruptores de abajo se muestran solo como referencia y no pueden modificarse.')}
                     </span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {ADMIN_PAGES.map((page) => {
-                    const isImmutableRole = ['manager', 'super_admin'].includes(selectedRoleForPerms);
-                    const savedPaths = isImmutableRole
+                    const isImmutable = isImmutableRole(selectedRoleForPerms);
+                    const savedPaths = isImmutable
                       ? ADMIN_PAGES.map((p) => p.path)
                       : (rolePermissions?.[selectedRoleForPerms] || []);
                     const allowedPaths = Array.isArray(savedPaths) ? savedPaths : [];
-                    const isAllowed = isImmutableRole || allowedPaths.includes(page.path);
+                    const isAllowed = isImmutable || allowedPaths.includes(page.path);
                     return (
                       <div
                         key={page.path}
@@ -954,11 +991,11 @@ export default function TeamDirectory() {
 
                         <button
                           type="button"
-                          disabled={!canManage || isImmutableRole}
-                          onClick={() => !isImmutableRole && handleTogglePageAccess(selectedRoleForPerms, page.path)}
-                          title={isImmutableRole ? `${roleLabel(selectedRoleForPerms)} siempre tiene acceso total` : (isAllowed ? 'Haz clic para restringir el acceso' : 'Haz clic para conceder acceso')}
+                          disabled={!canManage || isImmutable}
+                          onClick={() => !isImmutable && handleTogglePageAccess(selectedRoleForPerms, page.path)}
+                          title={isImmutable ? `${roleLabel(selectedRoleForPerms)} siempre tiene acceso total` : (isAllowed ? 'Haz clic para restringir el acceso' : 'Haz clic para conceder acceso')}
                           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            isImmutableRole ? 'cursor-not-allowed opacity-70' : ''
+                            isImmutable ? 'cursor-not-allowed opacity-70' : ''
                           } ${isAllowed ? 'bg-emerald-600' : 'bg-slate-300'}`}
                         >
                           <span
@@ -1317,7 +1354,7 @@ export default function TeamDirectory() {
                           </span>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-900">{roleLabel(r.name)}</p>
-                            {r.description && <p className="truncate text-xs text-slate-400">{r.description}</p>}
+                            <p className="truncate text-xs text-slate-400">{roleDescription(r.name) || r.description}</p>
                           </div>
                         </div>
                         {canManage && (

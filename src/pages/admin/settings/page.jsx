@@ -34,6 +34,7 @@ import {
   Handshake,
 } from 'lucide-react';
 import { useAuth, translate, useAppSettings, ADMIN_LANGUAGES, CURRENCY_LIST, DEFAULT_INVOICE_SETTINGS } from '@/context/index.jsx';
+import { SYSTEM_ROLES, formatRoleLabel, formatRoleDescription } from '@/config/rolesConfig.js';
 
 import ContractTemplateSettingsTab from './ContractTemplateSettingsTab.jsx';
 import AccountSettingsTab from './AccountSettingsTab.jsx';
@@ -1032,23 +1033,16 @@ export default function SettingsPage() {
               </div>
 
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 pt-2">{translate('Roles del sistema definidos')}</h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg border border-slate-200 p-2.5">
-                  <span className="font-semibold text-slate-900">{translate('super_admin')}</span>
-                  <p className="text-[11px] text-slate-500">{translate('Acceso total al sistema; puede gestionar roles y administradores.')}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 p-2.5">
-                  <span className="font-semibold text-slate-900">{translate('administrator')}</span>
-                  <p className="text-[11px] text-slate-500">{translate('Gestiona empleados, operaciones y todos los recursos de la agencia.')}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 p-2.5">
-                  <span className="font-semibold text-slate-900">{translate('manager')}</span>
-                  <p className="text-[11px] text-slate-500">{translate('Supervisa equipos, reservas, destinos y logística.')}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 p-2.5">
-                  <span className="font-semibold text-slate-900">{translate('accountant')}</span>
-                  <p className="text-[11px] text-slate-500">{translate('Gestiona finanzas, pagos, facturas y gastos.')}</p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {SYSTEM_ROLES.map((role) => (
+                  <div key={role.name} className="rounded-lg border border-slate-200 p-2.5 bg-slate-50/50">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-semibold text-slate-900">{formatRoleLabel(role.name, translate)}</span>
+                      <span className="font-mono text-[10px] text-slate-400">({role.name})</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">{formatRoleDescription(role.name, translate)}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}

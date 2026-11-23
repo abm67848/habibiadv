@@ -14,12 +14,10 @@ const ring = 'focus-visible:outline focus-visible:outline-2 focus-visible:outlin
 const ringOnDark = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6c877]';
 
 const AVAILABLE_ROLES = [
-  { id: 'administrator', label: 'Administrator', desc: 'Full operational and staff management' },
   { id: 'manager', label: 'Manager', desc: 'Supervises teams, bookings and operations' },
-  { id: 'sales_agent', label: 'Sales agent', desc: 'Leads, quotations and customer sales' },
-  { id: 'reservation_agent', label: 'Reservation agent', desc: 'Bookings, packages and destinations' },
+  { id: 'receptionist', label: 'Receptionist', desc: 'Customer service, front desk, bookings and inquiries' },
+  { id: 'employee', label: 'Employee', desc: 'Operational tasks, assigned packages and services' },
   { id: 'accountant', label: 'Accountant', desc: 'Finance, invoices, payments and expenses' },
-  { id: 'content_manager', label: 'Content manager', desc: 'Website content, blogs and destinations' },
 ];
 
 const GUIDANCE = [
@@ -99,7 +97,7 @@ export default function AdminSignup() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'administrator',
+    role: 'employee',
     department: 'Operations',
     jobTitle: '',
     phone: '',

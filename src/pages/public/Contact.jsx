@@ -6,6 +6,7 @@ import {
   AlertCircle, Loader2,
 } from 'lucide-react';
 import { DEFAULT_CONTACT_CONTENT, fetchPublicSiteContent } from '@/services/publicSiteContent.js';
+import { submitContactMessage } from '@/services/contactService.js';
 
 const display = { fontFamily: "'Fraunces', Georgia, serif" };
 const body = { fontFamily: "'Manrope', system-ui, sans-serif" };
@@ -40,9 +41,7 @@ const fmtHour = (value) => value;
  * It must resolve on success and throw on failure.
  */
 async function sendContactMessage(payload) {
-  // TODO: connect to your backend. Simulated delay for now.
-  await new Promise((r) => setTimeout(r, 900));
-  return payload;
+  return await submitContactMessage(payload);
 }
 
 function Field({ id, label, error, hint, children }) {

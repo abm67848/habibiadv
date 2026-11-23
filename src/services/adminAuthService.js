@@ -9,7 +9,7 @@ export async function signUpAdmin({
   email,
   password,
   fullName,
-  role = 'administrator',
+  role = 'employee',
   department = '',
   jobTitle = '',
   phone = '',

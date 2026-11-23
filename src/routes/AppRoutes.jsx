@@ -65,6 +65,7 @@ const adminRoutes = [
   ['suppliers/new', AdminPages.NewSupplier],
   ['suppliers/:id', AdminPages.SupplierDetails],
   ['team', AdminPages.Team], // <-- ADDED: The new Team Directory route
+  ['messages', AdminPages.ContactMessages],
 ];
 
 const publicRoutes = [

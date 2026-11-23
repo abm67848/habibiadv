@@ -11,6 +11,7 @@ import {
   FileText,
   LayoutDashboard,
   LifeBuoy,
+  Mail,
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
@@ -62,6 +63,7 @@ const NAVIGATION_GROUPS = [
       { nameKey: 'nav_blog', fallbackName: 'Blog y Artículos', path: '/admin/blog', icon: BookOpen },
       { nameKey: 'nav_bookings', fallbackName: 'Reservas', path: '/admin/bookings', icon: CalendarDays },
       { nameKey: 'nav_customers', fallbackName: 'Clientes', path: '/admin/customers', icon: Users },
+      { nameKey: 'nav_messages', fallbackName: 'Mensajes de contacto', path: '/admin/messages', icon: Mail },
     ],
   },
   {

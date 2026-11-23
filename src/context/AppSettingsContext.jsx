@@ -82,6 +82,7 @@ export const ADMIN_TRANSLATIONS = {
     nav_packages: 'Packages & Services',
     nav_bookings: 'Bookings',
     nav_customers: 'Customers',
+    nav_messages: 'Contact Messages',
     nav_suppliers: 'Suppliers',
     nav_contracts: 'Contracts',
     nav_finance_title: 'Finance',
@@ -149,6 +150,18 @@ export const ADMIN_TRANSLATIONS = {
     amount: 'Amount',
     customer: 'Customer',
     action: 'Action',
+
+    // Roles
+    role_super_admin: 'Super Admin',
+    role_super_admin_desc: 'Full system access, security management, and role permission administration.',
+    role_manager: 'Manager',
+    role_manager_desc: 'Full administrative access across operations, teams, bookings, logistics, and settings.',
+    role_receptionist: 'Receptionist',
+    role_receptionist_desc: 'Front-desk customer care, reservation handling, check-in, and daily client inquiries.',
+    role_employee: 'Employee',
+    role_employee_desc: 'Operational staff member with role-based access to assigned packages and travel tasks.',
+    role_accountant: 'Accountant',
+    role_accountant_desc: 'Financial management, customer billing, payment ledgers, invoices, and expenses.',
   },
   fr: {
     nav_overview: 'APERÇU',
@@ -160,6 +173,7 @@ export const ADMIN_TRANSLATIONS = {
     nav_packages: 'Packages & Services',
     nav_bookings: 'Réservations',
     nav_customers: 'Clients',
+    nav_messages: 'Messages de contact',
     nav_suppliers: 'Fournisseurs',
     nav_contracts: 'Contrats',
     nav_finance_title: 'Finances',
@@ -221,6 +235,18 @@ export const ADMIN_TRANSLATIONS = {
     amount: 'Montant',
     customer: 'Client',
     action: 'Action',
+
+    // Roles
+    role_super_admin: 'Super Admin',
+    role_super_admin_desc: 'Accès total au système, gestion de la sécurité et administration des permissions.',
+    role_manager: 'Manager',
+    role_manager_desc: 'Accès administratif complet aux opérations, équipes, réservations, logistique et paramètres.',
+    role_receptionist: 'Réceptionniste',
+    role_receptionist_desc: 'Accueil clientèle, prise en charge des réservations, enregistrement et demandes quotidiennes.',
+    role_employee: 'Employé',
+    role_employee_desc: 'Membre opérationnel avec accès aux voyages, forfaits et tâches assignées.',
+    role_accountant: 'Comptable',
+    role_accountant_desc: 'Gestion financière, facturation client, registres de paiement et dépenses opérationnelles.',
   },
   ar: {
     nav_overview: 'نظرة عامة',
@@ -232,6 +258,7 @@ export const ADMIN_TRANSLATIONS = {
     nav_packages: 'الباقات والخدمات',
     nav_bookings: 'الحجوزات',
     nav_customers: 'الزبناء',
+    nav_messages: 'رسائل التواصل',
     nav_suppliers: 'الموردون والشركاء',
     nav_contracts: 'العقود والاتفاقيات',
     nav_finance_title: 'المالية',
@@ -293,6 +320,18 @@ export const ADMIN_TRANSLATIONS = {
     amount: 'المبلغ',
     customer: 'الزبون',
     action: 'إجراء',
+
+    // Roles
+    role_super_admin: 'المشرف العام (Super Admin)',
+    role_super_admin_desc: 'وصول كامل وشامل للنظام وإدارة صلاحيات الأمان وأدوار الفريق.',
+    role_manager: 'المدير (Manager)',
+    role_manager_desc: 'صلاحيات إدارية شاملة للعمليات والفريق والحجوزات واللوجستيك والإعدادات.',
+    role_receptionist: 'موظف الاستقبال (Receptionist)',
+    role_receptionist_desc: 'خدمة واستقبال العملاء، إدارة الحجوزات، تسجيل الوصول والاستفسارات اليومية.',
+    role_employee: 'موظف (Employee)',
+    role_employee_desc: 'عضو تنفيذي في الفريق يتمتع بصلاحيات لإدارة الباقات والمهام المسندة إليه.',
+    role_accountant: 'المحاسب (Accountant)',
+    role_accountant_desc: 'إدارة المالية والمحاسبة وفواتير العملاء وسجلات الدفع والمصروفات.',
   },
   es: {
     nav_overview: 'RESUMEN',
@@ -304,6 +343,7 @@ export const ADMIN_TRANSLATIONS = {
     nav_packages: 'Paquetes y Servicios',
     nav_bookings: 'Reservas',
     nav_customers: 'Clientes',
+    nav_messages: 'Mensajes de contacto',
     nav_suppliers: 'Proveedores',
     nav_contracts: 'Contratos',
     nav_finance_title: 'Finanzas',
@@ -365,6 +405,18 @@ export const ADMIN_TRANSLATIONS = {
     amount: 'Importe',
     customer: 'Cliente',
     action: 'Acción',
+
+    // Roles
+    role_super_admin: 'Super Admin',
+    role_super_admin_desc: 'Acceso total al sistema, gestión de seguridad y administración de permisos de roles.',
+    role_manager: 'Manager',
+    role_manager_desc: 'Acceso administrativo total a operaciones, equipos, reservas, logística y configuración.',
+    role_receptionist: 'Recepcionista',
+    role_receptionist_desc: 'Atención al cliente, recepción, gestión de reservas y consultas diarias.',
+    role_employee: 'Empleado',
+    role_employee_desc: 'Personal operativo con acceso por roles a paquetes y tareas de viaje asignadas.',
+    role_accountant: 'Contable',
+    role_accountant_desc: 'Gestión financiera, facturación a clientes, cobros, pagos y control de gastos.',
   },
 };
 

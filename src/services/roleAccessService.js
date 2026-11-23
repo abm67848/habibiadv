@@ -1,5 +1,12 @@
 // Role Page Access & Security Service
+// Integrates with Centralized Roles Configuration (rolesConfig.js) and Supabase
 import { supabase } from '../lib/supabase/client.jsx';
+import {
+  SYSTEM_ROLES,
+  SYSTEM_ROLE_NAMES,
+  IMMUTABLE_ROLES,
+  getRoleDefinition,
+} from '../config/rolesConfig.js';
 
 export const ADMIN_PAGES = [
   {
@@ -8,7 +15,7 @@ export const ADMIN_PAGES = [
     name: 'Dashboard',
     group: 'Overview',
     description: 'Main metrics, recent bookings and operational overview',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'accountant', 'content_manager', 'tour_guide'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee', 'accountant'],
   },
   {
     path: '/admin/packages',
@@ -16,7 +23,7 @@ export const ADMIN_PAGES = [
     name: 'Packages & Services',
     group: 'Sales & operations',
     description: 'Travel packages, tours, itineraries, and inclusions',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'content_manager'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee'],
   },
   {
     path: '/admin/blog',
@@ -24,7 +31,7 @@ export const ADMIN_PAGES = [
     name: 'Blog Articles',
     group: 'Sales & operations',
     description: 'Travel stories, guides, and articles for the public blog',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'content_manager'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee'],
   },
   {
     path: '/admin/bookings',
@@ -32,7 +39,7 @@ export const ADMIN_PAGES = [
     name: 'Bookings',
     group: 'Sales & operations',
     description: 'Reservations, traveler manifests, and booking management',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'accountant'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'accountant'],
   },
   {
     path: '/admin/customers',
@@ -40,7 +47,15 @@ export const ADMIN_PAGES = [
     name: 'Customers',
     group: 'Sales & operations',
     description: 'Customer directory, contact details, and travel history',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist'],
+  },
+  {
+    path: '/admin/messages',
+    key: 'messages',
+    name: 'Contact Messages & Inquiries',
+    group: 'Sales & operations',
+    description: 'Direct inquiries and requests received from the public /contact form',
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee'],
   },
   {
     path: '/admin/suppliers',
@@ -48,7 +63,7 @@ export const ADMIN_PAGES = [
     name: 'Suppliers',
     group: 'Partners',
     description: 'Hotels, transport providers, local guides, and contracts',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'reservation_agent'],
+    defaultRoles: ['super_admin', 'manager'],
   },
   {
     path: '/admin/contracts',
@@ -56,7 +71,7 @@ export const ADMIN_PAGES = [
     name: 'Contracts',
     group: 'Partners',
     description: 'Official 16-section travel contracts, PDF generation, and signatures',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'accountant'],
+    defaultRoles: ['super_admin', 'manager', 'accountant'],
   },
   {
     path: '/admin/finance',
@@ -64,7 +79,7 @@ export const ADMIN_PAGES = [
     name: 'Finance',
     group: 'Finance',
     description: 'Cashflow overview, supplier payments, and financial summaries',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'accountant'],
+    defaultRoles: ['super_admin', 'manager', 'accountant'],
   },
   {
     path: '/admin/payments-transactions',
@@ -72,7 +87,7 @@ export const ADMIN_PAGES = [
     name: 'Payments & Transactions',
     group: 'Finance',
     description: 'Client invoices, deposit payments, transaction ledgers, and refunds',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'accountant'],
+    defaultRoles: ['super_admin', 'manager', 'accountant'],
   },
   {
     path: '/admin/expenses',
@@ -80,7 +95,7 @@ export const ADMIN_PAGES = [
     name: 'Expenses',
     group: 'Finance',
     description: 'Operational expenses, supplier invoices, and receipts',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'accountant'],
+    defaultRoles: ['super_admin', 'manager', 'accountant'],
   },
   {
     path: '/admin/analytics',
@@ -88,7 +103,7 @@ export const ADMIN_PAGES = [
     name: 'Analytics',
     group: 'Insights',
     description: 'Revenue graphs, booking conversion, and performance reporting',
-    defaultRoles: ['super_admin', 'administrator', 'manager'],
+    defaultRoles: ['super_admin', 'manager'],
   },
   {
     path: '/admin/team',
@@ -96,7 +111,7 @@ export const ADMIN_PAGES = [
     name: 'Team Directory & Roles',
     group: 'Administration',
     description: 'Staff accounts, role assignments, approvals, and page access control',
-    defaultRoles: ['super_admin', 'administrator', 'manager'],
+    defaultRoles: ['super_admin', 'manager'],
   },
   {
     path: '/admin/settings',
@@ -104,7 +119,7 @@ export const ADMIN_PAGES = [
     name: 'Settings',
     group: 'Administration',
     description: 'Currency, contract templates, language, and agency branding',
-    defaultRoles: ['super_admin', 'administrator', 'manager'],
+    defaultRoles: ['super_admin', 'manager'],
   },
   {
     path: '/admin/profile',
@@ -112,7 +127,7 @@ export const ADMIN_PAGES = [
     name: 'Profile',
     group: 'Administration',
     description: 'Personal account profile and preferences',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'accountant', 'content_manager', 'tour_guide'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee', 'accountant'],
   },
   {
     path: '/admin/support',
@@ -120,32 +135,21 @@ export const ADMIN_PAGES = [
     name: 'Support',
     group: 'Help',
     description: 'Support center, documentation, and operational help',
-    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'accountant', 'content_manager', 'tour_guide'],
+    defaultRoles: ['super_admin', 'manager', 'receptionist', 'employee', 'accountant'],
   },
 ];
 
 const PRIVILEGED_ROLE = 'super_admin';
-const ALWAYS_FULL_ACCESS_ROLES = ['super_admin', 'manager'];
+export const ALWAYS_FULL_ACCESS_ROLES = IMMUTABLE_ROLES;
 
 /**
  * Builds the default permissions mapping: { [roleName]: string[] of allowed paths }
  */
 export function buildDefaultRolePagePermissions() {
-  const roles = [
-    'super_admin',
-    'administrator',
-    'manager',
-    'sales_agent',
-    'reservation_agent',
-    'accountant',
-    'content_manager',
-    'tour_guide',
-  ];
-
   const allPaths = ADMIN_PAGES.map((p) => p.path);
   const permissions = {};
-  roles.forEach((role) => {
-    if (role === PRIVILEGED_ROLE || role === 'administrator' || role === 'manager') {
+  SYSTEM_ROLE_NAMES.forEach((role) => {
+    if (ALWAYS_FULL_ACCESS_ROLES.includes(role)) {
       permissions[role] = allPaths;
     } else {
       permissions[role] = ADMIN_PAGES.filter((page) => page.defaultRoles.includes(role)).map((page) => page.path);
@@ -168,6 +172,95 @@ function normalizeRolePermissions(permissions = {}) {
   });
 
   return normalized;
+}
+
+/**
+ * Ensures all system roles exist in Supabase and returns the unified list of roles.
+ * If the database only has super_admin, this automatically syncs manager, receptionist,
+ * employee, and accountant so the UI and permission matrix always have all roles available.
+ */
+export async function fetchOrSyncRoles() {
+  let dbRoles = [];
+  try {
+    const { data, error } = await supabase.from('roles').select('*');
+    if (!error && Array.isArray(data)) {
+      dbRoles = data;
+    }
+  } catch (err) {
+    console.warn('Could not query roles table:', err);
+  }
+
+  const existingMap = new Map();
+  dbRoles.forEach((r) => {
+    if (r?.name) existingMap.set(r.name.toLowerCase(), r);
+  });
+
+  const missingSystemRoles = SYSTEM_ROLES.filter((sysRole) => !existingMap.has(sysRole.name));
+
+  // If there are missing roles, attempt to insert them into public.roles
+  if (missingSystemRoles.length > 0) {
+    try {
+      const rowsToInsert = missingSystemRoles.map((r) => ({
+        name: r.name,
+        description: r.defaultDescription,
+      }));
+      const { data: inserted, error: insertError } = await supabase
+        .from('roles')
+        .insert(rowsToInsert)
+        .select('*');
+
+      if (!insertError && Array.isArray(inserted)) {
+        inserted.forEach((r) => {
+          if (r?.name) existingMap.set(r.name.toLowerCase(), r);
+        });
+      }
+    } catch (insertErr) {
+      console.warn('Could not auto-insert missing system roles to database:', insertErr);
+    }
+  }
+
+  // Build the complete combined list of roles
+  const combinedRoles = [];
+
+  // Add system roles in their defined order
+  SYSTEM_ROLES.forEach((sysRole) => {
+    const fromDb = existingMap.get(sysRole.name);
+    if (fromDb) {
+      combinedRoles.push({
+        ...fromDb,
+        labelKey: sysRole.labelKey,
+        defaultLabel: sysRole.defaultLabel,
+        descriptionKey: sysRole.descriptionKey,
+        isImmutable: sysRole.isImmutable,
+        order: sysRole.order,
+      });
+    } else {
+      // Deterministic fallback ID if database insert was blocked
+      combinedRoles.push({
+        id: `sys-role-${sysRole.name}`,
+        name: sysRole.name,
+        description: sysRole.defaultDescription,
+        labelKey: sysRole.labelKey,
+        defaultLabel: sysRole.defaultLabel,
+        descriptionKey: sysRole.descriptionKey,
+        isImmutable: sysRole.isImmutable,
+        order: sysRole.order,
+      });
+    }
+  });
+
+  // Add any custom roles that might exist in the database beyond system roles
+  dbRoles.forEach((dbRole) => {
+    if (dbRole?.name && !SYSTEM_ROLE_NAMES.includes(dbRole.name.toLowerCase())) {
+      combinedRoles.push({
+        ...dbRole,
+        isImmutable: false,
+        order: 99,
+      });
+    }
+  });
+
+  return combinedRoles;
 }
 
 /**
@@ -199,8 +292,38 @@ export async function saveRolePagePermissions(permissions, roles, updatedBy) {
   }
 
   const normalized = normalizeRolePermissions(permissions);
+
+  // If any role has a synthetic ID (sys-role-...), attempt to resolve or insert it in DB first
+  for (const role of roles) {
+    if (role?.id && String(role.id).startsWith('sys-role-')) {
+      try {
+        const { data: dbRole } = await supabase
+          .from('roles')
+          .select('id, name')
+          .eq('name', role.name)
+          .maybeSingle();
+
+        if (dbRole?.id) {
+          role.id = dbRole.id;
+        } else {
+          const { data: createdRole } = await supabase
+            .from('roles')
+            .insert([{ name: role.name, description: role.description || '' }])
+            .select('id')
+            .maybeSingle();
+          if (createdRole?.id) {
+            role.id = createdRole.id;
+          }
+        }
+      } catch (err) {
+        console.warn(`Could not sync role ${role.name} before saving permissions:`, err);
+      }
+    }
+  }
+
+  // Filter to rows with real UUIDs (not sys-role-...)
   const rows = roles
-    .filter((role) => role?.id && role?.name)
+    .filter((role) => role?.id && role?.name && !String(role.id).startsWith('sys-role-'))
     .map((role) => ({
       role_id: role.id,
       allowed_paths: normalized[role.name] || [],
@@ -208,14 +331,12 @@ export async function saveRolePagePermissions(permissions, roles, updatedBy) {
       updated_at: new Date().toISOString(),
     }));
 
-  if (rows.length === 0) {
-    throw new Error('No valid roles are available to save page access for.');
+  if (rows.length > 0) {
+    const { error } = await supabase
+      .from('role_page_permissions')
+      .upsert(rows, { onConflict: 'role_id' });
+    if (error) throw error;
   }
-
-  const { error } = await supabase
-    .from('role_page_permissions')
-    .upsert(rows, { onConflict: 'role_id' });
-  if (error) throw error;
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('role-permissions-updated', { detail: normalized }));
