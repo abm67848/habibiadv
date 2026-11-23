@@ -14,6 +14,9 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS invitation_email TEXT;
 
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS phone TEXT;
+
 -- ── STEP 2: Trigger function on profiles table ─────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_profile_pending_status()
 RETURNS TRIGGER
@@ -53,17 +56,23 @@ BEGIN
   INSERT INTO public.profiles (
     id,
     full_name,
+    invitation_email,
+    phone,
     account_status,
     employment_status
   )
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    NEW.email,
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'phone', ''), NULLIF(NEW.phone, '')),
     'pending',
     'probation'
   )
   ON CONFLICT (id) DO UPDATE
-    SET account_status = CASE 
+    SET invitation_email = COALESCE(NULLIF(profiles.invitation_email, ''), EXCLUDED.invitation_email),
+        phone = COALESCE(NULLIF(profiles.phone, ''), EXCLUDED.phone),
+        account_status = CASE
           WHEN profiles.account_status = 'active' THEN 'active'
           ELSE 'pending'
         END;
@@ -77,6 +86,23 @@ CREATE TRIGGER on_auth_user_created_pending
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_auth_user_created();
+
+  -- Backfill contact details for accounts created before the profile trigger stored them.
+  UPDATE public.profiles AS profile
+  SET invitation_email = COALESCE(NULLIF(profile.invitation_email, ''), auth_user.email),
+      phone = COALESCE(
+        NULLIF(profile.phone, ''),
+        NULLIF(auth_user.raw_user_meta_data->>'phone', ''),
+        NULLIF(auth_user.phone, '')
+      )
+  FROM auth.users AS auth_user
+  WHERE auth_user.id = profile.id
+    AND (
+      profile.invitation_email IS NULL
+      OR profile.invitation_email = ''
+      OR profile.phone IS NULL
+      OR profile.phone = ''
+    );
 
 -- ── STEP 4: Activate your manager account (elyoussfiayoub66@gmail.com) ───
 -- This uses auth.users.email to find your user id safely regardless of column names!

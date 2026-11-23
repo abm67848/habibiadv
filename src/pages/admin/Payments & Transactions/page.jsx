@@ -3,19 +3,26 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   CreditCard, Search, Plus, DollarSign, RefreshCw, X, CheckCircle2, AlertTriangle, FileText,
-  ArrowUpRight, ArrowDownLeft, Download, ChevronDown, ChevronRight, Check, Copy, Trash2
+  ArrowUpRight, ArrowDownLeft, Download, ChevronDown, ChevronRight, Check, Copy, Trash2, Eye, RotateCcw,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth, useAppSettings, translate } from '../../../context/index.jsx';
 import { buildInvoicePdf, getInvoiceFileName, getTransactionReference } from '../../../services/documents/invoicePdfService.js';
 import AdvancedInvoiceModal from '@/components/shared/AdvancedInvoiceModal.jsx';
-import { Eye } from 'lucide-react';
 
 /* ---------- Helpers ---------- */
-const fmtMoney = (n) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+const fmtMoney = (n) => Number(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 });
 const fmtDateTime = (d) =>
-  d ? new Date(d).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-const methodLabel = (m = '') => m.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  d ? new Date(d).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+const METHOD_LABELS = {
+  card: 'Tarjeta',
+  cash: 'Efectivo',
+  bank_transfer: 'Transferencia bancaria',
+  other: 'Otro',
+};
+const methodLabel = (m = '') =>
+  METHOD_LABELS[m] || m.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
 /* ---------- Shared style tokens ---------- */
 const inputCls =
@@ -28,26 +35,26 @@ const btnPrimary =
   'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-500 shadow-sm transition disabled:opacity-50';
 
 const TXN_STATUS = {
-  completed: { label: 'Completed', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  pending: { label: 'Pending', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  failed: { label: 'Failed', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
-  voided: { label: 'Voided', dot: 'bg-slate-400', cls: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  completed: { label: 'Completado', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  pending: { label: 'Pendiente', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  failed: { label: 'Fallido', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
+  voided: { label: 'Anulado', dot: 'bg-slate-400', cls: 'bg-slate-100 text-slate-600 ring-slate-200' },
 };
 const STATUS_OPTIONS = Object.entries(TXN_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
 const RECORD_STATUS_OPTIONS = [
-  { value: 'completed', label: 'Completed', hint: 'Locked once saved', dot: 'bg-emerald-500' },
-  { value: 'pending', label: 'Pending', dot: 'bg-amber-500' },
-  { value: 'failed', label: 'Failed', dot: 'bg-rose-500' },
+  { value: 'completed', label: 'Completado', hint: 'Se bloquea al guardar', dot: 'bg-emerald-500' },
+  { value: 'pending', label: 'Pendiente', dot: 'bg-amber-500' },
+  { value: 'failed', label: 'Fallido', dot: 'bg-rose-500' },
 ];
 const TYPE_OPTIONS = [
-  { value: 'payment', label: 'Payment', hint: 'Money received', dot: 'bg-emerald-500' },
-  { value: 'refund', label: 'Refund', hint: 'Money returned', dot: 'bg-rose-500' },
+  { value: 'payment', label: 'Pago', hint: 'Dinero recibido', dot: 'bg-emerald-500' },
+  { value: 'refund', label: 'Reembolso', hint: 'Dinero devuelto', dot: 'bg-rose-500' },
 ];
 const METHOD_OPTIONS = [
-  { value: 'card', label: 'Card' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'bank_transfer', label: 'Bank transfer' },
-  { value: 'other', label: 'Other' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'bank_transfer', label: 'Transferencia bancaria' },
+  { value: 'other', label: 'Otro' },
 ];
 
 const EMPTY_FORM = {
@@ -57,7 +64,7 @@ const EMPTY_FORM = {
 
 /* ---------- Small presentational pieces ---------- */
 function StatusBadge({ status }) {
-  const s = TXN_STATUS[status] || { label: status || 'Unknown', dot: 'bg-slate-400', cls: 'bg-slate-50 text-slate-700 ring-slate-200' };
+  const s = TXN_STATUS[status] || { label: status || 'Desconocido', dot: 'bg-slate-400', cls: 'bg-slate-50 text-slate-700 ring-slate-200' };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${s.cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
@@ -74,7 +81,7 @@ function TypeBadge({ type }) {
       <span className={`w-6 h-6 rounded-md flex items-center justify-center ${refund ? 'bg-rose-50' : 'bg-emerald-50'}`}>
         <Icon className="w-3.5 h-3.5" />
       </span>
-      {refund ? 'Refund' : 'Payment'}
+      {refund ? 'Reembolso' : 'Pago'}
     </span>
   );
 }
@@ -104,7 +111,7 @@ function ModalHeader({ title, subtitle, onClose }) {
         <h3 className="text-base font-semibold text-slate-900">{title}</h3>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
-      <button onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Close">
+      <button onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Cerrar">
         <X className="w-5 h-5" />
       </button>
     </div>
@@ -112,9 +119,9 @@ function ModalHeader({ title, subtitle, onClose }) {
 }
 
 /* ---------- Custom dropdown (portal menu, keyboard support, optional search) ----------
-   Options: { value, label, hint?, dot?, disabled? } */
+   Options: { value, label, hint?, dot?, color?, disabled? } */
 function Select({
-  value, onChange, options, placeholder = 'Select…', searchable = false, prefix,
+  value, onChange, options, placeholder = 'Selecciona…', searchable = false, prefix,
   compact = false, disabled = false, ariaLabel, className = '', menuMinWidth = 200, emptyValue = 'ALL',
 }) {
   const [open, setOpen] = useState(false);
@@ -204,13 +211,16 @@ function Select({
       case 'End': if (!searchable) { e.preventDefault(); setActive(visible.length - 1); } break;
       case 'Enter': e.preventDefault(); choose(visible[active]); break;
       case ' ': if (!searchable) { e.preventDefault(); choose(visible[active]); } break;
-      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break; // don't also close the modal behind
+      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break; // no cierra también el modal de fondo
       case 'Tab': setOpen(false); break;
       default: break;
     }
   };
 
   const isFiltered = prefix && value !== emptyValue && value !== '' && value != null;
+  const marker = (o, size) =>
+    o?.color ? <span className={`${size} rounded-full shrink-0`} style={{ backgroundColor: o.color }} /> :
+    o?.dot ? <span className={`${size} rounded-full shrink-0 ${o.dot}`} /> : null;
 
   return (
     <div className={`relative ${className}`}>
@@ -228,7 +238,7 @@ function Select({
           ${open ? 'border-amber-500 ring-2 ring-amber-500/20' : isFiltered ? 'border-amber-300 bg-amber-50/60' : 'border-slate-200 hover:border-slate-300'}`}
       >
         <span className="flex items-center gap-2 min-w-0">
-          {selected?.dot && <span className={`w-2 h-2 rounded-full shrink-0 ${selected.dot}`} />}
+          {marker(selected, 'w-2 h-2')}
           {prefix && <span className="text-slate-400 shrink-0">{prefix}</span>}
           <span className={`truncate ${selected ? (isFiltered ? 'text-amber-900 font-medium' : 'text-slate-800') : 'text-slate-400'}`}>
             {selected ? selected.label : placeholder}
@@ -253,8 +263,8 @@ function Select({
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setActive(0); }}
                   onKeyDown={onKeyDown}
-                  placeholder="Search"
-                  aria-label="Search options"
+                  placeholder="Buscar"
+                  aria-label="Buscar opciones"
                   className="w-full bg-stone-50 rounded-md pl-8 pr-2 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500/30"
                 />
               </div>
@@ -262,7 +272,7 @@ function Select({
           )}
           <ul ref={listRef} role="listbox" className="overflow-y-auto p-1">
             {visible.length === 0 ? (
-              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('No matches')}</li>
+              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('Sin coincidencias')}</li>
             ) : (
               visible.map((o, i) => {
                 const isSel = o.value === value;
@@ -277,7 +287,7 @@ function Select({
                     className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm cursor-pointer
                       ${i === active ? 'bg-amber-50' : ''} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
-                    {o.dot && <span className={`w-2 h-2 rounded-full shrink-0 ${o.dot}`} />}
+                    {marker(o, 'w-2 h-2')}
                     <span className="flex-1 min-w-0">
                       <span className={`block truncate ${isSel ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>{o.label}</span>
                       {o.hint && <span className="block truncate text-xs text-slate-400">{o.hint}</span>}
@@ -291,6 +301,99 @@ function Select({
         </div>,
         document.body
       )}
+    </div>
+  );
+}
+
+/* ---------- Empty state graphics ---------- */
+function EmptyIllustrationPayments() {
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-40 w-auto" role="img" aria-label="Ilustración de pagos y facturas">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+
+      {/* Factura (atrás, inclinada a la izquierda) */}
+      <g transform="rotate(-5 100 100)">
+        <rect x="38" y="40" width="112" height="106" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="52" y="56" width="44" height="7" rx="3.5" className="fill-slate-200" />
+        <rect x="52" y="70" width="28" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="92" width="84" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="104" width="84" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="116" width="52" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="130" width="40" height="7" rx="3.5" className="fill-slate-300" />
+      </g>
+
+      {/* Tarjeta de transacción (delante, inclinada a la derecha) */}
+      <g transform="rotate(4 205 100)">
+        <rect x="138" y="62" width="134" height="88" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <circle cx="168" cy="88" r="15" className="fill-emerald-100" />
+        <path d="M168 96v-16m-6 6 6-6 6 6" className="stroke-emerald-600" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <rect x="192" y="80" width="58" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="192" y="93" width="36" height="5" rx="2.5" className="fill-slate-200" />
+        <rect x="154" y="118" width="44" height="14" rx="7" className="fill-emerald-100" />
+        <circle cx="164" cy="125" r="3" className="fill-emerald-500" />
+        <rect x="208" y="123" width="42" height="6" rx="3" className="fill-amber-200" />
+      </g>
+
+      {/* Moneda con signo + */}
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <circle cx="262" cy="52" r="14" className="fill-none stroke-amber-200" strokeWidth="1.5" />
+      <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
+
+      <circle cx="40" cy="30" r="4" className="fill-amber-200" />
+      <circle cx="288" cy="124" r="3" className="fill-amber-300" />
+      <circle cx="28" cy="156" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+function EmptyStatePayments({ hasFilters, onClearFilters, onCreate }) {
+  if (hasFilters) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+          <Search aria-hidden="true" className="h-6 w-6" />
+        </span>
+        <h3 className="mt-4 text-base font-semibold text-slate-900">Ninguna transacción coincide con estos filtros</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">Prueba con otra búsqueda o quita algunos filtros.</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={onClearFilters} className={btnGhost}>
+            <RotateCcw className="w-4 h-4" />Borrar todos los filtros
+          </button>
+          <button type="button" onClick={onCreate} className={btnPrimary}>
+            <Plus className="w-4 h-4" />Registrar transacción
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="px-6 py-14 text-center">
+      <EmptyIllustrationPayments />
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">Aún no hay transacciones</h3>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        Registra el primer pago o reembolso de una reserva para empezar a llevar el control de tus ingresos.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={onCreate} className={btnPrimary}>
+          <Plus className="w-4 h-4" />Registrar primera transacción
+        </button>
+        <button type="button" onClick={onClearFilters} className={btnGhost}>
+          <RefreshCw className="w-4 h-4" />Actualizar
+        </button>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {[
+          ['Elige una reserva', 'Cada pago o reembolso se asocia a una reserva existente.'],
+          ['Registra el importe', 'Indica el tipo, el método y el estado de la transacción.'],
+          ['Descarga la factura', 'Genera la factura o la nota de crédito en PDF al instante.'],
+        ].map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -339,6 +442,7 @@ export default function PaymentsPage() {
       });
     } catch (err) {
       console.error('Error viewing invoice:', err);
+      setError('No se pudo abrir la factura: ' + (err.message || 'Error desconocido'));
     }
   };
 
@@ -362,7 +466,7 @@ export default function PaymentsPage() {
       setBookings(bookingsRes.data || []);
     } catch (err) {
       console.error('Error fetching payments:', err);
-      setError('Could not load payments. Check that migration 0006 has been applied.');
+      setError('No se pudieron cargar los pagos. Comprueba que la migración 0006 esté aplicada.');
     } finally {
       setLoading(false);
     }
@@ -386,7 +490,7 @@ export default function PaymentsPage() {
   );
 
   const methodFilterOptions = useMemo(
-    () => [{ value: 'ALL', label: 'All' }, ...paymentMethods.map((m) => ({ value: m, label: methodLabel(m) }))],
+    () => [{ value: 'ALL', label: 'Todos' }, ...paymentMethods.map((m) => ({ value: m, label: methodLabel(m) }))],
     [paymentMethods]
   );
 
@@ -415,6 +519,7 @@ export default function PaymentsPage() {
   }, [payments, searchQuery, statusFilter, typeFilter, methodFilter]);
 
   const hasFilters = searchQuery || statusFilter !== 'ALL' || typeFilter !== 'ALL' || methodFilter !== 'ALL';
+  const clearFilters = () => { setSearchQuery(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setMethodFilter('ALL'); };
 
   const stats = useMemo(() => {
     const sum = (type) => payments
@@ -428,10 +533,16 @@ export default function PaymentsPage() {
   const selectedBooking = bookings.find((b) => b.id === formData.booking_id);
 
   /* ----- Actions ----- */
+  const openRecordModal = () => {
+    setFormData(EMPTY_FORM);
+    setError(null);
+    setIsRecordModalOpen(true);
+  };
+
   const handleRecordPayment = async (e) => {
     e.preventDefault();
     if (!formData.booking_id || !formData.amount) {
-      setError('Choose a booking and enter an amount.');
+      setError('Elige una reserva e introduce un importe.');
       return;
     }
     try {
@@ -451,21 +562,21 @@ export default function PaymentsPage() {
       }]);
       if (insertErr) throw insertErr;
 
-      flash('Transaction recorded.');
+      flash('Transacción registrada.');
       setIsRecordModalOpen(false);
       setFormData(EMPTY_FORM);
       await fetchData();
     } catch (err) {
       console.error('Error recording payment:', err);
-      setError('Could not record the transaction: ' + (err.message || 'Unknown error'));
+      setError('No se pudo registrar la transacción: ' + (err.message || 'Error desconocido'));
     } finally {
       setFormSubmitting(false);
     }
   };
 
   const handleDeletePayment = async (payment) => {
-    const type = payment.transaction_type === 'refund' ? 'refund' : 'payment';
-    if (!window.confirm(`Permanently delete this ${type} of ${fmtMoney(payment.amount)} ${payment.currency || ''}? This cannot be undone.`)) return;
+    const type = payment.transaction_type === 'refund' ? 'reembolso' : 'pago';
+    if (!window.confirm(`¿Eliminar permanentemente este ${type} de ${fmtMoney(payment.amount)} ${payment.currency || ''}? Esta acción no se puede deshacer.`)) return;
 
     try {
       setDeletingPaymentId(payment.id);
@@ -476,14 +587,14 @@ export default function PaymentsPage() {
         .eq('id', payment.id)
         .select('id');
       if (deleteError) throw deleteError;
-      if (!data?.length) throw new Error('No matching transaction was deleted. It may have already been removed.');
+      if (!data?.length) throw new Error('No se eliminó ninguna transacción. Es posible que ya se haya borrado.');
 
       setPayments((current) => current.filter((item) => item.id !== payment.id));
-      setInvoiceModalData((current) => current?.payment?.id === payment.id ? null : current);
-      flash('Transaction deleted.');
+      setInvoiceModalData((current) => (current?.payment?.id === payment.id ? null : current));
+      flash('Transacción eliminada.');
     } catch (deleteError) {
       console.error('Error deleting payment transaction:', deleteError);
-      setError('Could not delete the transaction: ' + (deleteError.message || 'Unknown error'));
+      setError('No se pudo eliminar la transacción: ' + (deleteError.message || 'Error desconocido'));
     } finally {
       setDeletingPaymentId(null);
     }
@@ -500,7 +611,7 @@ export default function PaymentsPage() {
         .eq('id', payment.booking_id)
         .single();
       if (fetchErr) throw fetchErr;
-      if (!booking) throw new Error('Could not find the booking for this transaction.');
+      if (!booking) throw new Error('No se encontró la reserva de esta transacción.');
 
       const ledger = payments.filter((p) => p.booking_id === payment.booking_id);
       const doc = await buildInvoicePdf({
@@ -512,10 +623,10 @@ export default function PaymentsPage() {
         defaultCurrency: globalCurrency,
       });
       doc.save(getInvoiceFileName(payment, invoiceConfig));
-      flash('Invoice downloaded.', 3000);
+      flash('Factura descargada.', 3000);
     } catch (err) {
       console.error('Error generating PDF:', err);
-      setError('Could not generate the invoice: ' + err.message);
+      setError('No se pudo generar la factura: ' + err.message);
     } finally {
       setGeneratingId(null);
     }
@@ -524,10 +635,10 @@ export default function PaymentsPage() {
   const testSql = 'SELECT * FROM booking_financials;';
 
   const statCards = [
-    { label: 'Total transactions', value: stats.totalTransactions, icon: CreditCard, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
-    { label: 'Payments in', value: `${fmtMoney(stats.completedPayments)} ${globalCurrency}`, icon: ArrowDownLeft, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Refunds out', value: `${fmtMoney(stats.totalRefunds)} ${globalCurrency}`, icon: ArrowUpRight, tone: 'text-rose-600', chip: 'bg-rose-50 text-rose-600' },
-    { label: 'Net revenue', value: `${fmtMoney(stats.netRevenue)} ${globalCurrency}`, icon: DollarSign, tone: 'text-slate-900', chip: 'bg-sky-50 text-sky-600' },
+    { label: 'Total de transacciones', value: stats.totalTransactions, icon: CreditCard, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
+    { label: 'Pagos recibidos', value: `${fmtMoney(stats.completedPayments)} ${globalCurrency}`, icon: ArrowDownLeft, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Reembolsos emitidos', value: `${fmtMoney(stats.totalRefunds)} ${globalCurrency}`, icon: ArrowUpRight, tone: 'text-rose-600', chip: 'bg-rose-50 text-rose-600' },
+    { label: 'Ingresos netos', value: `${fmtMoney(stats.netRevenue)} ${globalCurrency}`, icon: DollarSign, tone: 'text-slate-900', chip: 'bg-sky-50 text-sky-600' },
   ];
 
   /* ---------- Render ---------- */
@@ -543,16 +654,16 @@ export default function PaymentsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Payments and invoices')}</h1>
-            <p className="text-sm text-slate-500 mt-1">{translate('Track transactions, download invoices and monitor net revenue.')}</p>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Pagos y facturas')}</h1>
+            <p className="text-sm text-slate-500 mt-1">{translate('Controla las transacciones, descarga facturas y supervisa los ingresos netos.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setIsSqlModalOpen(true)} className={btnGhost}>
-              <FileText className="w-4 h-4 text-slate-500" />{translate('Test SQL')}</button>
-            <button onClick={fetchData} className={btnGhost} title="Refresh records">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Refresh')}</button>
-            <button onClick={() => { setFormData(EMPTY_FORM); setError(null); setIsRecordModalOpen(true); }} className={btnPrimary}>
-              <Plus className="w-4 h-4" />{translate('Record transaction')}</button>
+              <FileText className="w-4 h-4 text-slate-500" />{translate('SQL de prueba')}</button>
+            <button onClick={fetchData} className={btnGhost} title="Actualizar registros">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Actualizar')}</button>
+            <button onClick={openRecordModal} className={btnPrimary}>
+              <Plus className="w-4 h-4" />{translate('Registrar transacción')}</button>
           </div>
         </div>
 
@@ -566,7 +677,7 @@ export default function PaymentsPage() {
           <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm rp-pop">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             <span className="flex-1">{error}</span>
-            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Dismiss"><X className="w-4 h-4" /></button>
+            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Descartar"><X className="w-4 h-4" /></button>
           </div>
         )}
 
@@ -593,26 +704,26 @@ export default function PaymentsPage() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by transaction or booking reference"
+                  placeholder="Buscar por referencia de transacción o de reserva"
+                  aria-label="Buscar transacciones"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={`${inputCls} pl-9`}
                 />
               </div>
-              <Select className="lg:w-52" prefix="Status" ariaLabel="Status filter" value={statusFilter} onChange={setStatusFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...STATUS_OPTIONS]} />
-              <Select className="lg:w-48" prefix="Type" ariaLabel="Type filter" value={typeFilter} onChange={setTypeFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...TYPE_OPTIONS]} />
-              <Select className="lg:w-52" prefix="Method" ariaLabel="Payment method filter" value={methodFilter} onChange={setMethodFilter}
+              <Select className="lg:w-52" prefix="Estado" ariaLabel="Filtro de estado" value={statusFilter} onChange={setStatusFilter}
+                options={[{ value: 'ALL', label: 'Todos' }, ...STATUS_OPTIONS]} />
+              <Select className="lg:w-48" prefix="Tipo" ariaLabel="Filtro de tipo" value={typeFilter} onChange={setTypeFilter}
+                options={[{ value: 'ALL', label: 'Todos' }, ...TYPE_OPTIONS]} />
+              <Select className="lg:w-56" prefix="Método" ariaLabel="Filtro de método de pago" value={methodFilter} onChange={setMethodFilter}
                 options={methodFilterOptions} />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>{filteredPayments.length} of {payments.length} transactions</span>
+              <span>{filteredPayments.length} de {payments.length} transacciones</span>
               {hasFilters && (
-                <button
-                  onClick={() => { setSearchQuery(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setMethodFilter('ALL'); }}
-                  className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2"
-                >{translate('Clear filters')}</button>
+                <button onClick={clearFilters} className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2">
+                  {translate('Borrar filtros')}
+                </button>
               )}
             </div>
           </div>
@@ -621,12 +732,12 @@ export default function PaymentsPage() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-stone-50 border-b border-slate-100 text-xs font-medium text-slate-500">
-                  <th className="py-3 px-4">{translate('Transaction')}</th>
-                  <th className="py-3 px-4">{translate('Type')}</th>
-                  <th className="py-3 px-4">{translate('Booking')}</th>
-                  <th className="py-3 px-4">{translate('Method')}</th>
-                  <th className="py-3 px-4 text-right">{translate('Amount')}</th>
-                  <th className="py-3 px-4">{translate('Status')}</th>
+                  <th className="py-3 px-4">{translate('Transacción')}</th>
+                  <th className="py-3 px-4">{translate('Tipo')}</th>
+                  <th className="py-3 px-4">{translate('Reserva')}</th>
+                  <th className="py-3 px-4">{translate('Método')}</th>
+                  <th className="py-3 px-4 text-right">{translate('Importe')}</th>
+                  <th className="py-3 px-4">{translate('Estado')}</th>
                   <th className="py-3 px-4 w-44" />
                 </tr>
               </thead>
@@ -634,14 +745,12 @@ export default function PaymentsPage() {
                 {loading ? (
                   <tr>
                     <td colSpan="7" className="py-16 text-center text-slate-400">
-                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Loading transactions…')}</td>
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Cargando transacciones…')}</td>
                   </tr>
                 ) : filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-16 text-center text-slate-500">
-                      <CreditCard className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      <p className="font-medium text-slate-700">{translate('No transactions match')}</p>
-                      <p className="text-xs mt-1">{translate('Try a different search or clear the filters.')}</p>
+                    <td colSpan="7">
+                      <EmptyStatePayments hasFilters={hasFilters} onClearFilters={hasFilters ? clearFilters : fetchData} onCreate={openRecordModal} />
                     </td>
                   </tr>
                 ) : (
@@ -676,21 +785,22 @@ export default function PaymentsPage() {
                               onClick={(e) => { e.stopPropagation(); viewInvoice(p); }}
                               onKeyDown={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition"
-                              title="View interactive invoice"
+                              title="Ver factura interactiva"
                             >
                               <Eye className="w-3.5 h-3.5 text-amber-600" />
-                              <span className="hidden sm:inline">View</span>
+                              <span className="hidden sm:inline">Ver</span>
                             </button>
 
                             <button
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); generateInvoice(p); }}
                               onKeyDown={(e) => e.stopPropagation()}
                               disabled={generatingId !== null || !canInvoice}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
-                              title={canInvoice ? 'Download PDF invoice' : 'Only completed transactions can be invoiced'}
+                              title={canInvoice ? 'Descargar factura en PDF' : 'Solo las transacciones completadas pueden facturarse'}
                             >
                               {busy ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                              {refund ? 'Credit note' : 'Invoice'}
+                              {refund ? 'Nota de crédito' : 'Factura'}
                             </button>
                             <button
                               type="button"
@@ -698,8 +808,8 @@ export default function PaymentsPage() {
                               onKeyDown={(e) => e.stopPropagation()}
                               disabled={deleting || generatingId === p.id}
                               className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                              title="Delete transaction"
-                              aria-label={`Delete ${p.transaction_type || 'payment'} transaction`}
+                              title="Eliminar transacción"
+                              aria-label={`Eliminar ${refund ? 'reembolso' : 'pago'}`}
                             >
                               {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             </button>
@@ -716,78 +826,78 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* ================= RECORD TRANSACTION ================= */}
+      {/* ================= REGISTRAR TRANSACCIÓN ================= */}
       {isRecordModalOpen && (
         <Modal onClose={() => setIsRecordModalOpen(false)}>
-          <ModalHeader title="Record transaction" subtitle="Payments and refunds are added to the booking ledger." onClose={() => setIsRecordModalOpen(false)} />
+          <ModalHeader title="Registrar transacción" subtitle="Los pagos y reembolsos se añaden al libro de cuentas de la reserva." onClose={() => setIsRecordModalOpen(false)} />
           <form onSubmit={handleRecordPayment} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
             <div className="space-y-3">
-              <SectionTitle icon={FileText}>{translate('Booking')}</SectionTitle>
+              <SectionTitle icon={FileText}>{translate('Reserva')}</SectionTitle>
               <div>
-                <label className={labelCls}>{translate('Booking *')}</label>
+                <label className={labelCls}>{translate('Reserva *')}</label>
                 <Select
                   searchable
                   value={formData.booking_id}
                   onChange={(v) => setFormData((p) => ({ ...p, booking_id: v }))}
                   options={bookingOptions}
-                  placeholder="Select a booking"
-                  ariaLabel="Booking"
+                  placeholder="Selecciona una reserva"
+                  ariaLabel="Reserva"
                   menuMinWidth={320}
                 />
               </div>
             </div>
 
             <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={DollarSign}>{translate('Transaction')}</SectionTitle>
+              <SectionTitle icon={DollarSign}>{translate('Transacción')}</SectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>{translate('Type')}</label>
-                  <Select value={formData.transaction_type} onChange={(v) => setFormData((p) => ({ ...p, transaction_type: v }))} options={TYPE_OPTIONS} ariaLabel="Transaction type" />
+                  <label className={labelCls}>{translate('Tipo')}</label>
+                  <Select value={formData.transaction_type} onChange={(v) => setFormData((p) => ({ ...p, transaction_type: v }))} options={TYPE_OPTIONS} ariaLabel="Tipo de transacción" />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Method')}</label>
-                  <Select value={formData.payment_method} onChange={(v) => setFormData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Payment method" />
+                  <label className={labelCls}>{translate('Método')}</label>
+                  <Select value={formData.payment_method} onChange={(v) => setFormData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Método de pago" />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Amount *')}</label>
+                  <label className={labelCls}>{translate('Importe *')}</label>
                   <input type="number" step="0.01" min="0.01" required placeholder="5000.00" value={formData.amount}
                     onChange={(e) => setFormData((p) => ({ ...p, amount: e.target.value }))} className={inputCls} />
                   <p className="text-xs text-slate-400 mt-1">
-                    Currency: {selectedBooking ? selectedBooking.currency : formData.currency}{selectedBooking ? ' (from the booking)' : ''}
+                    Moneda: {selectedBooking ? selectedBooking.currency : formData.currency}{selectedBooking ? ' (de la reserva)' : ''}
                   </p>
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Status')}</label>
-                  <Select value={formData.transaction_status} onChange={(v) => setFormData((p) => ({ ...p, transaction_status: v }))} options={RECORD_STATUS_OPTIONS} ariaLabel="Transaction status" menuMinWidth={220} />
+                  <label className={labelCls}>{translate('Estado')}</label>
+                  <Select value={formData.transaction_status} onChange={(v) => setFormData((p) => ({ ...p, transaction_status: v }))} options={RECORD_STATUS_OPTIONS} ariaLabel="Estado de la transacción" menuMinWidth={220} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelCls}>{translate('Reference (optional)')}</label>
-                  <input type="text" placeholder="e.g. TXN-998234" value={formData.transaction_reference}
+                  <label className={labelCls}>{translate('Referencia (opcional)')}</label>
+                  <input type="text" placeholder="p. ej. TXN-998234" value={formData.transaction_reference}
                     onChange={(e) => setFormData((p) => ({ ...p, transaction_reference: e.target.value }))} className={inputCls} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelCls}>{translate('Notes')}</label>
-                  <textarea rows="2" placeholder="Receipt or deposit notes" value={formData.notes}
+                  <label className={labelCls}>{translate('Notas')}</label>
+                  <textarea rows="2" placeholder="Notas del recibo o del depósito" value={formData.notes}
                     onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} className={inputCls} />
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
-              <button type="button" onClick={() => setIsRecordModalOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Recording…' : 'Record transaction'}</button>
+              <button type="button" onClick={() => setIsRecordModalOpen(false)} className={btnGhost}>{translate('Cancelar')}</button>
+              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Registrando…' : 'Registrar transacción'}</button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ================= TEST SQL ================= */}
+      {/* ================= SQL DE PRUEBA ================= */}
       {isSqlModalOpen && (
         <Modal onClose={() => setIsSqlModalOpen(false)} maxW="max-w-3xl" dark>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-amber-500" />
-              <h3 className="text-sm font-semibold text-white">{translate('Test SQL')}</h3>
+              <h3 className="text-sm font-semibold text-white">{translate('SQL de prueba')}</h3>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -799,9 +909,9 @@ export default function PaymentsPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition"
               >
                 {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copiedSql ? 'Copied' : 'Copy SQL'}
+                {copiedSql ? 'Copiado' : 'Copiar SQL'}
               </button>
-              <button onClick={() => setIsSqlModalOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-lg" aria-label="Close">
+              <button onClick={() => setIsSqlModalOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-lg" aria-label="Cerrar">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -812,7 +922,7 @@ export default function PaymentsPage() {
         </Modal>
       )}
 
-      {/* Advanced Invoice Viewer Modal */}
+      {/* Visor avanzado de facturas */}
       <AdvancedInvoiceModal
         isOpen={Boolean(invoiceModalData)}
         onClose={() => setInvoiceModalData(null)}

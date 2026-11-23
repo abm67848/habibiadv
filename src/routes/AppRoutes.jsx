@@ -44,6 +44,7 @@ function ProtectedAdminPage({ path, Component }) {
 
 const adminRoutes = [
   ['analytics', AdminPages.Analytics],
+  ['blog', AdminPages.Blog],
   ['bookings', AdminPages.Bookings],
   ['contracts', AdminPages.Contracts],
   ['customers', AdminPages.Customers],
@@ -91,6 +92,7 @@ const publicRoutes = [
   ['/custom-trip-inquiry', PublicPages.CustomTripInquiry],
   ['/terms', PublicPages.Terms],
   ['/privacy', PublicPages.Privacy],
+  ['/cookies', PublicPages.Cookies],
 ];
 
 const customerRoutes = [

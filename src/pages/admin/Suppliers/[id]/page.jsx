@@ -16,6 +16,12 @@ const TYPE_ICONS = {
   car_rental: Car, transport_company: Bus, local_guide: Flag, activity_provider: Compass,
 };
 
+const TYPE_LABELS = {
+  hotel: 'Hotel', riad: 'Riad', resort: 'Resort', restaurant: 'Restaurante', airline: 'Aerolínea',
+  car_rental: 'Alquiler de coches', transport_company: 'Empresa de transporte',
+  local_guide: 'Guía local', activity_provider: 'Proveedor de actividades',
+};
+
 const DETAIL_TABLES = {
   hotel: 'supplier_hotels',
   riad: 'supplier_riads',
@@ -30,13 +36,13 @@ const DETAIL_TABLES = {
 };
 
 const STATUS = {
-  active: { dot: 'bg-emerald-500', pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  pending: { dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  blacklisted: { dot: 'bg-rose-500', pill: 'bg-rose-50 text-rose-700 ring-rose-200' },
-  inactive: { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  expired: { dot: 'bg-rose-500', pill: 'bg-rose-50 text-rose-700 ring-rose-200' },
-  pending_renewal: { dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  terminated: { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  active: { dot: 'bg-emerald-500', pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200', label: 'Activo' },
+  pending: { dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-700 ring-amber-200', label: 'Pendiente' },
+  blacklisted: { dot: 'bg-rose-500', pill: 'bg-rose-50 text-rose-700 ring-rose-200', label: 'En lista negra' },
+  inactive: { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 ring-slate-200', label: 'Inactivo' },
+  expired: { dot: 'bg-rose-500', pill: 'bg-rose-50 text-rose-700 ring-rose-200', label: 'Caducado' },
+  pending_renewal: { dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-700 ring-amber-200', label: 'Pendiente de renovación' },
+  terminated: { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 ring-slate-200', label: 'Terminado' },
 };
 
 const EMPTY_SERVICE = { service_name: '', service_category: 'accommodation', description: '', unit: 'per_night', base_price: '', currency: 'MAD', status: 'active' };
@@ -44,7 +50,7 @@ const EMPTY_CONTACT = { full_name: '', position: '', email: '', phone: '', is_pr
 const EMPTY_LOCATION = { location_name: '', country: '', city: '', address: '', latitude: '', longitude: '', notes: '' };
 const EMPTY_CONTRACT = { contract_reference: '', contract_type: 'Master Service Agreement', start_date: '', end_date: '', payment_terms: 'Net 30', currency: 'MAD', status: 'active', notes: '' };
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : '—');
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('es-ES') : '—');
 const daysUntil = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
 const label = (s) => String(s || '').replace(/_/g, ' ');
 
@@ -57,9 +63,9 @@ const inputCls =
 function Pill({ status }) {
   const s = STATUS[status] || STATUS.inactive;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${s.pill}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${s.pill}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-      {label(status) || 'unknown'}
+      {s.label}
     </span>
   );
 }
@@ -93,7 +99,7 @@ function Info({ label: l, children, mono }) {
 function Field({ label: l, required, children, className = '' }) {
   return (
     <label className={`block text-sm font-medium text-slate-700 ${className}`}>
-      {l}{required && <span className="ml-0.5 text-red-500">{translate('*')}</span>}
+      {l}{required && <span className="ml-0.5 text-red-500">*</span>}
       {children}
     </label>
   );
@@ -119,13 +125,13 @@ function Modal({ title, subtitle, onClose, onSubmit, submitLabel, busy, children
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
             {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
             <X aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
         <div className="space-y-4 p-5">{children}</div>
         <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{translate('Cancel')}</button>
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{translate('Cancelar')}</button>
           <button type="submit" disabled={busy} className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 disabled:opacity-60">
             {submitLabel}
           </button>
@@ -267,10 +273,10 @@ export default function SupplierDetailsPage() {
       try {
         setPackageError('');
         const packageRelations = [
-          ['offer_accommodations', 'Accommodation'],
-          ['offer_transports', 'Transport'],
-          ['offer_activities', 'Activity'],
-          ['offer_costs', 'Cost'],
+          ['offer_accommodations', 'Alojamiento'],
+          ['offer_transports', 'Transporte'],
+          ['offer_activities', 'Actividad'],
+          ['offer_costs', 'Coste'],
         ];
         const relationResults = await Promise.all(
           packageRelations.map(async ([table, type]) => {
@@ -300,7 +306,7 @@ export default function SupplierDetailsPage() {
         }
       } catch (packageFetchError) {
         console.error('Error fetching packages connected to supplier:', packageFetchError);
-        setPackageError(packageFetchError.message || 'Failed to load connected packages.');
+        setPackageError(packageFetchError.message || 'No se pudieron cargar los paquetes conectados.');
       }
 
       setSupplier({
@@ -316,7 +322,7 @@ export default function SupplierDetailsPage() {
       setConnectedPackages(connectedOffers);
     } catch (err) {
       console.error('Error fetching supplier details:', err);
-      setError(err.message || 'Failed to load supplier details.');
+      setError(err.message || 'No se pudieron cargar los detalles del proveedor.');
     } finally {
       setLoading(false);
       setLoadingPackages(false);
@@ -341,18 +347,18 @@ export default function SupplierDetailsPage() {
     try {
       const { error } = await supabase.from('suppliers').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
-      showToast(`Supplier status updated to ${newStatus}`);
+      showToast(`Estado del proveedor actualizado a ${STATUS[newStatus]?.label || newStatus}`);
       fetchSupplierData();
-    } catch (err) { fail('Error updating status', err); }
+    } catch (err) { fail('Error al actualizar el estado', err); }
   };
 
   const handleDeleteSupplier = async () => {
-    if (!confirm('Are you sure you want to delete (soft delete) this supplier?')) return;
+    if (!confirm('¿Seguro que quieres eliminar (borrado lógico) este proveedor?')) return;
     try {
       const { error } = await supabase.from('suppliers').update({ deleted_at: new Date().toISOString(), status: 'inactive' }).eq('id', id);
       if (error) throw error;
       navigate('/admin/suppliers');
-    } catch (err) { fail('Error deleting supplier', err); }
+    } catch (err) { fail('Error al eliminar el proveedor', err); }
   };
 
   /* ---------------- generic save/delete ---------------- */
@@ -413,11 +419,11 @@ export default function SupplierDetailsPage() {
         currency: serviceForm.currency || 'MAD',
         status: serviceForm.status,
       },
-      okAdd: 'Service added successfully',
-      okEdit: 'Service updated successfully',
+      okAdd: 'Servicio añadido correctamente',
+      okEdit: 'Servicio actualizado correctamente',
       close: setServiceModalOpen,
       reset: () => { setEditingService(null); setServiceForm(EMPTY_SERVICE); },
-      failPrefix: 'Error saving service',
+      failPrefix: 'Error al guardar el servicio',
     });
   };
 
@@ -445,11 +451,11 @@ export default function SupplierDetailsPage() {
       table: 'supplier_contacts',
       editing: editingContact,
       payload: { supplier_id: id, ...contactForm },
-      okAdd: 'Contact added',
-      okEdit: 'Contact updated',
+      okAdd: 'Contacto añadido',
+      okEdit: 'Contacto actualizado',
       close: setContactModalOpen,
       reset: () => { setEditingContact(null); setContactForm(EMPTY_CONTACT); },
-      failPrefix: 'Error saving contact',
+      failPrefix: 'Error al guardar el contacto',
     });
   };
 
@@ -458,9 +464,9 @@ export default function SupplierDetailsPage() {
       await supabase.from('supplier_contacts').update({ is_primary: false }).eq('supplier_id', id);
       const { error } = await supabase.from('supplier_contacts').update({ is_primary: true }).eq('id', contactId);
       if (error) throw error;
-      showToast('Primary contact updated');
+      showToast('Contacto principal actualizado');
       fetchSupplierData();
-    } catch (err) { fail('Error setting primary contact', err); }
+    } catch (err) { fail('Error al establecer el contacto principal', err); }
   };
 
   /* ---------------- locations ---------------- */
@@ -493,18 +499,18 @@ export default function SupplierDetailsPage() {
         latitude: locationForm.latitude ? Number(locationForm.latitude) : null,
         longitude: locationForm.longitude ? Number(locationForm.longitude) : null,
       },
-      okAdd: 'Location added',
-      okEdit: 'Location updated',
+      okAdd: 'Ubicación añadida',
+      okEdit: 'Ubicación actualizada',
       close: setLocationModalOpen,
       reset: () => { setEditingLocation(null); setLocationForm(EMPTY_LOCATION); },
-      failPrefix: 'Error saving location',
+      failPrefix: 'Error al guardar la ubicación',
     });
   };
 
   /* ---------------- documents ---------------- */
   const handleDocumentUpload = async (e) => {
     e.preventDefault();
-    if (!docFile) return showToast('Please select a file.', 'error');
+    if (!docFile) return showToast('Por favor, selecciona un archivo.', 'error');
     setUploadingDoc(true);
     try {
       const fileExt = docFile.name.split('.').pop();
@@ -523,23 +529,23 @@ export default function SupplierDetailsPage() {
       }]);
       if (dbError) throw dbError;
 
-      showToast('Document uploaded securely');
+      showToast('Documento subido de forma segura');
       setDocumentModalOpen(false);
       setDocFile(null); setDocName(''); setDocExpiry(''); setDocNotes('');
       fetchSupplierData();
-    } catch (err) { fail('Error uploading document', err); }
+    } catch (err) { fail('Error al subir el documento', err); }
     finally { setUploadingDoc(false); }
   };
 
   const handleDeleteDocument = async (docId, storagePath) => {
-    if (!confirm('Delete document?')) return;
+    if (!confirm('¿Eliminar el documento?')) return;
     try {
       await supabase.storage.from('supplier-documents').remove([storagePath]);
       const { error } = await supabase.from('supplier_documents').delete().eq('id', docId);
       if (error) throw error;
-      showToast('Document deleted');
+      showToast('Documento eliminado');
       fetchSupplierData();
-    } catch (err) { fail('Error deleting document', err); }
+    } catch (err) { fail('Error al eliminar el documento', err); }
   };
 
   const handleDownloadDoc = async (storagePath) => {
@@ -547,7 +553,7 @@ export default function SupplierDetailsPage() {
       const { data, error } = await supabase.storage.from('supplier-documents').createSignedUrl(storagePath, 60);
       if (error) throw error;
       window.open(data.signedUrl, '_blank');
-    } catch (err) { fail('Error getting signed URL', err); }
+    } catch (err) { fail('Error al obtener la URL firmada', err); }
   };
 
   /* ---------------- contracts ---------------- */
@@ -580,18 +586,18 @@ export default function SupplierDetailsPage() {
       table: 'supplier_contracts',
       editing: editingContract,
       payload: { supplier_id: id, ...contractForm },
-      okAdd: 'Contract registered',
-      okEdit: 'Contract updated',
+      okAdd: 'Contrato registrado',
+      okEdit: 'Contrato actualizado',
       close: setContractModalOpen,
       reset: () => { setEditingContract(null); setContractForm(EMPTY_CONTRACT); },
-      failPrefix: 'Error saving contract',
+      failPrefix: 'Error al guardar el contrato',
     });
   };
 
   /* ---------------- loading / error ---------------- */
   if (loading && !supplier) {
     return (
-      <div className="mx-auto max-w-7xl animate-pulse space-y-5 p-4 sm:p-6" role="status" aria-label="Loading supplier">
+      <div className="mx-auto max-w-7xl animate-pulse space-y-5 p-4 sm:p-6" role="status" aria-label="Cargando proveedor">
         <div className="h-4 w-32 rounded bg-slate-100" />
         <div className="h-44 rounded-2xl bg-slate-100" />
         <div className="h-10 rounded-xl bg-slate-100" />
@@ -608,9 +614,9 @@ export default function SupplierDetailsPage() {
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200">
           <AlertTriangle aria-hidden="true" className="h-8 w-8" />
         </span>
-        <h2 className="mt-4 text-xl font-bold text-slate-900">{translate('Supplier not found')}</h2>
-        <p className="mt-1.5 text-sm text-slate-500">{error || 'The requested supplier could not be loaded.'}</p>
-        <button onClick={() => navigate('/admin/suppliers')} className="mt-6 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600">{translate('Back to suppliers')}</button>
+        <h2 className="mt-4 text-xl font-bold text-slate-900">Proveedor no encontrado</h2>
+        <p className="mt-1.5 text-sm text-slate-500">{error || 'No se pudo cargar el proveedor solicitado.'}</p>
+        <button onClick={() => navigate('/admin/suppliers')} className="mt-6 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600">Volver a proveedores</button>
       </div>
     );
   }
@@ -627,22 +633,22 @@ export default function SupplierDetailsPage() {
   const notes = supplier.internal_notes || supplier.notes;
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: Building2 },
-    { id: 'services', label: 'Services & rates', icon: Tag, count: supplier.supplier_services.length },
-    { id: 'contacts', label: 'Contacts', icon: Users, count: supplier.supplier_contacts.length },
-    { id: 'locations', label: 'Locations', icon: MapPin, count: supplier.supplier_locations.length },
-    { id: 'documents', label: 'Documents', icon: FileText, count: supplier.supplier_documents.length },
-    { id: 'contracts', label: 'Contracts', icon: Briefcase, count: supplier.supplier_contracts.length },
-    { id: 'packages', label: 'Packages', icon: Compass, count: connectedPackages.length },
-    { id: 'history', label: 'Activity', icon: Clock, count: supplier.supplier_activity_logs.length },
+    { id: 'overview', label: 'Resumen', icon: Building2 },
+    { id: 'services', label: 'Servicios y tarifas', icon: Tag, count: supplier.supplier_services.length },
+    { id: 'contacts', label: 'Contactos', icon: Users, count: supplier.supplier_contacts.length },
+    { id: 'locations', label: 'Ubicaciones', icon: MapPin, count: supplier.supplier_locations.length },
+    { id: 'documents', label: 'Documentos', icon: FileText, count: supplier.supplier_documents.length },
+    { id: 'contracts', label: 'Contratos', icon: Briefcase, count: supplier.supplier_contracts.length },
+    { id: 'packages', label: 'Paquetes', icon: Compass, count: connectedPackages.length },
+    { id: 'history', label: 'Actividad', icon: Clock, count: supplier.supplier_activity_logs.length },
   ];
 
   const kpis = [
-    { label: 'Total services', value: supplier.supplier_services.length, icon: Tag, tone: 'bg-slate-100 text-slate-600' },
-    { label: 'Active services', value: activeServicesCount, icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Linked packages', value: connectedPackages.length, icon: Compass, tone: 'bg-amber-50 text-amber-600' },
-    { label: 'Contract', value: activeContract ? 'Active' : 'None', icon: Briefcase, tone: 'bg-indigo-50 text-indigo-600' },
-    { label: 'Last activity', value: lastLog ? fmtDate(lastLog.created_at) : 'None yet', icon: Clock, tone: 'bg-slate-100 text-slate-600', small: true },
+    { label: 'Total de servicios', value: supplier.supplier_services.length, icon: Tag, tone: 'bg-slate-100 text-slate-600' },
+    { label: 'Servicios activos', value: activeServicesCount, icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Paquetes vinculados', value: connectedPackages.length, icon: Compass, tone: 'bg-amber-50 text-amber-600' },
+    { label: 'Contrato', value: activeContract ? 'Activo' : 'Ninguno', icon: Briefcase, tone: 'bg-indigo-50 text-indigo-600' },
+    { label: 'Última actividad', value: lastLog ? fmtDate(lastLog.created_at) : 'Sin actividad', icon: Clock, tone: 'bg-slate-100 text-slate-600', small: true },
   ];
 
   return (
@@ -657,17 +663,17 @@ export default function SupplierDetailsPage() {
         >
           {toast.tone === 'error' ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
           <span className="max-w-xs">{toast.message}</span>
-          <button type="button" onClick={() => setToast(null)} aria-label="Dismiss" className="rounded p-0.5 hover:bg-white/10">
+          <button type="button" onClick={() => setToast(null)} aria-label="Descartar" className="rounded p-0.5 hover:bg-white/10">
             <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
+      <nav aria-label="Migas de pan" className="flex items-center gap-2 text-sm">
         <Link to="/admin/suppliers" className="inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-slate-900">
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />{translate('Suppliers')}</Link>
-        <span className="text-slate-300">{translate('/')}</span>
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />Proveedores</Link>
+        <span className="text-slate-300">/</span>
         <span className="truncate font-medium text-slate-800">{supplier.name}</span>
       </nav>
 
@@ -691,17 +697,17 @@ export default function SupplierDetailsPage() {
                 }`}
               >
                 <Power aria-hidden="true" className="h-4 w-4" />
-                {supplier.status === 'active' ? 'Deactivate' : 'Activate'}
+                {supplier.status === 'active' ? 'Desactivar' : 'Activar'}
               </button>
               {supplier.status !== 'blacklisted' ? (
                 <button onClick={() => handleStatusChange('blacklisted')}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100">
-                  <Ban aria-hidden="true" className="h-4 w-4" />{translate('Blacklist')}</button>
+                  <Ban aria-hidden="true" className="h-4 w-4" />Lista negra</button>
               ) : (
                 <button onClick={() => handleStatusChange('active')}
-                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100">{translate('Remove from blacklist')}</button>
+                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100">Quitar de lista negra</button>
               )}
-              <button onClick={handleDeleteSupplier} title="Delete supplier" aria-label="Delete supplier"
+              <button onClick={handleDeleteSupplier} title="Eliminar proveedor" aria-label="Eliminar proveedor"
                 className="rounded-lg border border-slate-200 p-2.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600">
                 <Trash2 aria-hidden="true" className="h-4 w-4" />
               </button>
@@ -713,8 +719,8 @@ export default function SupplierDetailsPage() {
             <Pill status={supplier.status} />
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <span className="inline-flex items-center gap-1.5 font-medium capitalize text-amber-700">
-              <TypeIcon aria-hidden="true" className="h-4 w-4" /> {label(supplier.supplier_type)}
+            <span className="inline-flex items-center gap-1.5 font-medium text-amber-700">
+              <TypeIcon aria-hidden="true" className="h-4 w-4" /> {TYPE_LABELS[supplier.supplier_type] || label(supplier.supplier_type)}
             </span>
             {supplier.supplier_code && <span className="font-mono text-slate-400">· {supplier.supplier_code}</span>}
           </p>
@@ -731,7 +737,7 @@ export default function SupplierDetailsPage() {
             )}
             {supplier.website && (
               <a href={supplier.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-amber-700 hover:underline">
-                <Globe aria-hidden="true" className="h-4 w-4" /> Website <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                <Globe aria-hidden="true" className="h-4 w-4" /> Sitio web <ExternalLink aria-hidden="true" className="h-3 w-3" />
               </a>
             )}
           </div>
@@ -739,7 +745,7 @@ export default function SupplierDetailsPage() {
       </header>
 
       {/* Tabs */}
-      <div role="tablist" aria-label="Supplier sections" className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div role="tablist" aria-label="Secciones del proveedor" className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         {tabs.map((tab) => {
           const on = activeTab === tab.id;
           return (
@@ -779,31 +785,31 @@ export default function SupplierDetailsPage() {
 
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              <Card icon={Building2} title="General information">
-                <p className="text-sm leading-relaxed text-slate-600">{supplier.description || 'No description provided.'}</p>
+              <Card icon={Building2} title="Información general">
+                <p className="text-sm leading-relaxed text-slate-600">{supplier.description || 'Sin descripción proporcionada.'}</p>
                 <dl className="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
-                  <Info label="Legal name">{supplier.legal_name}</Info>
-                  <Info label="Supplier type"><span className="capitalize">{label(supplier.supplier_type)}</span></Info>
-                  <Info label="Email">{supplier.email}</Info>
-                  <Info label="Phone">{supplier.phone}</Info>
+                  <Info label="Razón social">{supplier.legal_name}</Info>
+                  <Info label="Tipo de proveedor"><span className="capitalize">{TYPE_LABELS[supplier.supplier_type] || label(supplier.supplier_type)}</span></Info>
+                  <Info label="Correo electrónico">{supplier.email}</Info>
+                  <Info label="Teléfono">{supplier.phone}</Info>
                 </dl>
               </Card>
 
-              <Card icon={Briefcase} title="Business information">
+              <Card icon={Briefcase} title="Información empresarial">
                 <dl className="grid gap-4 sm:grid-cols-2">
-                  <Info label="Tax number">{supplier.tax_number}</Info>
-                  <Info label="Registration number">{supplier.registration_number}</Info>
-                  <Info label="Payment terms">{supplier.payment_terms}</Info>
-                  <Info label="Preferred currency" mono>{supplier.preferred_currency}</Info>
+                  <Info label="NIF/CIF">{supplier.tax_number}</Info>
+                  <Info label="Número de registro">{supplier.registration_number}</Info>
+                  <Info label="Condiciones de pago">{supplier.payment_terms}</Info>
+                  <Info label="Moneda preferida" mono>{supplier.preferred_currency}</Info>
                 </dl>
               </Card>
 
               {detailEntries.length > 0 && (
-                <Card icon={TypeIcon} title={`${label(supplier.supplier_type)} specifications`}>
+                <Card icon={TypeIcon} title={`Especificaciones de ${TYPE_LABELS[supplier.supplier_type] || label(supplier.supplier_type)}`}>
                   <dl className="grid gap-4 sm:grid-cols-2">
                     {detailEntries.map(([key, val]) => (
                       <Info key={key} label={<span className="capitalize">{label(key)}</span>}>
-                        {Array.isArray(val) ? val.join(', ') : typeof val === 'object' ? JSON.stringify(val) : typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val)}
+                        {Array.isArray(val) ? val.join(', ') : typeof val === 'object' ? JSON.stringify(val) : typeof val === 'boolean' ? (val ? 'Sí' : 'No') : String(val)}
                       </Info>
                     ))}
                   </dl>
@@ -812,30 +818,30 @@ export default function SupplierDetailsPage() {
             </div>
 
             <div className="space-y-6">
-              <Card icon={UserCheck} title="Primary contact">
+              <Card icon={UserCheck} title="Contacto principal">
                 {primaryContact ? (
                   <div className="space-y-1.5 text-sm">
                     <p className="font-semibold text-slate-900">{primaryContact.full_name}</p>
-                    <p className="text-xs text-slate-500">{primaryContact.position || 'Representative'}</p>
+                    <p className="text-xs text-slate-500">{primaryContact.position || 'Representante'}</p>
                     {primaryContact.email && <p className="flex items-center gap-2 pt-1 text-xs text-slate-600"><Mail aria-hidden="true" className="h-3.5 w-3.5 text-slate-400" />{primaryContact.email}</p>}
                     {primaryContact.phone && <p className="flex items-center gap-2 text-xs text-slate-600"><Phone aria-hidden="true" className="h-3.5 w-3.5 text-slate-400" />{primaryContact.phone}</p>}
                   </div>
                 ) : (
                   <div className="text-center">
-                    <p className="text-sm text-slate-500">{translate('No primary contact yet.')}</p>
-                    <button onClick={() => { setActiveTab('contacts'); openContact(); }} className="mt-2 text-sm font-medium text-amber-700 hover:underline">{translate('Add a contact')}</button>
+                    <p className="text-sm text-slate-500">Aún no hay contacto principal.</p>
+                    <button onClick={() => { setActiveTab('contacts'); openContact(); }} className="mt-2 text-sm font-medium text-amber-700 hover:underline">Añadir un contacto</button>
                   </div>
                 )}
               </Card>
 
-              <Card icon={MapPin} title="Headquarters">
-                <p className="text-sm text-slate-700">{supplier.address || 'Address not specified'}</p>
+              <Card icon={MapPin} title="Sede central">
+                <p className="text-sm text-slate-700">{supplier.address || 'Dirección no especificada'}</p>
                 <p className="mt-0.5 text-sm text-slate-500">{[supplier.city, supplier.country, supplier.postal_code].filter(Boolean).join(', ')}</p>
               </Card>
 
-              <Card icon={FileText} title="Internal notes" tone="amber">
+              <Card icon={FileText} title="Notas internas" tone="amber">
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-900/80">
-                  {notes || 'No internal notes recorded.'}
+                  {notes || 'Sin notas internas registradas.'}
                 </p>
               </Card>
             </div>
@@ -846,19 +852,19 @@ export default function SupplierDetailsPage() {
       {/* ============================ SERVICES ============================ */}
       {activeTab === 'services' && (
         <div className="space-y-5">
-          <TabHeader title="Services & rate catalog" text="Rooms, flights, vehicle categories, packages and excursions."
-            action={supplier.supplier_services.length > 0 && <PrimaryButton icon={Plus} onClick={() => openService()}>{translate('Add service')}</PrimaryButton>} />
+          <TabHeader title="Catálogo de servicios y tarifas" text="Habitaciones, vuelos, categorías de vehículos, paquetes y excursiones."
+            action={supplier.supplier_services.length > 0 && <PrimaryButton icon={Plus} onClick={() => openService()}>Añadir servicio</PrimaryButton>} />
           {supplier.supplier_services.length === 0 ? (
-            <EmptyState icon={Tag} title="No services cataloged yet"
-              text="Add the rooms, transfers, tours or meals this supplier offers, with their base rates."
-              actionLabel="Add first service" onAction={() => openService()} />
+            <EmptyState icon={Tag} title="Aún no hay servicios catalogados"
+              text="Añade las habitaciones, traslados, tours o comidas que ofrece este proveedor, con sus tarifas base."
+              actionLabel="Añadir primer servicio" onAction={() => openService()} />
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs text-slate-500">
                   <tr>
-                    {['Service', 'Category', 'Base rate', 'Unit', 'Status'].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}
-                    <th className="px-4 py-3 text-right font-medium">{translate('Actions')}</th>
+                    {['Servicio', 'Categoría', 'Tarifa base', 'Unidad', 'Estado'].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}
+                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -874,9 +880,9 @@ export default function SupplierDetailsPage() {
                       <td className="px-4 py-3"><Pill status={s.status} /></td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <IconBtn icon={Edit} title="Edit" aria-label="Edit service" onClick={() => openService(s)} />
-                          <IconBtn icon={Trash2} danger title="Delete" aria-label="Delete service"
-                            onClick={() => remove('supplier_services', s.id, 'Delete this service?', 'Service deleted', 'Error deleting service')} />
+                          <IconBtn icon={Edit} title="Editar" aria-label="Editar servicio" onClick={() => openService(s)} />
+                          <IconBtn icon={Trash2} danger title="Eliminar" aria-label="Eliminar servicio"
+                            onClick={() => remove('supplier_services', s.id, '¿Eliminar este servicio?', 'Servicio eliminado', 'Error al eliminar el servicio')} />
                         </div>
                       </td>
                     </tr>
@@ -891,12 +897,12 @@ export default function SupplierDetailsPage() {
       {/* ============================ CONTACTS ============================ */}
       {activeTab === 'contacts' && (
         <div className="space-y-5">
-          <TabHeader title="Contacts directory" text="Key personnel, managers and operational agents."
-            action={supplier.supplier_contacts.length > 0 && <PrimaryButton icon={Plus} onClick={() => openContact()}>{translate('Add contact')}</PrimaryButton>} />
+          <TabHeader title="Directorio de contactos" text="Personal clave, gerentes y agentes operativos."
+            action={supplier.supplier_contacts.length > 0 && <PrimaryButton icon={Plus} onClick={() => openContact()}>Añadir contacto</PrimaryButton>} />
           {supplier.supplier_contacts.length === 0 ? (
-            <EmptyState icon={Users} title="No contacts recorded"
-              text="Save the people you work with at this supplier so your team knows who to call."
-              actionLabel="Add first contact" onAction={() => openContact()} />
+            <EmptyState icon={Users} title="No hay contactos registrados"
+              text="Guarda a las personas con las que trabajas en este proveedor para que tu equipo sepa a quién llamar."
+              actionLabel="Añadir primer contacto" onAction={() => openContact()} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {supplier.supplier_contacts.map((c) => (
@@ -908,13 +914,13 @@ export default function SupplierDetailsPage() {
                       </span>
                       <div>
                         <h4 className="font-semibold text-slate-900">{c.full_name}</h4>
-                        <p className="text-xs text-slate-500">{c.position || 'Representative'}</p>
+                        <p className="text-xs text-slate-500">{c.position || 'Representante'}</p>
                       </div>
                     </div>
                     {c.is_primary ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><Star aria-hidden="true" className="h-3 w-3" />{translate('Primary')}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><Star aria-hidden="true" className="h-3 w-3" />Principal</span>
                     ) : (
-                      <button onClick={() => handleSetPrimaryContact(c.id)} className="text-xs font-medium text-amber-700 hover:underline">{translate('Set primary')}</button>
+                      <button onClick={() => handleSetPrimaryContact(c.id)} className="text-xs font-medium text-amber-700 hover:underline">Establecer principal</button>
                     )}
                   </div>
                   <div className="my-4 space-y-1.5 text-sm text-slate-600">
@@ -923,8 +929,8 @@ export default function SupplierDetailsPage() {
                     {c.notes && <p className="pt-1 text-xs italic text-slate-500">{c.notes}</p>}
                   </div>
                   <div className="flex justify-end gap-1 border-t border-slate-100 pt-3">
-                    <IconBtn icon={Edit} aria-label="Edit contact" onClick={() => openContact(c)} />
-                    <IconBtn icon={Trash2} danger aria-label="Delete contact" onClick={() => remove('supplier_contacts', c.id, 'Delete contact?', 'Contact deleted', 'Error deleting contact')} />
+                    <IconBtn icon={Edit} aria-label="Editar contacto" onClick={() => openContact(c)} />
+                    <IconBtn icon={Trash2} danger aria-label="Eliminar contacto" onClick={() => remove('supplier_contacts', c.id, '¿Eliminar contacto?', 'Contacto eliminado', 'Error al eliminar el contacto')} />
                   </div>
                 </div>
               ))}
@@ -936,12 +942,12 @@ export default function SupplierDetailsPage() {
       {/* ============================ LOCATIONS ============================ */}
       {activeTab === 'locations' && (
         <div className="space-y-5">
-          <TabHeader title="Locations & branches" text="Multi-city presence, hotel chains and pickup branches."
-            action={supplier.supplier_locations.length > 0 && <PrimaryButton icon={Plus} onClick={() => openLocation()}>{translate('Add location')}</PrimaryButton>} />
+          <TabHeader title="Ubicaciones y sucursales" text="Presencia multi-ciudad, cadenas hoteleras y puntos de recogida."
+            action={supplier.supplier_locations.length > 0 && <PrimaryButton icon={Plus} onClick={() => openLocation()}>Añadir ubicación</PrimaryButton>} />
           {supplier.supplier_locations.length === 0 ? (
-            <EmptyState icon={MapPin} title="No additional locations"
-              text="Does this supplier operate from more than one place? Add each branch or property here."
-              actionLabel="Add first location" onAction={() => openLocation()} />
+            <EmptyState icon={MapPin} title="Sin ubicaciones adicionales"
+              text="¿Este proveedor opera desde más de un lugar? Añade cada sucursal o propiedad aquí."
+              actionLabel="Añadir primera ubicación" onAction={() => openLocation()} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {supplier.supplier_locations.map((loc) => (
@@ -957,8 +963,8 @@ export default function SupplierDetailsPage() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <IconBtn icon={Edit} aria-label="Edit location" onClick={() => openLocation(loc)} />
-                      <IconBtn icon={Trash2} danger aria-label="Delete location" onClick={() => remove('supplier_locations', loc.id, 'Delete location?', 'Location deleted', 'Error deleting location')} />
+                      <IconBtn icon={Edit} aria-label="Editar ubicación" onClick={() => openLocation(loc)} />
+                      <IconBtn icon={Trash2} danger aria-label="Eliminar ubicación" onClick={() => remove('supplier_locations', loc.id, '¿Eliminar ubicación?', 'Ubicación eliminada', 'Error al eliminar la ubicación')} />
                     </div>
                   </div>
                 </div>
@@ -971,12 +977,12 @@ export default function SupplierDetailsPage() {
       {/* ============================ DOCUMENTS ============================ */}
       {activeTab === 'documents' && (
         <div className="space-y-5">
-          <TabHeader title="Documents" text="Trade licenses, tax certificates and insurance policies, stored privately."
-            action={supplier.supplier_documents.length > 0 && <PrimaryButton icon={Upload} onClick={() => setDocumentModalOpen(true)}>{translate('Upload document')}</PrimaryButton>} />
+          <TabHeader title="Documentos" text="Licencias comerciales, certificados fiscales y pólizas de seguro, almacenados de forma privada."
+            action={supplier.supplier_documents.length > 0 && <PrimaryButton icon={Upload} onClick={() => setDocumentModalOpen(true)}>Subir documento</PrimaryButton>} />
           {supplier.supplier_documents.length === 0 ? (
-            <EmptyState icon={FileText} title="No documents uploaded"
-              text="Keep licenses, contracts and insurance in one secure place and get warned before they expire."
-              actionLabel="Upload first document" actionIcon={Upload} onAction={() => setDocumentModalOpen(true)} />
+            <EmptyState icon={FileText} title="No hay documentos subidos"
+              text="Mantén licencias, contratos y seguros en un lugar seguro y recibe avisos antes de que caduquen."
+              actionLabel="Subir primer documento" actionIcon={Upload} onAction={() => setDocumentModalOpen(true)} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {supplier.supplier_documents.map((doc) => {
@@ -995,15 +1001,15 @@ export default function SupplierDetailsPage() {
                             expired ? 'bg-rose-50 text-rose-700' : soon ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'
                           }`}>
                             <Calendar aria-hidden="true" className="h-3 w-3" />
-                            {expired ? `Expired ${fmtDate(doc.expiry_date)}` : soon ? `Expires in ${left}d` : `Expires ${fmtDate(doc.expiry_date)}`}
+                            {expired ? `Caducado el ${fmtDate(doc.expiry_date)}` : soon ? `Caduca en ${left}d` : `Caduca el ${fmtDate(doc.expiry_date)}`}
                           </span>
                         )}
                         {doc.notes && <p className="mt-1.5 text-xs text-slate-400">{doc.notes}</p>}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <IconBtn icon={Download} title="Download" aria-label="Download document" onClick={() => handleDownloadDoc(doc.storage_path)} />
-                      <IconBtn icon={Trash2} danger title="Delete" aria-label="Delete document" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} />
+                      <IconBtn icon={Download} title="Descargar" aria-label="Descargar documento" onClick={() => handleDownloadDoc(doc.storage_path)} />
+                      <IconBtn icon={Trash2} danger title="Eliminar" aria-label="Eliminar documento" onClick={() => handleDeleteDocument(doc.id, doc.storage_path)} />
                     </div>
                   </div>
                 );
@@ -1016,19 +1022,19 @@ export default function SupplierDetailsPage() {
       {/* ============================ CONTRACTS ============================ */}
       {activeTab === 'contracts' && (
         <div className="space-y-5">
-          <TabHeader title="Contracts" text="Service agreements, commission terms and validity periods."
-            action={supplier.supplier_contracts.length > 0 && <PrimaryButton icon={Plus} onClick={() => openContract()}>{translate('Register contract')}</PrimaryButton>} />
+          <TabHeader title="Contratos" text="Acuerdos de servicio, condiciones de comisión y periodos de validez."
+            action={supplier.supplier_contracts.length > 0 && <PrimaryButton icon={Plus} onClick={() => openContract()}>Registrar contrato</PrimaryButton>} />
           {supplier.supplier_contracts.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No contracts registered"
-              text="Record your agreement with this supplier to track its terms and renewal dates."
-              actionLabel="Register first contract" onAction={() => openContract()} />
+            <EmptyState icon={Briefcase} title="Sin contratos registrados"
+              text="Registra tu acuerdo con este proveedor para hacer seguimiento de sus términos y fechas de renovación."
+              actionLabel="Registrar primer contrato" onAction={() => openContract()} />
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs text-slate-500">
                   <tr>
-                    {['Reference', 'Type', 'Validity', 'Payment terms', 'Status'].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}
-                    <th className="px-4 py-3 text-right font-medium">{translate('Actions')}</th>
+                    {['Referencia', 'Tipo', 'Validez', 'Condiciones de pago', 'Estado'].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}
+                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1041,15 +1047,15 @@ export default function SupplierDetailsPage() {
                         <td className="px-4 py-3 text-xs text-slate-600">
                           {fmtDate(c.start_date)} → {fmtDate(c.end_date)}
                           {c.status === 'active' && left !== null && left >= 0 && left < 30 && (
-                            <span className="ml-2 rounded-full bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">Ends in {left}d</span>
+                            <span className="ml-2 rounded-full bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">Termina en {left}d</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-slate-600">{c.payment_terms}</td>
                         <td className="px-4 py-3"><Pill status={c.status} /></td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
-                            <IconBtn icon={Edit} aria-label="Edit contract" onClick={() => openContract(c)} />
-                            <IconBtn icon={Trash2} danger aria-label="Delete contract" onClick={() => remove('supplier_contracts', c.id, 'Delete contract record?', 'Contract deleted', 'Error deleting contract')} />
+                            <IconBtn icon={Edit} aria-label="Editar contrato" onClick={() => openContract(c)} />
+                            <IconBtn icon={Trash2} danger aria-label="Eliminar contrato" onClick={() => remove('supplier_contracts', c.id, '¿Eliminar registro del contrato?', 'Contrato eliminado', 'Error al eliminar el contrato')} />
                           </div>
                         </td>
                       </tr>
@@ -1065,53 +1071,46 @@ export default function SupplierDetailsPage() {
       {/* ============================ PACKAGES ============================ */}
       {activeTab === 'packages' && (
         <div className="space-y-5">
-          <TabHeader title="Connected packages" text="Packages that use this supplier for accommodation, transport, activities or internal costs." />
+          <TabHeader title="Paquetes conectados" text="Paquetes que utilizan este proveedor para alojamiento, transporte, actividades o costes internos." />
           {loadingPackages ? (
-            <p role="status" className="py-12 text-center text-sm text-slate-400">{translate('Loading connected packages...')}</p>
+            <p role="status" className="py-12 text-center text-sm text-slate-400">Cargando paquetes...</p>
           ) : packageError ? (
-            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-              Could not load connected packages: {packageError}
-            </p>
+            <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">{packageError}</p>
           ) : connectedPackages.length === 0 ? (
-            <EmptyState icon={Compass} title="Not used in any package yet"
-              text="When you link this supplier to accommodation, transport, activities or costs in a package, it will show up here."
-              actionLabel="Browse packages" actionIcon={Compass} onAction={() => navigate('/admin/packages')} />
+            <EmptyState icon={Compass} title="Ningún paquete conectado"
+              text="Cuando este proveedor se utilice en paquetes de viaje, aparecerá aquí automáticamente." />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {connectedPackages.map((pkg) => (
-                <div key={pkg.id} className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="space-y-3 p-5">
-                    {pkg.cover_image_url && (
-                      <img src={pkg.cover_image_url} alt="" className="h-36 w-full rounded-xl object-cover" />
-                    )}
-                    <div className="flex items-start justify-between">
-                      <span className="font-mono text-xs font-semibold text-amber-700">{pkg.reference || pkg.id}</span>
-                      <Pill status={pkg.status} />
-                    </div>
-                    <h4 className="font-bold text-slate-900">{pkg.public_title || pkg.internal_title || 'Untitled package'}</h4>
-                    {pkg.destination_country && (
-                      <p className="flex items-center gap-1.5 text-xs text-slate-500"><MapPin aria-hidden="true" className="h-3.5 w-3.5 text-slate-400" />{pkg.destination_country}</p>
-                    )}
-                    {pkg.starting_price != null && (
-                      <p className="text-sm font-semibold text-slate-700">
-                        {pkg.default_currency || 'MAD'} {Number(pkg.starting_price).toLocaleString()}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-1.5">
-                      {pkg.supplierUsage.map((type) => (
-                        <span key={type} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{type}</span>
-                      ))}
+                <div key={pkg.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200">
+                        <Compass aria-hidden="true" className="h-[18px] w-[18px]" />
+                      </span>
+                      <div>
+                        <h4 className="font-semibold text-slate-900">{pkg.public_title || pkg.internal_title || 'Paquete sin título'}</h4>
+                        <p className="font-mono text-xs text-slate-400">{pkg.reference}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50 p-3.5">
-                    <Link to={`/admin/packages-services/${pkg.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:underline">
-                      Edit package <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                    </Link>
-                    {pkg.status === 'active' && pkg.is_public && (
-                      <Link to={`/packages/${pkg.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline">
-                        Public page <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                      </Link>
+                  <div className="mt-4 space-y-2 text-sm text-slate-600">
+                    {pkg.destination_country && <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-400" />{pkg.destination_country}</p>}
+                    {pkg.supplierUsage?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {pkg.supplierUsage.map((u) => (
+                          <span key={u} className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{u}</span>
+                        ))}
+                      </div>
                     )}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                    <span className="text-sm font-semibold tabular-nums text-slate-900">
+                      {pkg.default_currency} {pkg.starting_price ? Number(pkg.starting_price).toFixed(2) : '—'}
+                    </span>
+                    <Link to={`/admin/offers/${pkg.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:underline">
+                      Ver paquete <ExternalLink className="h-3 w-3" />
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -1123,187 +1122,236 @@ export default function SupplierDetailsPage() {
       {/* ============================ HISTORY ============================ */}
       {activeTab === 'history' && (
         <div className="space-y-5">
-          <TabHeader title="Activity history" text="Chronological log of changes, uploads and renewals." />
+          <TabHeader title="Historial de actividad" text="Registro de cambios y acciones realizadas sobre este proveedor." />
           {supplier.supplier_activity_logs.length === 0 ? (
-            <EmptyState icon={Clock} title="No activity recorded yet"
-              text="Changes to this supplier, such as status updates, documents and contracts, will appear here as a timeline." />
+            <EmptyState icon={Clock} title="Sin actividad registrada"
+              text="Las acciones sobre este proveedor aparecerán aquí a medida que ocurran." />
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <ol className="ml-3 space-y-6 border-l-2 border-amber-200 pl-6">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <ul className="divide-y divide-slate-100">
                 {supplier.supplier_activity_logs.map((log) => (
-                  <li key={log.id} className="relative">
-                    <span className="absolute -left-[31px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-amber-500 shadow" />
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-slate-900">{log.action_type}</span>
-                      <time className="text-xs text-slate-400">{new Date(log.created_at).toLocaleString()}</time>
+                  <li key={log.id} className="flex items-start gap-3 px-5 py-4">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500">
+                      <Clock aria-hidden="true" className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-slate-800">{log.action || log.description || 'Acción registrada'}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">{fmtDate(log.created_at)}</p>
                     </div>
-                    <p className="mt-0.5 text-sm text-slate-600">{log.description}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">By {log.user_email || 'System'}</p>
                   </li>
                 ))}
-              </ol>
+              </ul>
             </div>
           )}
         </div>
       )}
 
       {/* ============================ MODALS ============================ */}
+      {/* Service modal */}
       {serviceModalOpen && (
-        <Modal title={editingService ? 'Edit service' : 'Add service'} onClose={() => setServiceModalOpen(false)}
-          onSubmit={handleServiceSubmit} submitLabel="Save service">
-          <Field label="Service name" required>
-            <input required value={serviceForm.service_name} onChange={(e) => setServiceForm({ ...serviceForm, service_name: e.target.value })}
-              placeholder="e.g. Deluxe Ocean View Suite" className={inputCls} />
+        <Modal
+          title={editingService ? 'Editar servicio' : 'Añadir servicio'}
+          subtitle={editingService ? 'Actualiza los detalles del servicio.' : 'Define un nuevo servicio con su tarifa base.'}
+          onClose={() => { setServiceModalOpen(false); setEditingService(null); setServiceForm(EMPTY_SERVICE); }}
+          onSubmit={handleServiceSubmit}
+          submitLabel={editingService ? 'Guardar cambios' : 'Añadir servicio'}
+        >
+          <Field label="Nombre del servicio" required>
+            <input required value={serviceForm.service_name} onChange={(e) => setServiceForm({ ...serviceForm, service_name: e.target.value })} className={inputCls} placeholder="Habitación doble con vistas" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Category">
-              <select value={serviceForm.service_category} onChange={(e) => setServiceForm({ ...serviceForm, service_category: e.target.value })} className={inputCls}>
-                <option value="accommodation">{translate('Accommodation / Room')}</option>
-                <option value="transfer">{translate('Airport Transfer')}</option>
-                <option value="meal">{translate('Meal Plan')}</option>
-                <option value="tour">{translate('Guided Tour')}</option>
-                <option value="excursion">{translate('Excursion / Activity')}</option>
-                <option value="other">{translate('Other')}</option>
-              </select>
-            </Field>
-            <Field label="Unit">
-              <input value={serviceForm.unit} onChange={(e) => setServiceForm({ ...serviceForm, unit: e.target.value })} placeholder="per_night / per_person" className={inputCls} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Base price">
-              <input type="number" step="0.01" value={serviceForm.base_price} onChange={(e) => setServiceForm({ ...serviceForm, base_price: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Currency">
-              <input maxLength={3} value={serviceForm.currency} onChange={(e) => setServiceForm({ ...serviceForm, currency: e.target.value.toUpperCase() })} className={`${inputCls} uppercase`} />
-            </Field>
-          </div>
-          <Field label="Description">
-            <textarea rows={2} value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
-              placeholder="Service inclusions..." className={inputCls} />
-          </Field>
-        </Modal>
-      )}
-
-      {contactModalOpen && (
-        <Modal title={editingContact ? 'Edit contact' : 'Add contact'} onClose={() => setContactModalOpen(false)}
-          onSubmit={handleContactSubmit} submitLabel="Save contact">
-          <Field label="Full name" required>
-            <input required value={contactForm.full_name} onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })} className={inputCls} />
-          </Field>
-          <Field label="Position">
-            <input value={contactForm.position} onChange={(e) => setContactForm({ ...contactForm, position: e.target.value })} placeholder="e.g. Sales Manager" className={inputCls} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Email">
-              <input type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Phone">
-              <input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} className={inputCls} />
-            </Field>
-          </div>
-          <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-300">
-            <input type="checkbox" checked={contactForm.is_primary} onChange={(e) => setContactForm({ ...contactForm, is_primary: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />{translate('Set as primary contact')}</label>
-          <Field label="Notes">
-            <textarea rows={2} value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} className={inputCls} />
-          </Field>
-        </Modal>
-      )}
-
-      {locationModalOpen && (
-        <Modal title={editingLocation ? 'Edit location' : 'Add location'} onClose={() => setLocationModalOpen(false)}
-          onSubmit={handleLocationSubmit} submitLabel="Save location">
-          <Field label="Location / branch name" required>
-            <input required value={locationForm.location_name} onChange={(e) => setLocationForm({ ...locationForm, location_name: e.target.value })}
-              placeholder="e.g. Marrakech City Center Branch" className={inputCls} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="City">
-              <input value={locationForm.city} onChange={(e) => setLocationForm({ ...locationForm, city: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Country">
-              <input value={locationForm.country} onChange={(e) => setLocationForm({ ...locationForm, country: e.target.value })} className={inputCls} />
-            </Field>
-          </div>
-          <Field label="Address">
-            <input value={locationForm.address} onChange={(e) => setLocationForm({ ...locationForm, address: e.target.value })} className={inputCls} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitude">
-              <input type="number" step="any" value={locationForm.latitude} onChange={(e) => setLocationForm({ ...locationForm, latitude: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Longitude">
-              <input type="number" step="any" value={locationForm.longitude} onChange={(e) => setLocationForm({ ...locationForm, longitude: e.target.value })} className={inputCls} />
-            </Field>
-          </div>
-        </Modal>
-      )}
-
-      {documentModalOpen && (
-        <Modal title="Upload document" subtitle="Files are stored privately and shared through short-lived links."
-          onClose={() => setDocumentModalOpen(false)} onSubmit={handleDocumentUpload} busy={uploadingDoc}
-          submitLabel={uploadingDoc ? 'Uploading...' : 'Upload file'}>
-          <Field label="Document type">
-            <select value={docType} onChange={(e) => setDocType(e.target.value)} className={inputCls}>
-              <option value="contract">{translate('Commercial Contract')}</option>
-              <option value="license">{translate('Trade License')}</option>
-              <option value="certification">{translate('Certification')}</option>
-              <option value="insurance">{translate('Insurance Policy')}</option>
-              <option value="registration">{translate('Company Registration')}</option>
-              <option value="other">{translate('Other Document')}</option>
+          <Field label="Categoría" required>
+            <select value={serviceForm.service_category} onChange={(e) => setServiceForm({ ...serviceForm, service_category: e.target.value })} className={inputCls}>
+              <option value="accommodation">Alojamiento</option>
+              <option value="transport">Transporte</option>
+              <option value="activity">Actividad</option>
+              <option value="meal">Comida</option>
+              <option value="other">Otro</option>
             </select>
           </Field>
-          <Field label="Document name">
-            <input value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="e.g. 2026 Liability Insurance Policy" className={inputCls} />
+          <Field label="Descripción">
+            <textarea value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })} className={inputCls} rows={3} placeholder="Descripción del servicio..." />
           </Field>
-          <Field label="Expiry date (optional)">
-            <input type="date" value={docExpiry} onChange={(e) => setDocExpiry(e.target.value)} className={inputCls} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tarifa base">
+              <input type="number" min="0" step="0.01" value={serviceForm.base_price} onChange={(e) => setServiceForm({ ...serviceForm, base_price: e.target.value })} className={inputCls} placeholder="0.00" />
+            </Field>
+            <Field label="Moneda">
+              <select value={serviceForm.currency} onChange={(e) => setServiceForm({ ...serviceForm, currency: e.target.value })} className={inputCls}>
+                <option value="MAD">MAD</option><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option>
+              </select>
+            </Field>
+            <Field label="Unidad">
+              <select value={serviceForm.unit} onChange={(e) => setServiceForm({ ...serviceForm, unit: e.target.value })} className={inputCls}>
+                <option value="per_night">Por noche</option>
+                <option value="per_person">Por persona</option>
+                <option value="per_item">Por ítem</option>
+                <option value="per_day">Por día</option>
+                <option value="per_trip">Por viaje</option>
+              </select>
+            </Field>
+            <Field label="Estado">
+              <select value={serviceForm.status} onChange={(e) => setServiceForm({ ...serviceForm, status: e.target.value })} className={inputCls}>
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </Field>
+          </div>
+        </Modal>
+      )}
+
+      {/* Contact modal */}
+      {contactModalOpen && (
+        <Modal
+          title={editingContact ? 'Editar contacto' : 'Añadir contacto'}
+          subtitle="Datos de la persona de contacto en el proveedor."
+          onClose={() => { setContactModalOpen(false); setEditingContact(null); setContactForm(EMPTY_CONTACT); }}
+          onSubmit={handleContactSubmit}
+          submitLabel={editingContact ? 'Guardar cambios' : 'Añadir contacto'}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nombre completo" required className="sm:col-span-2">
+              <input required value={contactForm.full_name} onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })} className={inputCls} placeholder="Ana García" />
+            </Field>
+            <Field label="Cargo">
+              <input value={contactForm.position} onChange={(e) => setContactForm({ ...contactForm, position: e.target.value })} className={inputCls} placeholder="Directora de operaciones" />
+            </Field>
+            <Field label="Correo electrónico">
+              <input type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} className={inputCls} placeholder="ana@ejemplo.com" />
+            </Field>
+            <Field label="Teléfono">
+              <input type="tel" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} className={inputCls} placeholder="+212600000000" />
+            </Field>
+            <Field label="Notas">
+              <input value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} className={inputCls} placeholder="Información adicional" />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={contactForm.is_primary} onChange={(e) => setContactForm({ ...contactForm, is_primary: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
+            Establecer como contacto principal
+          </label>
+        </Modal>
+      )}
+
+      {/* Location modal */}
+      {locationModalOpen && (
+        <Modal
+          title={editingLocation ? 'Editar ubicación' : 'Añadir ubicación'}
+          subtitle="Sucursal, propiedad o punto de recogida."
+          onClose={() => { setLocationModalOpen(false); setEditingLocation(null); setLocationForm(EMPTY_LOCATION); }}
+          onSubmit={handleLocationSubmit}
+          submitLabel={editingLocation ? 'Guardar cambios' : 'Añadir ubicación'}
+        >
+          <Field label="Nombre de la ubicación" required>
+            <input required value={locationForm.location_name} onChange={(e) => setLocationForm({ ...locationForm, location_name: e.target.value })} className={inputCls} placeholder="Sede Marrakech" />
           </Field>
-          <Field label="File" required>
-            <input required type="file" onChange={(e) => setDocFile(e.target.files[0])}
-              className="mt-1.5 w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-amber-700 hover:file:bg-amber-100" />
-          </Field>
-          <Field label="Notes">
-            <input value={docNotes} onChange={(e) => setDocNotes(e.target.value)} className={inputCls} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="País">
+              <input value={locationForm.country} onChange={(e) => setLocationForm({ ...locationForm, country: e.target.value })} className={inputCls} placeholder="Marruecos" />
+            </Field>
+            <Field label="Ciudad">
+              <input value={locationForm.city} onChange={(e) => setLocationForm({ ...locationForm, city: e.target.value })} className={inputCls} placeholder="Marrakech" />
+            </Field>
+            <Field label="Dirección" className="sm:col-span-2">
+              <input value={locationForm.address} onChange={(e) => setLocationForm({ ...locationForm, address: e.target.value })} className={inputCls} placeholder="12 Rue Medina" />
+            </Field>
+            <Field label="Latitud">
+              <input value={locationForm.latitude} onChange={(e) => setLocationForm({ ...locationForm, latitude: e.target.value })} className={inputCls} placeholder="31.6295" />
+            </Field>
+            <Field label="Longitud">
+              <input value={locationForm.longitude} onChange={(e) => setLocationForm({ ...locationForm, longitude: e.target.value })} className={inputCls} placeholder="-7.9811" />
+            </Field>
+          </div>
+          <Field label="Notas">
+            <textarea value={locationForm.notes} onChange={(e) => setLocationForm({ ...locationForm, notes: e.target.value })} className={inputCls} rows={2} placeholder="Información adicional..." />
           </Field>
         </Modal>
       )}
 
+      {/* Document modal */}
+      {documentModalOpen && (
+        <Modal
+          title="Subir documento"
+          subtitle="Licencia, certificado o póliza de seguro."
+          onClose={() => { setDocumentModalOpen(false); setDocFile(null); setDocName(''); setDocExpiry(''); setDocNotes(''); }}
+          onSubmit={handleDocumentUpload}
+          submitLabel={uploadingDoc ? 'Subiendo...' : 'Subir documento'}
+          busy={uploadingDoc}
+        >
+          <Field label="Archivo" required>
+            <input type="file" onChange={(e) => setDocFile(e.target.files?.[0] || null)} className={inputCls} />
+          </Field>
+          <Field label="Nombre del documento">
+            <input value={docName} onChange={(e) => setDocName(e.target.value)} className={inputCls} placeholder="Licencia comercial 2024" />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tipo de documento">
+              <select value={docType} onChange={(e) => setDocType(e.target.value)} className={inputCls}>
+                <option value="contract">Contrato</option>
+                <option value="license">Licencia</option>
+                <option value="tax">Certificado fiscal</option>
+                <option value="insurance">Seguro</option>
+                <option value="other">Otro</option>
+              </select>
+            </Field>
+            <Field label="Fecha de caducidad">
+              <input type="date" value={docExpiry} onChange={(e) => setDocExpiry(e.target.value)} className={inputCls} />
+            </Field>
+          </div>
+          <Field label="Notas">
+            <textarea value={docNotes} onChange={(e) => setDocNotes(e.target.value)} className={inputCls} rows={2} placeholder="Observaciones..." />
+          </Field>
+        </Modal>
+      )}
+
+      {/* Contract modal */}
       {contractModalOpen && (
-        <Modal title={editingContract ? 'Edit contract' : 'Register contract'} onClose={() => setContractModalOpen(false)}
-          onSubmit={handleContractSubmit} submitLabel="Save contract">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Reference" required>
-              <input required value={contractForm.contract_reference} onChange={(e) => setContractForm({ ...contractForm, contract_reference: e.target.value })} className={`${inputCls} uppercase`} />
+        <Modal
+          title={editingContract ? 'Editar contrato' : 'Registrar contrato'}
+          subtitle="Acuerdo de servicio con condiciones y validez."
+          onClose={() => { setContractModalOpen(false); setEditingContract(null); setContractForm(EMPTY_CONTRACT); }}
+          onSubmit={handleContractSubmit}
+          submitLabel={editingContract ? 'Guardar cambios' : 'Registrar contrato'}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Referencia" required>
+              <input required value={contractForm.contract_reference} onChange={(e) => setContractForm({ ...contractForm, contract_reference: e.target.value })} className={inputCls} />
             </Field>
-            <Field label="Contract type">
-              <input value={contractForm.contract_type} onChange={(e) => setContractForm({ ...contractForm, contract_type: e.target.value })} className={inputCls} />
+            <Field label="Tipo de contrato">
+              <select value={contractForm.contract_type} onChange={(e) => setContractForm({ ...contractForm, contract_type: e.target.value })} className={inputCls}>
+                <option>Master Service Agreement</option>
+                <option>Contrato de comisión</option>
+                <option>Contrato de suministro</option>
+                <option>Otro</option>
+              </select>
             </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Start date" required>
-              <input required type="date" value={contractForm.start_date} onChange={(e) => setContractForm({ ...contractForm, start_date: e.target.value })} className={inputCls} />
+            <Field label="Fecha de inicio">
+              <input type="date" value={contractForm.start_date} onChange={(e) => setContractForm({ ...contractForm, start_date: e.target.value })} className={inputCls} />
             </Field>
-            <Field label="End date" required>
-              <input required type="date" min={contractForm.start_date || undefined} value={contractForm.end_date} onChange={(e) => setContractForm({ ...contractForm, end_date: e.target.value })} className={inputCls} />
+            <Field label="Fecha de fin">
+              <input type="date" value={contractForm.end_date} min={contractForm.start_date || undefined} onChange={(e) => setContractForm({ ...contractForm, end_date: e.target.value })} className={inputCls} />
             </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Payment terms">
-              <input value={contractForm.payment_terms} onChange={(e) => setContractForm({ ...contractForm, payment_terms: e.target.value })} className={inputCls} />
+            <Field label="Condiciones de pago">
+              <select value={contractForm.payment_terms} onChange={(e) => setContractForm({ ...contractForm, payment_terms: e.target.value })} className={inputCls}>
+                <option>Net 30</option><option>Net 15</option><option>Net 60</option><option>Pago inmediato</option>
+              </select>
             </Field>
-            <Field label="Status">
+            <Field label="Moneda">
+              <select value={contractForm.currency} onChange={(e) => setContractForm({ ...contractForm, currency: e.target.value })} className={inputCls}>
+                <option value="MAD">MAD</option><option value="EUR">EUR</option><option value="USD">USD</option>
+              </select>
+            </Field>
+            <Field label="Estado">
               <select value={contractForm.status} onChange={(e) => setContractForm({ ...contractForm, status: e.target.value })} className={inputCls}>
-                <option value="active">{translate('Active')}</option>
-                <option value="expired">{translate('Expired')}</option>
-                <option value="pending_renewal">{translate('Pending Renewal')}</option>
-                <option value="terminated">{translate('Terminated')}</option>
+                <option value="active">Activo</option>
+                <option value="expired">Caducado</option>
+                <option value="pending_renewal">Pendiente de renovación</option>
+                <option value="terminated">Terminado</option>
               </select>
             </Field>
           </div>
-          <Field label="Notes">
-            <textarea rows={2} value={contractForm.notes} onChange={(e) => setContractForm({ ...contractForm, notes: e.target.value })} className={inputCls} />
+          <Field label="Notas">
+            <textarea value={contractForm.notes} onChange={(e) => setContractForm({ ...contractForm, notes: e.target.value })} className={inputCls} rows={2} placeholder="Observaciones del contrato..." />
           </Field>
         </Modal>
       )}

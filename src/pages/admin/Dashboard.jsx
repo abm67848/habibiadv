@@ -1,38 +1,42 @@
-import { useAppSettings, translate } from '@/context/index.jsx';
 // src/pages/admin/AdminDashboardPage.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { translate } from '@/context/index.jsx';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertCircle, AlertTriangle, ArrowRight, BarChart3, Calendar, CheckCircle2,
-  ChevronRight, Clock, Compass, CreditCard, DollarSign, Filter, Layers,
-  RefreshCw, ShieldCheck, TrendingDown, TrendingUp, Users, Wallet, XCircle,
+  AlertTriangle, ArrowRight, BarChart3, Calendar, Check, ChevronDown, ChevronRight, Compass,
+  CreditCard, DollarSign, Layers, RefreshCw, Search, ShieldCheck, TrendingDown, TrendingUp, Users, Wallet, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+
+/* ---------- Shared style tokens ---------- */
+const btnGhost =
+  'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50';
 
 /* ================================================================== */
 /*  Constants                                                          */
 /* ================================================================== */
 const RANGE_OPTIONS = [
-  { value: 'today', label: 'Today' },
-  { value: 'last_7_days', label: 'Last 7 days' },
-  { value: 'last_30_days', label: 'Last 30 days' },
-  { value: 'this_month', label: 'This month' },
-  { value: 'this_year', label: 'This year' },
+  { value: 'today', label: 'Hoy' },
+  { value: 'last_7_days', label: 'Últimos 7 días' },
+  { value: 'last_30_days', label: 'Últimos 30 días' },
+  { value: 'this_month', label: 'Este mes' },
+  { value: 'this_year', label: 'Este año' },
 ];
 
 const STATUS_META = {
-  pending:     { label: 'Pending',     dot: 'bg-amber-500',   chip: 'bg-amber-50 text-amber-800 ring-amber-200',   icon: AlertCircle },
-  confirmed:   { label: 'Confirmed',   dot: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200', icon: CheckCircle2 },
-  in_progress: { label: 'In progress', dot: 'bg-sky-500',     chip: 'bg-sky-50 text-sky-800 ring-sky-200',         icon: Clock },
-  completed:   { label: 'Completed',   dot: 'bg-violet-500',  chip: 'bg-violet-50 text-violet-800 ring-violet-200', icon: CheckCircle2 },
-  cancelled:   { label: 'Cancelled',   dot: 'bg-rose-500',    chip: 'bg-rose-50 text-rose-800 ring-rose-200',      icon: XCircle },
+  pending:     { label: 'Pendiente',   dot: 'bg-amber-500',   chip: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  confirmed:   { label: 'Confirmada',  dot: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  in_progress: { label: 'En curso',    dot: 'bg-sky-500',     chip: 'bg-sky-50 text-sky-800 ring-sky-200' },
+  completed:   { label: 'Completada',  dot: 'bg-violet-500',  chip: 'bg-violet-50 text-violet-800 ring-violet-200' },
+  cancelled:   { label: 'Cancelada',   dot: 'bg-rose-500',    chip: 'bg-rose-50 text-rose-800 ring-rose-200' },
 };
 
 const PAYMENT_META = {
-  paid:           { label: 'Paid',           color: '#10b981' },
-  partially_paid: { label: 'Partially paid', color: '#f59e0b' },
-  overpaid:       { label: 'Overpaid',       color: '#8b5cf6' },
-  unpaid:         { label: 'Unpaid',         color: '#f43f5e' },
+  paid:           { label: 'Pagada',          color: '#10b981' },
+  partially_paid: { label: 'Pago parcial',    color: '#f59e0b' },
+  overpaid:       { label: 'Pago en exceso',  color: '#8b5cf6' },
+  unpaid:         { label: 'Sin pagar',       color: '#f43f5e' },
 };
 
 /* ================================================================== */
@@ -42,16 +46,16 @@ const fmtMoney = (n, currency = 'MAD') => {
   const v = Number(n || 0);
   if (!Number.isFinite(v)) return '—';
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
   } catch {
-    return `${currency} ${v.toLocaleString()}`;
+    return `${currency} ${v.toLocaleString('es-ES')}`;
   }
 };
 
 const fmtDate = (d) => {
   if (!d) return '—';
   try {
-    return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
     return '—';
   }
@@ -63,6 +67,8 @@ const toDay = (d) => {
   return x;
 };
 
+const travelers = (n) => `${n || 1} ${(n || 1) === 1 ? 'viajero' : 'viajeros'}`;
+
 function rangeFor(preset) {
   const now = new Date();
   const end = new Date(now);
@@ -70,12 +76,12 @@ function rangeFor(preset) {
   const start = toDay(now);
 
   switch (preset) {
-    case 'today':       break;
-    case 'last_7_days': start.setDate(start.getDate() - 6); break;
-    case 'last_30_days':start.setDate(start.getDate() - 29); break;
-    case 'this_month':  start.setDate(1); break;
-    case 'this_year':   start.setMonth(0, 1); break;
-    default:            start.setDate(start.getDate() - 29);
+    case 'today':        break;
+    case 'last_7_days':  start.setDate(start.getDate() - 6); break;
+    case 'last_30_days': start.setDate(start.getDate() - 29); break;
+    case 'this_month':   start.setDate(1); break;
+    case 'this_year':    start.setMonth(0, 1); break;
+    default:             start.setDate(start.getDate() - 29);
   }
 
   const spanMs = end.getTime() - start.getTime();
@@ -99,40 +105,32 @@ function sum(arr, pick) {
 /* ================================================================== */
 /*  Small primitives                                                   */
 /* ================================================================== */
-function KpiCard({ label, value, sub, icon: Icon, tone = 'slate', trend, onClick }) {
-  const tones = {
-    slate:   'bg-slate-50 text-slate-700 ring-slate-200',
-    amber:   'bg-amber-50 text-amber-700 ring-amber-200',
-    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    sky:     'bg-sky-50 text-sky-700 ring-sky-200',
-    violet:  'bg-violet-50 text-violet-700 ring-violet-200',
-    rose:    'bg-rose-50 text-rose-700 ring-rose-200',
-  };
+function KpiCard({ label, value, sub, icon: Icon, tone = 'text-slate-900', chip = 'bg-slate-100 text-slate-600', trend, onClick }) {
   const trendUp = trend != null && trend >= 0;
   const Wrapper = onClick ? 'button' : 'div';
   return (
     <Wrapper
       {...(onClick ? { type: 'button', onClick } : {})}
-      className={`w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm ${
-        onClick ? 'transition hover:border-slate-300 hover:shadow-md' : ''
+      className={`w-full bg-white p-5 rounded-xl border border-slate-200/80 text-left ${
+        onClick ? 'transition hover:border-amber-300 hover:bg-amber-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30' : ''
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-1.5 truncate text-2xl font-bold text-slate-900">{value}</p>
-          {sub && <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p>}
+          <p className="text-sm text-slate-500">{label}</p>
+          <p className={`text-2xl font-semibold mt-1 truncate ${tone}`}>{value}</p>
+          {sub && <p className="mt-0.5 text-xs text-slate-400 truncate">{sub}</p>}
         </div>
         {Icon && (
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ring-inset ${tones[tone]}`}>
-            <Icon className="h-4 w-4" />
+          <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${chip}`}>
+            <Icon className="w-5 h-5" />
           </span>
         )}
       </div>
       {trend != null && (
-        <p className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${trendUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {Math.abs(trend).toFixed(1)}% vs prev
+        <p className={`mt-3 inline-flex items-center gap-1 text-xs font-medium ${trendUp ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {trendUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+          {Math.abs(trend).toFixed(1)}% frente al periodo anterior
         </p>
       )}
     </Wrapper>
@@ -141,32 +139,39 @@ function KpiCard({ label, value, sub, icon: Icon, tone = 'slate', trend, onClick
 
 function SectionCard({ title, icon: Icon, subtitle, action, children, className = '' }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
-      <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
-        <div className="flex items-start gap-2">
-          {Icon && (
-            <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-lg bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-200">
-              <Icon className="h-3.5 w-3.5" />
-            </span>
-          )}
-          <div>
+    <section className={`bg-white rounded-xl border border-slate-200/80 overflow-hidden ${className}`}>
+      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-start gap-2.5 min-w-0">
+          {Icon && <Icon className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />}
+          <div className="min-w-0">
             <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[11px] text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
           </div>
         </div>
         {action}
       </header>
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
+  );
+}
+
+function LinkAction({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800 underline-offset-2 hover:underline shrink-0"
+    >
+      {children}
+    </button>
   );
 }
 
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || STATUS_META.pending;
-  const Icon = meta.icon;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${meta.chip}`}>
-      <Icon className="h-3 w-3" />
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${meta.chip}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
       {meta.label}
     </span>
   );
@@ -176,10 +181,221 @@ function PaidBar({ paid, total }) {
   const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
   return (
     <div className="w-full">
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-0.5 text-[10px] text-slate-400">{pct}% collected</p>
+      <p className="mt-1 text-xs text-slate-400">{pct}% cobrado</p>
+    </div>
+  );
+}
+
+function MixRow({ label, value, pct, color, dotClass }) {
+  return (
+    <li>
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="flex items-center gap-2 font-medium text-slate-700">
+          <span className={`w-2 h-2 rounded-full ${dotClass || ''}`} style={color ? { background: color } : undefined} />
+          {label}
+        </span>
+        <span className="font-semibold text-slate-900">
+          {value}
+          <span className="ml-1 text-xs font-normal text-slate-400">({pct}%)</span>
+        </span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${dotClass || ''}`} style={{ width: `${pct}%`, ...(color ? { background: color } : {}) }} />
+      </div>
+    </li>
+  );
+}
+
+function EmptyMini({ icon: Icon = Layers, children }) {
+  return (
+    <div className="py-8 text-center">
+      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-400">
+        <Icon aria-hidden="true" className="h-5 w-5" />
+      </span>
+      <p className="mt-2 text-sm text-slate-500">{children}</p>
+    </div>
+  );
+}
+
+/* ---------- Custom dropdown (portal menu, keyboard support) ---------- */
+function Select({
+  value, onChange, options, placeholder = 'Selecciona…', searchable = false, prefix, icon: LeadIcon,
+  compact = false, disabled = false, ariaLabel, className = '', menuMinWidth = 200,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const [pos, setPos] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  const listRef = useRef(null);
+
+  const selected = options.find((o) => o.value === value);
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => `${o.label} ${o.hint || ''}`.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const place = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const wanted = Math.min(288, visible.length * 40 + (searchable ? 56 : 12));
+    const below = window.innerHeight - r.bottom - 12;
+    const above = r.top - 12;
+    const up = below < wanted && above > below;
+    const width = Math.max(r.width, menuMinWidth);
+    setPos({
+      left: Math.min(Math.max(8, r.left), window.innerWidth - width - 8),
+      width,
+      top: up ? undefined : r.bottom + 6,
+      bottom: up ? window.innerHeight - r.top + 6 : undefined,
+      maxHeight: Math.max(160, Math.min(320, up ? above : below)),
+    });
+  }, [visible.length, searchable, menuMinWidth]);
+
+  useLayoutEffect(() => { if (open) place(); }, [open, place]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (triggerRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onScroll = (e) => { if (!menuRef.current?.contains(e.target)) place(); };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', place);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open, place]);
+
+  useEffect(() => { if (open && searchable) searchRef.current?.focus(); }, [open, searchable]);
+  useEffect(() => {
+    if (open) listRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [active, open, visible]);
+
+  const openMenu = () => {
+    if (disabled) return;
+    setQuery('');
+    const idx = options.findIndex((o) => o.value === value);
+    setActive(idx >= 0 ? idx : 0);
+    setOpen(true);
+  };
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) triggerRef.current?.focus();
+  };
+  const choose = (o) => {
+    if (!o || o.disabled) return;
+    onChange(o.value);
+    close();
+  };
+
+  const onKeyDown = (e) => {
+    if (!open) {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); openMenu(); }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActive((i) => Math.min(visible.length - 1, i + 1)); break;
+      case 'ArrowUp': e.preventDefault(); setActive((i) => Math.max(0, i - 1)); break;
+      case 'Home': if (!searchable) { e.preventDefault(); setActive(0); } break;
+      case 'End': if (!searchable) { e.preventDefault(); setActive(visible.length - 1); } break;
+      case 'Enter': e.preventDefault(); choose(visible[active]); break;
+      case ' ': if (!searchable) { e.preventDefault(); choose(visible[active]); } break;
+      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break;
+      case 'Tab': setOpen(false); break;
+      default: break;
+    }
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => (open ? close(false) : openMenu())}
+        onKeyDown={onKeyDown}
+        className={`w-full flex items-center justify-between gap-2 bg-white border rounded-lg px-3 ${compact ? 'py-1.5' : 'py-2'} text-sm text-left transition
+          focus:outline-none focus:ring-2 focus:ring-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed
+          ${open ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 hover:border-slate-300'}`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {LeadIcon && <LeadIcon className="w-4 h-4 text-amber-600 shrink-0" />}
+          {prefix && <span className="text-slate-400 shrink-0">{prefix}</span>}
+          <span className={`truncate ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
+            {selected ? selected.label : placeholder}
+          </span>
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180 text-amber-600' : ''}`} />
+      </button>
+
+      {open && pos && createPortal(
+        <div
+          ref={menuRef}
+          role="presentation"
+          style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxHeight }}
+          className="z-[100] flex flex-col bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 ring-1 ring-black/5 overflow-hidden rp-pop"
+        >
+          {searchable && (
+            <div className="p-2 border-b border-slate-100 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+                  onKeyDown={onKeyDown}
+                  placeholder="Buscar"
+                  aria-label="Buscar opciones"
+                  className="w-full bg-stone-50 rounded-md pl-8 pr-2 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500/30"
+                />
+              </div>
+            </div>
+          )}
+          <ul ref={listRef} role="listbox" className="overflow-y-auto p-1">
+            {visible.length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('Sin coincidencias')}</li>
+            ) : (
+              visible.map((o, i) => {
+                const isSel = o.value === value;
+                return (
+                  <li
+                    key={String(o.value)}
+                    role="option"
+                    aria-selected={isSel}
+                    data-idx={i}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => choose(o)}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm cursor-pointer
+                      ${i === active ? 'bg-amber-50' : ''} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className={`block truncate ${isSel ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>{o.label}</span>
+                      {o.hint && <span className="block truncate text-xs text-slate-400">{o.hint}</span>}
+                    </span>
+                    {isSel && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -192,7 +408,6 @@ function smoothPath(points) {
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
   if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
 
-  // Catmull-Rom to Bézier
   const d = [`M ${points[0].x} ${points[0].y}`];
   for (let i = 0; i < points.length - 1; i += 1) {
     const p0 = points[i - 1] || points[i];
@@ -211,6 +426,9 @@ function smoothPath(points) {
 }
 
 function RevenueTrend({ series, previous, currency, height = 240 }) {
+  // Los hooks van antes de cualquier return anticipado para respetar las reglas de React.
+  const [hover, setHover] = useState(null);
+
   const width = 800;
   const pad = { top: 16, right: 16, bottom: 32, left: 56 };
   const innerW = width - pad.left - pad.right;
@@ -218,7 +436,9 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
 
   if (!series.length) {
     return (
-      <div className="grid h-60 place-items-center rounded-lg border border-dashed border-slate-200 text-xs text-slate-400">{translate('No activity in this period.')}</div>
+      <div className="grid h-60 place-items-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
+        {translate('No hay actividad en este periodo.')}
+      </div>
     );
   }
 
@@ -243,17 +463,14 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
 
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => Math.round(maxVal * p));
   const labelEvery = Math.max(1, Math.ceil(series.length / 8));
-  const [hover, setHover] = React.useState(null);
 
   const handleMove = (e) => {
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const xPixels = ((e.clientX - rect.left) / rect.width) * width;
     const relative = xPixels - pad.left;
     if (relative < 0 || relative > innerW) { setHover(null); return; }
     const idx = series.length > 1 ? Math.round(relative / stepX) : 0;
-    const clamped = Math.max(0, Math.min(series.length - 1, idx));
-    setHover(clamped);
+    setHover(Math.max(0, Math.min(series.length - 1, idx)));
   };
 
   return (
@@ -262,7 +479,7 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
         viewBox={`0 0 ${width} ${height}`}
         className="w-full"
         role="img"
-        aria-label="Revenue trend"
+        aria-label="Tendencia de ingresos"
         onMouseMove={handleMove}
         onMouseLeave={() => setHover(null)}
       >
@@ -285,25 +502,10 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
         {areaPath && <path d={areaPath} fill="url(#rev-area)" />}
 
         {prevPath && (
-          <path
-            d={prevPath}
-            stroke="#cbd5e1"
-            strokeWidth="1.75"
-            fill="none"
-            strokeDasharray="5 4"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          <path d={prevPath} stroke="#cbd5e1" strokeWidth="1.75" fill="none" strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" />
         )}
 
-        <path
-          d={currentPath}
-          stroke="#d97706"
-          strokeWidth="2.25"
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+        <path d={currentPath} stroke="#d97706" strokeWidth="2.25" fill="none" strokeLinejoin="round" strokeLinecap="round" />
 
         {series.map((d, i) =>
           i % labelEvery === 0 || i === series.length - 1 ? (
@@ -315,14 +517,7 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
 
         {hover != null && series[hover] && (
           <g>
-            <line
-              x1={xFor(hover)}
-              x2={xFor(hover)}
-              y1={pad.top}
-              y2={pad.top + innerH}
-              stroke="#94a3b8"
-              strokeDasharray="3 3"
-            />
+            <line x1={xFor(hover)} x2={xFor(hover)} y1={pad.top} y2={pad.top + innerH} stroke="#94a3b8" strokeDasharray="3 3" />
             <circle cx={xFor(hover)} cy={yFor(series[hover].revenue)} r="4.5" fill="#d97706" stroke="#fff" strokeWidth="2" />
           </g>
         )}
@@ -330,7 +525,7 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
 
       {hover != null && series[hover] && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] shadow-md"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-md"
           style={{
             left: `${(xFor(hover) / width) * 100}%`,
             top: `${(yFor(series[hover].revenue) / height) * 100}%`,
@@ -339,17 +534,20 @@ function RevenueTrend({ series, previous, currency, height = 240 }) {
           <p className="font-semibold text-slate-900">{series[hover].label}</p>
           <p className="text-amber-700">{fmtMoney(series[hover].revenue, currency)}</p>
           {previous?.[hover] && (
-            <p className="text-slate-400">Prev: {fmtMoney(previous[hover].revenue, currency)}</p>
+            <p className="text-slate-400">Anterior: {fmtMoney(previous[hover].revenue, currency)}</p>
           )}
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500">
+      <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-0.5 w-4 rounded-full bg-amber-600" />{translate('Current period')}</span>
+          <span className="h-0.5 w-4 rounded-full bg-amber-600" />{translate('Periodo actual')}
+        </span>
         {previous && previous.length > 0 && (
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full bg-slate-300" style={{ backgroundImage: 'linear-gradient(90deg, #cbd5e1 50%, transparent 50%)', backgroundSize: '4px 100%' }} />{translate('Previous period')}</span>
+            <span className="h-0.5 w-4 rounded-full bg-slate-300" style={{ backgroundImage: 'linear-gradient(90deg, #cbd5e1 50%, transparent 50%)', backgroundSize: '4px 100%' }} />
+            {translate('Periodo anterior')}
+          </span>
         )}
       </div>
     </div>
@@ -383,7 +581,7 @@ export default function AdminDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        setCurrentUser(profile || { full_name: user.email?.split('@')[0] || 'Agency user' });
+        setCurrentUser(profile || { full_name: user.email?.split('@')[0] || 'Usuario de la agencia' });
       }
 
       const [bookingsRes, customersRes, offersRes, departuresRes, paymentsRes, financialsRes] = await Promise.all([
@@ -413,7 +611,7 @@ export default function AdminDashboardPage() {
       setFinancials(financialsRes.data || []);
     } catch (err) {
       console.error('Dashboard load failed:', err);
-      setError(err?.message || 'Failed to load dashboard metrics.');
+      setError(err?.message || 'No se pudieron cargar las métricas del panel.');
     } finally {
       setLoading(false);
     }
@@ -526,7 +724,7 @@ export default function AdminDashboardPage() {
     const endDay = toDay(end);
     while (cursor <= endDay) {
       buckets.set(cursor.toISOString().slice(0, 10), {
-        label: cursor.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }),
+        label: cursor.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
         revenue: 0,
       });
       cursor.setDate(cursor.getDate() + 1);
@@ -545,7 +743,7 @@ export default function AdminDashboardPage() {
     const endDay = toDay(prevEnd);
     while (cursor <= endDay) {
       buckets.set(cursor.toISOString().slice(0, 10), {
-        label: cursor.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }),
+        label: cursor.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
         revenue: 0,
       });
       cursor.setDate(cursor.getDate() + 1);
@@ -556,7 +754,7 @@ export default function AdminDashboardPage() {
       if (bucket) bucket.revenue += Number(b.netPaid || 0);
     });
     const arr = Array.from(buckets.values());
-    // Align length with current series so the chart maps index-to-index
+    // Alinea la longitud con la serie actual para que el gráfico se asigne índice a índice
     return arr.slice(-revenueSeries.length);
   }, [prevBookings, prevStart, prevEnd, revenueSeries.length]);
 
@@ -586,6 +784,7 @@ export default function AdminDashboardPage() {
       const paid = Number(b.netPaid || 0);
       let bucket = 'unpaid';
       if (total === 0 && paid === 0) bucket = 'unpaid';
+      else if (total > 0 && paid > total) bucket = 'overpaid';
       else if (paid >= total && total > 0) bucket = 'paid';
       else if (paid > 0) bucket = 'partially_paid';
       acc[bucket] = (acc[bucket] || 0) + 1;
@@ -612,17 +811,14 @@ export default function AdminDashboardPage() {
     });
     const total = periodBookings.length || 1;
     return [
-      { key: 'individual', label: 'Individual',   value: individual, pct: Math.round((individual / total) * 100), color: '#10b981' },
-      { key: 'collective', label: 'Collective',   value: collective, pct: Math.round((collective / total) * 100), color: '#0ea5e9' },
-      { key: 'none',       label: 'No insurance', value: none,       pct: Math.round((none / total) * 100),       color: '#cbd5e1' },
+      { key: 'individual', label: 'Individual', value: individual, pct: Math.round((individual / total) * 100), color: '#10b981' },
+      { key: 'collective', label: 'Colectivo',  value: collective, pct: Math.round((collective / total) * 100), color: '#0ea5e9' },
+      { key: 'none',       label: 'Sin seguro', value: none,       pct: Math.round((none / total) * 100),       color: '#cbd5e1' },
     ];
   }, [periodBookings]);
 
   /* ---------- Recent bookings ---------- */
-  const recentBookings = useMemo(
-    () => [...enrichedBookings].slice(0, 8),
-    [enrichedBookings],
-  );
+  const recentBookings = useMemo(() => enrichedBookings.slice(0, 8), [enrichedBookings]);
 
   /* ---------- Upcoming departures ---------- */
   const upcomingDepartures = useMemo(() => {
@@ -647,7 +843,7 @@ export default function AdminDashboardPage() {
       if (!b.offer_id) return;
       const entry = acc.get(b.offer_id) || {
         id: b.offer_id,
-        title: b.offer?.public_title || b.offer?.internal_title || 'Untitled package',
+        title: b.offer?.public_title || b.offer?.internal_title || 'Paquete sin título',
         reference: b.offer?.reference || '—',
         category: b.offer?.package_category || '—',
         bookings: 0,
@@ -663,12 +859,12 @@ export default function AdminDashboardPage() {
   }, [periodBookings]);
 
   /* ---------- Render guards ---------- */
-  if (loading) {
+  if (loading && bookings.length === 0) {
     return (
-      <div className="min-h-[60vh] bg-slate-50/50">
-        <div className="mx-auto max-w-[1600px] space-y-6 p-6 sm:p-8">
-          <div className="h-24 animate-pulse rounded-2xl bg-white" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="min-h-screen bg-stone-50">
+        <div className="mx-auto max-w-[1600px] space-y-6 p-6 lg:p-8">
+          <div className="h-20 animate-pulse rounded-xl bg-white" />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-28 animate-pulse rounded-xl bg-white" />
             ))}
@@ -677,149 +873,148 @@ export default function AdminDashboardPage() {
             <div className="h-72 animate-pulse rounded-xl bg-white lg:col-span-2" />
             <div className="h-72 animate-pulse rounded-xl bg-white" />
           </div>
-          <p className="text-center text-xs text-slate-400">{translate('Loading dashboard…')}</p>
+          <p className="text-center text-sm text-slate-400">{translate('Cargando el panel…')}</p>
         </div>
       </div>
     );
   }
 
+  const firstName = currentUser?.full_name?.split(' ')[0];
+  const rangeText = `${start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+  const kpiCards = [
+    {
+      label: 'Reservas',
+      value: kpis.totalReservations,
+      sub: `${kpis.confirmed} confirmadas · ${kpis.pending} pendientes`,
+      icon: Calendar,
+      tone: 'text-slate-900',
+      chip: 'bg-slate-100 text-slate-600',
+      trend: kpis.reservationChange,
+      to: '/admin/reservations',
+    },
+    {
+      label: 'Ingresos netos',
+      value: fmtMoney(kpis.revenue),
+      sub: `Ticket medio ${fmtMoney(kpis.aov)}`,
+      icon: Wallet,
+      tone: 'text-emerald-600',
+      chip: 'bg-emerald-50 text-emerald-600',
+      trend: kpis.revenueChange,
+      to: '/admin/payments-transactions',
+    },
+    {
+      label: 'Saldo pendiente',
+      value: fmtMoney(kpis.outstanding),
+      sub: 'Importe por cobrar en este periodo',
+      icon: DollarSign,
+      tone: 'text-slate-900',
+      chip: 'bg-violet-50 text-violet-600',
+      to: '/admin/payments-transactions',
+    },
+    {
+      label: 'Reservas con seguro',
+      value: `${kpis.insuranceAttach.toFixed(1)}%`,
+      sub: `${kpis.insured} de ${kpis.totalReservations} reservas`,
+      icon: ShieldCheck,
+      tone: 'text-slate-900',
+      chip: 'bg-sky-50 text-sky-600',
+      to: '/admin/reservations',
+    },
+  ];
+
+  /* ---------- Render ---------- */
   return (
-    <main className="min-h-screen bg-slate-50/70 pb-10">
-      <div className="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Header — no "New package" button */}
-        <header className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-200">
-              <BarChart3 className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900">
-                  Welcome back{currentUser?.full_name ? `, ${currentUser.full_name.split(' ')[0]}` : ''}
-                </h1>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
-                  {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: '2-digit' })}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-slate-500">{translate('Snapshot of your agency\'s activity. Switch ranges, drill into any panel.')}</p>
-            </div>
+    <main className="min-h-screen bg-stone-50">
+      <style>{`
+        @keyframes rp-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+        .rp-pop { animation: rp-pop .16s ease-out; }
+        @media (prefers-reduced-motion: reduce) { .rp-pop { animation-duration: 1ms; } }
+      `}</style>
+
+      <div className="mx-auto max-w-[1600px] space-y-6 p-6 lg:p-8">
+        {/* Header */}
+        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {firstName ? `Bienvenido de nuevo, ${firstName}` : 'Bienvenido de nuevo'}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 first-letter:uppercase">
+              {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {' · '}{translate('Resumen de la actividad de tu agencia. Cambia el rango o abre cualquier panel.')}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs">
-              <Filter className="h-3.5 w-3.5 text-amber-600" />
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none"
-                aria-label="Date range"
-              >
-                {RANGE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/admin/analytics')}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <BarChart3 className="h-3.5 w-3.5 text-amber-600" />{translate('Analytics')}</button>
-            <button
-              type="button"
-              onClick={load}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />{translate('Sync')}</button>
+            <Select
+              className="w-52"
+              icon={Calendar}
+              ariaLabel="Rango de fechas"
+              value={dateRange}
+              onChange={setDateRange}
+              options={RANGE_OPTIONS}
+            />
+            <button type="button" onClick={() => navigate('/admin/analytics')} className={btnGhost}>
+              <BarChart3 className="w-4 h-4 text-slate-500" />{translate('Analítica')}
+            </button>
+            <button type="button" onClick={load} className={btnGhost} title="Actualizar datos">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Actualizar')}
+            </button>
           </div>
         </header>
 
         {error && (
-          <div role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+          <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm rp-pop">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button type="button" onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Descartar">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
         {/* KPI row */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            label="Reservations"
-            value={kpis.totalReservations}
-            sub={`${kpis.confirmed} confirmed · ${kpis.pending} pending`}
-            icon={Calendar}
-            tone="slate"
-            trend={kpis.reservationChange}
-            onClick={() => navigate('/admin/reservations')}
-          />
-          <KpiCard
-            label="Net revenue"
-            value={fmtMoney(kpis.revenue)}
-            sub={`AOV ${fmtMoney(kpis.aov)}`}
-            icon={Wallet}
-            tone="emerald"
-            trend={kpis.revenueChange}
-            onClick={() => navigate('/admin/payments-transactions')}
-          />
-          <KpiCard
-            label="Outstanding"
-            value={fmtMoney(kpis.outstanding)}
-            sub="Balance due across this period"
-            icon={DollarSign}
-            tone="amber"
-            onClick={() => navigate('/admin/payments-transactions')}
-          />
-          <KpiCard
-            label="Insurance attach"
-            value={`${kpis.insuranceAttach.toFixed(1)}%`}
-            sub={`${kpis.insured} of ${kpis.totalReservations} bookings`}
-            icon={ShieldCheck}
-            tone="sky"
-            onClick={() => navigate('/admin/reservations')}
-          />
+          {kpiCards.map(({ to, ...card }) => (
+            <KpiCard key={card.label} {...card} onClick={() => navigate(to)} />
+          ))}
         </section>
 
-        {/* Charts row — smooth line chart with previous-period overlay */}
+        {/* Charts row */}
         <div className="grid gap-4 lg:grid-cols-3">
           <SectionCard
-            title="Revenue trend"
+            title="Tendencia de ingresos"
             icon={TrendingUp}
-            subtitle="Daily net collected vs previous period"
+            subtitle="Cobro neto diario frente al periodo anterior"
             className="lg:col-span-2"
-            action={
-              <span className="text-[11px] font-medium text-slate-500">
-                {start.toLocaleDateString()} – {end.toLocaleDateString()}
-              </span>
-            }
+            action={<span className="text-xs font-medium text-slate-500 shrink-0">{rangeText}</span>}
           >
-            <RevenueTrend
-              series={revenueSeries}
-              previous={previousSeries}
-              currency="MAD"
-            />
+            <RevenueTrend series={revenueSeries} previous={previousSeries} currency="MAD" />
           </SectionCard>
 
-          <SectionCard title="Status distribution" icon={Layers} subtitle="Bookings in this period">
+          <SectionCard title="Distribución por estado" icon={Layers} subtitle="Reservas de este periodo">
             {statusDistribution.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">{translate('No bookings in this period.')}</p>
+              <EmptyMini icon={Calendar}>{translate('No hay reservas en este periodo.')}</EmptyMini>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-4">
                 {statusDistribution.map(({ status, count, percentage, meta }) => (
                   <li key={status}>
                     <button
                       type="button"
                       onClick={() => navigate(`/admin/reservations?status=${status}`)}
-                      className="w-full text-left"
+                      className="w-full rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
                     >
-                      <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center justify-between gap-2 text-sm">
                         <span className="flex items-center gap-2 font-medium text-slate-700">
                           <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                           {meta.label}
                         </span>
                         <span className="font-semibold text-slate-900">
                           {count}
-                          <span className="ml-1 text-[10px] text-slate-400">({percentage}%)</span>
+                          <span className="ml-1 text-xs font-normal text-slate-400">({percentage}%)</span>
                         </span>
                       </div>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                         <div className={`h-full rounded-full ${meta.dot}`} style={{ width: `${percentage}%` }} />
                       </div>
                     </button>
@@ -830,83 +1025,49 @@ export default function AdminDashboardPage() {
           </SectionCard>
         </div>
 
-        {/* Second row: payment mix + insurance mix + customers / offers snapshot */}
+        {/* Second row */}
         <div className="grid gap-4 lg:grid-cols-3">
-          <SectionCard title="Payment mix" icon={CreditCard} subtitle="Bookings by payment state in this period">
+          <SectionCard title="Estado de los pagos" icon={CreditCard} subtitle="Reservas por estado de pago en este periodo">
             {paymentMix.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-400">{translate('No bookings in this period.')}</p>
+              <EmptyMini icon={CreditCard}>{translate('No hay reservas en este periodo.')}</EmptyMini>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="space-y-4">
                 {paymentMix.map((row) => (
-                  <li key={row.key}>
-                    <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className="h-2 w-2 rounded-full" style={{ background: row.color }} />
-                        {row.label}
-                      </span>
-                      <span className="font-semibold text-slate-900">
-                        {row.value}
-                        <span className="ml-1 text-[10px] text-slate-400">({row.percentage}%)</span>
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full" style={{ width: `${row.percentage}%`, background: row.color }} />
-                    </div>
-                  </li>
+                  <MixRow key={row.key} label={row.label} value={row.value} pct={row.percentage} color={row.color} />
                 ))}
               </ul>
             )}
           </SectionCard>
 
-          <SectionCard title="Insurance mix" icon={ShieldCheck} subtitle="Of bookings created in this period">
-            <ul className="space-y-2.5">
+          <SectionCard title="Seguros contratados" icon={ShieldCheck} subtitle="De las reservas creadas en este periodo">
+            <ul className="space-y-4">
               {insuranceMix.map((row) => (
-                <li key={row.key}>
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="flex items-center gap-2 font-medium text-slate-700">
-                      <span className="h-2 w-2 rounded-full" style={{ background: row.color }} />
-                      {row.label}
-                    </span>
-                    <span className="font-semibold text-slate-900">
-                      {row.value}
-                      <span className="ml-1 text-[10px] text-slate-400">({row.pct}%)</span>
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: row.color }} />
-                  </div>
-                </li>
+                <MixRow key={row.key} label={row.label} value={row.value} pct={row.pct} color={row.color} />
               ))}
             </ul>
           </SectionCard>
 
           <SectionCard
-            title="Customers & catalog"
+            title="Clientes y catálogo"
             icon={Users}
-            action={
-              <button
-                type="button"
-                onClick={() => navigate('/admin/customers')}
-                className="text-[11px] font-semibold text-amber-700 hover:underline"
-              >{translate('Open customers')}</button>
-            }
+            action={<LinkAction onClick={() => navigate('/admin/customers')}>{translate('Abrir clientes')}</LinkAction>}
           >
-            <dl className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg border border-slate-200 p-3">
-                <dt className="text-slate-500">{translate('Total customers')}</dt>
-                <dd className="mt-0.5 text-lg font-bold text-slate-900">{customers.length}</dd>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <dt className="text-slate-500">{translate('Total de clientes')}</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900">{customers.length}</dd>
               </div>
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <dt className="text-emerald-700">{translate('New this period')}</dt>
-                <dd className="mt-0.5 text-lg font-bold text-emerald-700">+{newCustomers.length}</dd>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <dt className="text-emerald-700">{translate('Nuevos en el periodo')}</dt>
+                <dd className="mt-1 text-xl font-semibold text-emerald-700">+{newCustomers.length}</dd>
               </div>
-              <div className="rounded-lg border border-slate-200 p-3">
-                <dt className="text-slate-500">{translate('Active offers')}</dt>
-                <dd className="mt-0.5 text-lg font-bold text-slate-900">{activeOffers}</dd>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <dt className="text-slate-500">{translate('Ofertas activas')}</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900">{activeOffers}</dd>
               </div>
-              <div className="rounded-lg border border-slate-200 p-3">
-                <dt className="text-slate-500">{translate('Total offers')}</dt>
-                <dd className="mt-0.5 text-lg font-bold text-slate-900">{offers.length}</dd>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <dt className="text-slate-500">{translate('Total de ofertas')}</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900">{offers.length}</dd>
               </div>
             </dl>
           </SectionCard>
@@ -915,42 +1076,38 @@ export default function AdminDashboardPage() {
         {/* Recent bookings + upcoming departures */}
         <div className="grid gap-4 lg:grid-cols-2">
           <SectionCard
-            title="Recent bookings"
+            title="Reservas recientes"
             icon={Calendar}
             action={
-              <button
-                type="button"
-                onClick={() => navigate('/admin/reservations')}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:underline"
-              >
-                View all <ChevronRight className="h-3 w-3" />
-              </button>
+              <LinkAction onClick={() => navigate('/admin/reservations')}>
+                {translate('Ver todas')} <ChevronRight className="w-3.5 h-3.5" />
+              </LinkAction>
             }
           >
             {recentBookings.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">{translate('No bookings yet.')}</p>
+              <EmptyMini icon={Calendar}>{translate('Aún no hay reservas.')}</EmptyMini>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {recentBookings.map((b) => (
                   <li key={b.id}>
                     <button
                       type="button"
                       onClick={() => navigate('/admin/reservations')}
-                      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-slate-300"
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-amber-300 hover:bg-amber-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-slate-900">
-                            {b.customers?.full_name || 'Guest'}
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {b.customers?.full_name || 'Invitado'}
                           </p>
-                          <p className="truncate font-mono text-[10px] text-amber-700">{b.booking_reference}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                            {b.destination || '—'} · {b.traveler_count || 1} traveler{(b.traveler_count || 1) === 1 ? '' : 's'}
+                          <p className="truncate font-mono text-xs text-amber-700">{b.booking_reference}</p>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">
+                            {b.destination || '—'} · {travelers(b.traveler_count)}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <StatusBadge status={b.booking_status} />
-                          <span className="text-[11px] font-semibold text-slate-900">
+                          <span className="text-sm font-semibold text-slate-900">
                             {fmtMoney(b.total_amount, b.currency)}
                           </span>
                         </div>
@@ -964,43 +1121,41 @@ export default function AdminDashboardPage() {
           </SectionCard>
 
           <SectionCard
-            title="Upcoming departures"
+            title="Próximas salidas"
             icon={Compass}
-            subtitle="Next 30 days"
+            subtitle="Próximos 30 días"
             action={
-              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
-                {upcomingDepartures.length} trips
+              <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                {upcomingDepartures.length} {upcomingDepartures.length === 1 ? 'viaje' : 'viajes'}
               </span>
             }
           >
             {upcomingDepartures.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">{translate('No upcoming departures scheduled.')}</p>
+              <EmptyMini icon={Compass}>{translate('No hay salidas programadas próximamente.')}</EmptyMini>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {upcomingDepartures.map((b) => {
                   const seatsAvailable =
                     b.departure && b.departure.max_capacity != null
                       ? Math.max(0, Number(b.departure.max_capacity) - Number(b.departure.reserved_capacity || 0))
                       : null;
                   return (
-                    <li key={b.id} className="rounded-lg border border-slate-200 bg-white p-3">
+                    <li key={b.id} className="rounded-xl border border-slate-200 bg-white p-3.5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-slate-900">
-                            {b.customers?.full_name || 'Guest'}
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {b.customers?.full_name || 'Invitado'}
                           </p>
-                          <p className="truncate text-[11px] text-slate-500">{b.destination || '—'}</p>
-                          <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-amber-800">
-                            <Calendar className="h-3 w-3" /> {fmtDate(b.departure_date)}
+                          <p className="truncate text-xs text-slate-500">{b.destination || '—'}</p>
+                          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-amber-800">
+                            <Calendar className="w-3.5 h-3.5" /> {fmtDate(b.departure_date)}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[11px] font-semibold text-slate-900">
-                            {b.traveler_count || 1} traveler{(b.traveler_count || 1) === 1 ? '' : 's'}
-                          </p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-slate-900">{travelers(b.traveler_count)}</p>
                           {seatsAvailable != null && (
-                            <p className={`text-[10px] ${seatsAvailable <= 3 ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>
-                              {seatsAvailable} seats left
+                            <p className={`text-xs ${seatsAvailable <= 3 ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>
+                              {seatsAvailable === 1 ? 'Queda 1 plaza' : `Quedan ${seatsAvailable} plazas`}
                             </p>
                           )}
                         </div>
@@ -1015,52 +1170,47 @@ export default function AdminDashboardPage() {
 
         {/* Top packages */}
         <SectionCard
-          title="Top packages by revenue"
+          title="Paquetes con más ingresos"
           icon={Compass}
-          subtitle="In the selected period"
+          subtitle="En el periodo seleccionado"
           action={
-            <button
-              type="button"
-              onClick={() => navigate('/admin/packages-services')}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:underline"
-            >
-              All packages <ChevronRight className="h-3 w-3" />
-            </button>
+            <LinkAction onClick={() => navigate('/admin/packages-services')}>
+              {translate('Todos los paquetes')} <ChevronRight className="w-3.5 h-3.5" />
+            </LinkAction>
           }
         >
           {topPackages.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-400">{translate('No packages sold in this period.')}</p>
+            <EmptyMini icon={Compass}>{translate('No se vendió ningún paquete en este periodo.')}</EmptyMini>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-left text-xs">
-                <thead className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  <tr className="border-b border-slate-200">
-                    <th className="py-2 pr-3">{translate('Package')}</th>
-                    <th className="py-2 pr-3">{translate('Category')}</th>
-                    <th className="py-2 pr-3 text-right">{translate('Bookings')}</th>
-                    <th className="py-2 pr-3 text-right">{translate('Revenue')}</th>
-                    <th className="py-2 pl-3 text-right" />
+            <div className="-mx-5 -mb-5 overflow-x-auto">
+              <table className="w-full min-w-[600px] border-collapse text-left">
+                <thead>
+                  <tr className="border-y border-slate-100 bg-stone-50 text-xs font-medium text-slate-500">
+                    <th className="py-3 px-5">{translate('Paquete')}</th>
+                    <th className="py-3 px-4">{translate('Categoría')}</th>
+                    <th className="py-3 px-4 text-right">{translate('Reservas')}</th>
+                    <th className="py-3 px-4 text-right">{translate('Ingresos')}</th>
+                    <th className="py-3 px-5 w-10" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                   {topPackages.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/60">
-                      <td className="py-2.5 pr-3">
-                        <p className="font-semibold text-slate-900">{p.title}</p>
-                        <p className="font-mono text-[10px] text-amber-700">{p.reference}</p>
+                    <tr
+                      key={p.id}
+                      tabIndex={0}
+                      onClick={() => navigate(`/admin/packages-services/${p.id}`)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/admin/packages-services/${p.id}`); }}
+                      className="group cursor-pointer hover:bg-amber-50/40 focus:outline-none focus-visible:bg-amber-50/60 transition-colors"
+                    >
+                      <td className="py-3.5 px-5">
+                        <p className="font-medium text-slate-900">{p.title}</p>
+                        <p className="font-mono text-xs text-amber-700">{p.reference}</p>
                       </td>
-                      <td className="py-2.5 pr-3 text-slate-600">{p.category}</td>
-                      <td className="py-2.5 pr-3 text-right font-medium text-slate-700">{p.bookings}</td>
-                      <td className="py-2.5 pr-3 text-right font-semibold text-slate-900">{fmtMoney(p.revenue)}</td>
-                      <td className="py-2.5 pl-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/packages-services/${p.id}`)}
-                          className="inline-flex items-center gap-1 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                          aria-label={`Open ${p.title}`}
-                        >
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
+                      <td className="py-3.5 px-4 text-slate-600">{p.category}</td>
+                      <td className="py-3.5 px-4 text-right font-medium text-slate-700">{p.bookings}</td>
+                      <td className="py-3.5 px-4 text-right font-semibold text-slate-900">{fmtMoney(p.revenue)}</td>
+                      <td className="py-3.5 px-5 text-right">
+                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition" aria-label={`Abrir ${p.title}`} />
                       </td>
                     </tr>
                   ))}

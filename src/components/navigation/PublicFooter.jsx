@@ -19,15 +19,16 @@ const footerSections = [
       ['FAQs', '/faqs'],
       ['Terms & conditions', '/terms'],
       ['Privacy policy', '/privacy'],
+      ['Cookie Policy', '/cookies'],
     ],
   },
 ];
 
 /* Edit once: the footer reads everything from here. */
 const CONTACT = {
-  phone: '+212 529-808080',
-  phoneHref: 'tel:+212529808080',
-  email: 'concierge@skyview-travel.com',
+  phone: '+34 631 632 341',
+  phoneHref: 'tel:+34631632341',
+  email: 'habibiadventure.26@gmail.com',
   address: 'Tangier, Morocco',
 };
 

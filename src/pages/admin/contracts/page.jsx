@@ -5,7 +5,7 @@ import {
   Clock, AlertCircle, XCircle, Users, Calendar, DollarSign,
   Sparkles, RefreshCw, Trash2, Check, ChevronDown, ChevronRight,
   ShieldCheck, ArrowRight, UserCheck, CreditCard, MapPin, X,
-  FileSignature, Settings, ExternalLink, Printer,
+  FileSignature, Settings, ExternalLink, Printer, RotateCcw, Wand2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client.jsx';
 import { useAuth, translate, useAppSettings } from '@/context/index.jsx';
@@ -28,13 +28,15 @@ import {
 
 /* ---------- STATUS BADGES ---------- */
 const CONTRACT_STATUSES = {
-  all: { label: 'Todos los Contratos', cls: 'bg-slate-100 text-slate-700 ring-slate-200' },
+  all: { label: 'Todos los contratos', cls: 'bg-slate-100 text-slate-700 ring-slate-200' },
   draft: { label: 'Borrador', dot: 'bg-slate-400', cls: 'bg-slate-50 text-slate-700 ring-slate-200' },
-  pending_signature: { label: 'Pendiente de Firma', dot: 'bg-amber-500 animate-pulse', cls: 'bg-amber-50 text-amber-900 ring-amber-300' },
+  pending_signature: { label: 'Pendiente de firma', dot: 'bg-amber-500 animate-pulse', cls: 'bg-amber-50 text-amber-900 ring-amber-300' },
   signed: { label: 'Firmado', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-300' },
   confirmed: { label: 'Confirmado', dot: 'bg-teal-500', cls: 'bg-teal-50 text-teal-800 ring-teal-300' },
   cancelled: { label: 'Cancelado', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
 };
+
+const FILTER_TABS = ['all', 'pending_signature', 'signed', 'draft', 'cancelled'];
 
 function StatusBadge({ status }) {
   const s = CONTRACT_STATUSES[status] || CONTRACT_STATUSES.draft;
@@ -61,6 +63,111 @@ function ClientAvatar({ name }) {
   );
 }
 
+/* ---------- Empty states ---------- */
+function EmptyIllustrationContracts() {
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-40 w-auto" role="img" aria-label="Ilustración de contratos">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+      {/* documento trasero */}
+      <g transform="rotate(-6 100 100)">
+        <rect x="38" y="50" width="120" height="86" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="52" y="66" width="52" height="6" rx="3" className="fill-slate-200" />
+        <rect x="52" y="80" width="80" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="92" width="70" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="104" width="60" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="116" width="40" height="8" rx="4" className="fill-slate-100" />
+      </g>
+      {/* documento frontal con sello */}
+      <g transform="rotate(4 200 100)">
+        <rect x="140" y="62" width="130" height="94" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <rect x="156" y="76" width="56" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="156" y="90" width="98" height="4" rx="2" className="fill-slate-100" />
+        <rect x="156" y="100" width="90" height="4" rx="2" className="fill-slate-100" />
+        <rect x="156" y="110" width="80" height="4" rx="2" className="fill-slate-100" />
+        <rect x="156" y="120" width="70" height="4" rx="2" className="fill-slate-100" />
+        <rect x="156" y="130" width="50" height="4" rx="2" className="fill-slate-100" />
+        {/* sello firma */}
+        <circle cx="232" cy="130" r="14" className="fill-amber-100" />
+        <path d="M225 130l4 4 8-8" className="stroke-amber-600" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      {/* insignia */}
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="40" cy="40" r="4" className="fill-amber-200" />
+      <circle cx="288" cy="120" r="3" className="fill-amber-300" />
+      <circle cx="30" cy="150" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+function EmptyStateContracts({ hasFilters, onClearFilters, onCreate }) {
+  if (hasFilters) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+          <Search aria-hidden="true" className="h-6 w-6" />
+        </span>
+        <h3 className="mt-4 text-base font-semibold text-slate-900">Ningún contrato coincide con estos filtros</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">Prueba con otra búsqueda o quita algunos filtros.</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <RotateCcw className="h-4 w-4" />Borrar todos los filtros
+          </button>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+          >
+            <Plus className="h-4 w-4" />Generar nuevo contrato
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="px-6 py-14 text-center">
+      <EmptyIllustrationContracts />
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">Aún no hay contratos emitidos</h3>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        Genera el primer contrato oficial coordinado con una reserva existente. Cada contrato incluye las 16 cláusulas normativas.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+        >
+          <Sparkles className="h-4 w-4" />Generar primer contrato
+        </button>
+        <Link
+          to="/admin/settings?tab=contracts"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          <Settings className="h-4 w-4" />Ajustes de plantilla
+        </Link>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {[
+          ['Selecciona una reserva', 'Los datos de cliente, viaje, itinerario y servicios se auto-rellenan.'],
+          ['Revisa las 16 cláusulas', 'Encabezado, cuenta Santander, condiciones, anexos y firmas.'],
+          ['Descarga y envía el PDF', 'Genera el contrato oficial en PDF listo para firmar.'],
+        ].map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/* ---------- Page ---------- */
 export default function ContractsPage() {
   const { user } = useAuth();
   const { formatMoney, invoice: agencyInvoiceSettings, currency: defaultCur } = useAppSettings();
@@ -75,18 +182,16 @@ export default function ContractsPage() {
   const [loading, setLoading] = useState(true);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
+  const [toastIsError, setToastIsError] = useState(false);
 
-  // Filters & Search
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
 
-  // Modals
   const [previewContract, setPreviewContract] = useState(null);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1); // 1: Select Booking & Coordinate | 2: Review & Generate
+  const [wizardStep, setWizardStep] = useState(1);
 
-  // Form State for Contract Generation
   const [selectedBookingId, setSelectedBookingId] = useState('');
   const [contractForm, setContractForm] = useState({
     contract_number: `CTR-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
@@ -114,10 +219,11 @@ export default function ContractsPage() {
   const [contractServices, setContractServices] = useState([]);
   const [contractAccommodations, setContractAccommodations] = useState([]);
 
-  const notify = (msg) => {
+  const notify = useCallback((msg, isError = false) => {
     setToastMsg(msg);
+    setToastIsError(isError);
     setTimeout(() => setToastMsg(null), 3500);
-  };
+  }, []);
 
   /* ---------- DATA FETCHING ---------- */
   const loadData = useCallback(async () => {
@@ -135,17 +241,17 @@ export default function ContractsPage() {
       setBookings(bRes?.data || []);
       setPackages(oRes?.data || []);
     } catch (err) {
-      console.warn('Load contracts error:', err);
+      console.error('Load contracts error:', err);
+      notify(`No se pudieron cargar los contratos: ${err.message || 'Error desconocido'}`, true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Handle direct link with ?booking_id=...
   useEffect(() => {
     const bId = searchParams.get('booking_id');
     if (bId && bookings.length > 0) {
@@ -188,6 +294,9 @@ export default function ContractsPage() {
 
     return { total, pendingSig, signedCount, totalAmount };
   }, [contracts]);
+
+  const hasFilters = searchQuery.trim() !== '' || activeTab !== 'all';
+  const clearFilters = () => { setSearchQuery(''); setActiveTab('all'); };
 
   /* ---------- COORDINATE BOOKING / PACKAGE / CUSTOMER ---------- */
   const handleSelectBooking = async (bId) => {
@@ -337,7 +446,6 @@ export default function ContractsPage() {
         },
       ];
 
-      // Save to Supabase DB
       const created = await createFullContract({
         contract: newContractPayload,
         participants: participantsPayload,
@@ -347,7 +455,6 @@ export default function ContractsPage() {
         sections: mainTemplate.sections,
       });
 
-      // Generate & Download the official 16-section PDF immediately
       const doc = await buildContractPdf({
         contract: { ...newContractPayload, ...created },
         participants: participantsPayload,
@@ -382,251 +489,281 @@ export default function ContractsPage() {
   };
 
   const handleDelete = async (ctr) => {
-    if (!window.confirm(`¿Seguro que desea eliminar el contrato ${ctr.contract_number}?`)) return;
+    if (!window.confirm(`¿Seguro que desea eliminar el contrato ${ctr.contract_number}? Esta acción no se puede deshacer.`)) return;
     try {
       await deleteContractFromDb(ctr.id);
       notify(`Contrato ${ctr.contract_number} eliminado.`);
       loadData();
     } catch (err) {
-      notify('Error al eliminar el contrato.');
+      console.error('Error deleting contract:', err);
+      notify(`Error al eliminar el contrato: ${err.message || 'Error desconocido'}`, true);
     }
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 p-6 lg:p-8 space-y-6">
-      {/* Toast */}
-      {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-2 rounded-xl bg-slate-900 text-white px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ring-slate-800 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
-      {/* Header & Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-              CONTRATOS OFICIALES
-            </span>
-            <span className="text-xs text-slate-400">• 16 Cláusulas Normativas</span>
+    <div className="min-h-screen bg-stone-50">
+      <div className="mx-auto max-w-[1600px] space-y-6 p-6 lg:p-8">
+        {/* Toast */}
+        {toastMsg && (
+          <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2 rounded-xl text-white px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ${toastIsError ? 'bg-rose-900 ring-rose-800' : 'bg-slate-900 ring-slate-800'}`}>
+            {toastIsError
+              ? <AlertCircle className="w-4 h-4 text-rose-300" />
+              : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+            <span>{toastMsg}</span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-            Contratos de Viaje y Prestación de Servicios
-          </h1>
-          <p className="mt-1 text-xs text-slate-500">
-            Generación oficial coordinada con reservas, paquetes de viaje, cuenta Santander y anexos organizativos.
-          </p>
-        </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin/settings?tab=contracts"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
-            title="Personalizar cláusulas y encabezado"
-          >
-            <Settings className="w-3.5 h-3.5 text-slate-400" />
-            <span>Ajustes de Plantilla</span>
-          </Link>
-
-          <button
-            onClick={() => {
-              setWizardStep(1);
-              setIsGenerateModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-amber-500 transition"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Generar Nuevo Contrato</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Summary Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Total Contratos</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.total}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Pendientes de Firma</p>
-          <p className="mt-1 text-2xl font-bold text-amber-600">{metrics.pendingSig}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Firmados y Confirmados</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{metrics.signedCount}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Valor en Cartera</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{formatMoney(metrics.totalAmount, defaultCur || 'EUR')}</p>
-        </div>
-      </div>
-
-      {/* Simplified Contracts Table Card */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden space-y-3">
-        {/* Search & Status Filters */}
-        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por número, cliente, pasaporte o destino…"
-              className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
-            />
+        {/* Header & Controls */}
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+                <FileSignature className="h-3 w-3" />
+                Contratos oficiales
+              </span>
+              <span className="text-xs text-slate-400">• 16 cláusulas normativas</span>
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+              Contratos de viaje y prestación de servicios
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Generación oficial coordinada con reservas, paquetes de viaje, cuenta Santander y anexos organizativos.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {['all', 'pending_signature', 'signed', 'draft', 'cancelled'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  activeTab === tab
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {CONTRACT_STATUSES[tab]?.label || tab}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/admin/settings?tab=contracts"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition"
+              title="Personalizar cláusulas y encabezado"
+            >
+              <Settings className="w-4 h-4 text-slate-400" />
+              <span>Ajustes de plantilla</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                setWizardStep(1);
+                setIsGenerateModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600 transition"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Generar nuevo contrato</span>
+            </button>
+          </div>
+        </header>
+
+        {/* KPI Summary Strip */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">Total contratos</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{metrics.total}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">Pendientes de firma</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-amber-600">{metrics.pendingSig}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">Firmados y confirmados</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600">{metrics.signedCount}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">Valor en cartera</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{formatMoney(metrics.totalAmount, defaultCur || 'EUR')}</p>
+          </div>
+        </div>
+
+        {/* Contracts Table Card */}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          {/* Search & Status Filters */}
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por número, cliente, pasaporte o destino…"
+                className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {FILTER_TABS.map((tab) => {
+                const active = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {CONTRACT_STATUSES[tab]?.label || tab}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {hasFilters && filteredContracts.length > 0 && (
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2 text-xs text-slate-500">
+              <span>{filteredContracts.length} de {contracts.length} contratos</span>
+              <button onClick={clearFilters} className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2">
+                Borrar filtros
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        {/* Table Rows */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-stone-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] tracking-wider font-semibold">
-              <tr>
-                <th className="py-3 px-4">Contrato</th>
-                <th className="py-3 px-4">Cliente Contratante</th>
-                <th className="py-3 px-4">Viaje y Fechas</th>
-                <th className="py-3 px-4 text-right">Importe / Depósito (40%)</th>
-                <th className="py-3 px-4 text-center">Estado</th>
-                <th className="py-3 px-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredContracts.length === 0 ? (
+          {/* Table Rows */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-700">
+              <thead className="bg-stone-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="font-medium text-slate-600">No se encontraron contratos</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Haga clic en "Generar Nuevo Contrato" para emitir uno coordinado con una reserva.</p>
-                  </td>
+                  <th className="py-3 px-4">Contrato</th>
+                  <th className="py-3 px-4">Cliente contratante</th>
+                  <th className="py-3 px-4">Viaje y fechas</th>
+                  <th className="py-3 px-4 text-right">Importe / Depósito 40%</th>
+                  <th className="py-3 px-4 text-center">Estado</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
-              ) : (
-                filteredContracts.map((ctr) => {
-                  const mainP = ctr.participants?.find((p) => p.is_primary_contact) || ctr.participants?.[0] || {};
-                  const dep = ctr.deposit_amount || Math.round((ctr.total_amount || 0) * 0.4);
-                  const isBusy = generatingPdfId === ctr.id;
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-16 text-center text-slate-400">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />
+                      Cargando contratos…
+                    </td>
+                  </tr>
+                ) : filteredContracts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <EmptyStateContracts
+                        hasFilters={hasFilters}
+                        onClearFilters={clearFilters}
+                        onCreate={() => { setWizardStep(1); setIsGenerateModalOpen(true); }}
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  filteredContracts.map((ctr) => {
+                    const mainP = ctr.participants?.find((p) => p.is_primary_contact) || ctr.participants?.[0] || {};
+                    const dep = ctr.deposit_amount || Math.round((ctr.total_amount || 0) * 0.4);
+                    const isBusy = generatingPdfId === ctr.id;
 
-                  return (
-                    <tr key={ctr.id} className="hover:bg-amber-50/40 transition">
-                      <td className="py-3.5 px-4">
-                        <div className="font-mono font-bold text-slate-900">{ctr.contract_number}</div>
-                        <div className="text-[11px] text-slate-400">{ctr.contract_date ? new Date(ctr.contract_date).toLocaleDateString() : '—'}</div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <ClientAvatar name={mainP.full_name || ctr.customer_name} />
-                          <div>
-                            <p className="font-bold text-slate-900">{mainP.full_name || ctr.customer_name || 'Cliente'}</p>
-                            <p className="text-[11px] text-slate-400 font-mono">{mainP.document_number || 'Doc pendiente'}</p>
+                    return (
+                      <tr key={ctr.id} className="transition-colors hover:bg-amber-50/40">
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono font-bold text-slate-900">{ctr.contract_number}</div>
+                          <div className="text-xs text-slate-400">
+                            {ctr.contract_date ? new Date(ctr.contract_date).toLocaleDateString('es-ES') : '—'}
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900">{ctr.trip_title}</div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                          <span>{ctr.duration_days || 1} días</span>
-                          <span>•</span>
-                          <span>{ctr.start_date ? new Date(ctr.start_date).toLocaleDateString() : 'A convenir'}</span>
-                        </div>
-                      </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <ClientAvatar name={mainP.full_name || ctr.customer_name} />
+                            <div>
+                              <p className="font-bold text-slate-900">{mainP.full_name || ctr.customer_name || 'Cliente'}</p>
+                              <p className="text-xs text-slate-400 font-mono">{mainP.document_number || 'Doc. pendiente'}</p>
+                            </div>
+                          </div>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-bold text-slate-900 font-mono">
-                          {formatMoney(ctr.total_amount || 0, ctr.currency || 'EUR')}
-                        </div>
-                        <div className="text-[11px] text-emerald-700 font-medium">
-                          Depósito 40%: {formatMoney(dep, ctr.currency || 'EUR')}
-                        </div>
-                      </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-slate-900">{ctr.trip_title}</div>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                            <span>{ctr.duration_days || 1} días</span>
+                            <span>•</span>
+                            <span>{ctr.start_date ? new Date(ctr.start_date).toLocaleDateString('es-ES') : 'A convenir'}</span>
+                          </div>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-center">
-                        <StatusBadge status={ctr.status} />
-                      </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="font-mono font-bold text-slate-900">
+                            {formatMoney(ctr.total_amount || 0, ctr.currency || 'EUR')}
+                          </div>
+                          <div className="text-xs font-medium text-emerald-700">
+                            Depósito 40%: {formatMoney(dep, ctr.currency || 'EUR')}
+                          </div>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleDownloadPdf(ctr)}
-                            disabled={isBusy}
-                            className="inline-flex items-center gap-1 rounded bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 text-xs font-semibold shadow-2xs transition"
-                            title="Descargar PDF Oficial (16 Artículos)"
-                          >
-                            {isBusy ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                            <span className="hidden sm:inline">PDF</span>
-                          </button>
+                        <td className="py-3.5 px-4 text-center">
+                          <StatusBadge status={ctr.status} />
+                        </td>
 
-                          {ctr.status !== 'signed' && (
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => handleMarkSigned(ctr)}
-                              className="rounded border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 transition"
-                              title="Marcar como Firmado"
+                              onClick={() => handleDownloadPdf(ctr)}
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm transition disabled:opacity-60"
+                              title="Descargar PDF oficial (16 artículos)"
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              {isBusy ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                              <span className="hidden sm:inline">PDF</span>
                             </button>
-                          )}
 
-                          <button
-                            onClick={() => handleDelete(ctr)}
-                            className="rounded p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                            title="Eliminar contrato"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                            {ctr.status !== 'signed' && (
+                              <button
+                                onClick={() => handleMarkSigned(ctr)}
+                                className="rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 transition"
+                                title="Marcar como firmado"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleDelete(ctr)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                              title="Eliminar contrato"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* ================= FAST GENERATE CONTRACT MODAL ================= */}
       {isGenerateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-3xl rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-900 text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 text-white">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <h3 className="font-bold text-sm">Generador Oficial de Contratos (16 Cláusulas)</h3>
+                <h3 className="text-sm font-bold">Generador oficial de contratos (16 cláusulas)</h3>
               </div>
               <button onClick={() => setIsGenerateModalOpen(false)} className="rounded p-1 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto text-xs">
+            <div className="max-h-[75vh] space-y-5 overflow-y-auto p-6 text-xs">
               {/* Step 1: Booking Auto-Fill */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-2">
-                <label className="block font-bold text-amber-950 text-xs">
-                  Seleccionar Reserva para Auto-coordinación de Datos:
+              <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Selecciona una reserva para auto-coordinación de datos
                 </label>
                 <select
                   value={selectedBookingId}
                   onChange={(e) => handleSelectBooking(e.target.value)}
                   className="w-full rounded-lg border border-amber-300 bg-white p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
-                  <option value="">-- Seleccionar una reserva activa para auto-rellenar --</option>
+                  <option value="">-- Seleccionar una reserva activa --</option>
                   {bookings.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.booking_reference || b.id.slice(0, 8)} — {b.customers?.full_name || 'Cliente'} — {b.offer_title || b.destination || 'Viaje'} ({formatMoney(b.total_amount, b.currency || 'EUR')})
@@ -639,76 +776,76 @@ export default function ContractsPage() {
               </div>
 
               {/* Form Fields Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nombre Completo del Cliente</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Nombre completo del cliente</label>
                   <input
                     type="text"
                     value={contractForm.customer_name}
                     onChange={(e) => setContractForm({ ...contractForm, customer_name: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
-                    placeholder="e.g. Carlos Mendoza Ruiz"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    placeholder="p. ej. Carlos Mendoza Ruiz"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">DNI / Pasaporte / Documento</label>
+                  <label className="mb-1 block font-semibold text-slate-700">DNI / Pasaporte / Documento</label>
                   <input
                     type="text"
                     value={contractForm.customer_document}
                     onChange={(e) => setContractForm({ ...contractForm, customer_document: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                     placeholder="PA49201948"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Teléfono de Contacto</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Teléfono de contacto</label>
                   <input
                     type="text"
                     value={contractForm.customer_phone}
                     onChange={(e) => setContractForm({ ...contractForm, customer_phone: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                     placeholder="+34 622 890 123"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Correo electrónico</label>
                   <input
                     type="email"
                     value={contractForm.customer_email}
                     onChange={(e) => setContractForm({ ...contractForm, customer_email: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                     placeholder="cliente@email.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Título del Viaje Seleccionado</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Título del viaje seleccionado</label>
                   <input
                     type="text"
                     value={contractForm.trip_title}
                     onChange={(e) => setContractForm({ ...contractForm, trip_title: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
-                    placeholder="Gran Tour de Marruecos & Desierto"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    placeholder="Gran Tour de Marruecos y Desierto"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Modalidad de Viaje</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Modalidad de viaje</label>
                   <input
                     type="text"
                     value={contractForm.travel_modality}
                     onChange={(e) => setContractForm({ ...contractForm, travel_modality: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
-                    placeholder="Circuito Privado con Chófer y Guía"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    placeholder="Circuito privado con chófer y guía"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Fechas del Viaje (Salida - Regreso)</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Fechas del viaje (salida – regreso)</label>
                   <div className="flex gap-2">
                     <input
                       type="date"
@@ -726,7 +863,7 @@ export default function ContractsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Lugar de Formalización</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Lugar de formalización</label>
                   <input
                     type="text"
                     value={contractForm.signed_place}
@@ -737,7 +874,7 @@ export default function ContractsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Precio Total Acordado ({contractForm.currency})</label>
+                  <label className="mb-1 block font-semibold text-slate-700">Precio total acordado ({contractForm.currency})</label>
                   <input
                     type="number"
                     value={contractForm.total_amount}
@@ -756,15 +893,15 @@ export default function ContractsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Depósito 40% (Restante 60% en Marruecos)</label>
-                  <div className="flex gap-2 items-center">
+                  <label className="mb-1 block font-semibold text-slate-700">Depósito 40% (restante 60% en Marruecos)</label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
                       value={contractForm.deposit_amount}
                       readOnly
                       className="w-1/2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-emerald-800"
                     />
-                    <span className="text-[11px] text-slate-500 font-medium">
+                    <span className="text-[11px] font-medium text-slate-500">
                       Saldo restante 60%: <strong>{contractForm.remaining_amount} {contractForm.currency}</strong>
                     </span>
                   </div>
@@ -772,22 +909,22 @@ export default function ContractsPage() {
               </div>
 
               {/* Verified Features Checklist */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1 text-[11px] text-slate-600">
+              <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">
                 <p className="font-bold text-slate-800">El contrato se generará con las 16 secciones oficiales:</p>
                 <p>✓ Encabezado con logotipo, teléfonos, dirección y C.P. 04740</p>
-                <p>✓ Cláusula 6: Cuenta Banco Santander y SWIFT/BIC oficial</p>
-                <p>✓ Cláusula 6: Estipulación del 40% en 5 días y 60% en efectivo en Marruecos</p>
-                <p>✓ Cláusula 7: Política de cancelación no reembolsable tras 21 días</p>
-                <p>✓ Cláusula 10: Supuestos de fuerza mayor (tráfico, tormentas, pandemias)</p>
+                <p>✓ Cláusula 6: cuenta Banco Santander y SWIFT/BIC oficial</p>
+                <p>✓ Cláusula 6: estipulación del 40% en 5 días y 60% en efectivo en Marruecos</p>
+                <p>✓ Cláusula 7: política de cancelación no reembolsable tras 21 días</p>
+                <p>✓ Cláusula 10: supuestos de fuerza mayor (tráfico, tormentas, pandemias)</p>
                 <p>✓ Anexo N.º 1 con condiciones organizativas, organizador, participante y firmas</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
               <button
                 type="button"
                 onClick={() => setIsGenerateModalOpen(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
               >
                 Cancelar
               </button>
@@ -795,10 +932,10 @@ export default function ContractsPage() {
               <button
                 type="button"
                 onClick={handleCreateAndDownload}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-500 transition"
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-500 transition"
               >
                 <Download className="w-4 h-4" />
-                <span>Generar y Descargar PDF (16 Secciones)</span>
+                <span>Generar y descargar PDF (16 secciones)</span>
               </button>
             </div>
           </div>

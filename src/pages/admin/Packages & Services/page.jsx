@@ -1,27 +1,11 @@
-import { useAppSettings, translate, useAuth } from '@/context/index.jsx';
 // src/pages/admin/AdminPackagesAndServicesPage.jsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { translate, useAuth } from '@/context/index.jsx';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
-  AlertCircle,
-  Archive,
-  CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Download,
-  Edit,
-  Eye,
-  Filter,
-  Globe,
-  Layers,
-  Loader2,
-  Lock,
-  MapPin,
-  Plus,
-  RotateCcw,
-  Search,
-  X,
+  Activity, AlertTriangle, Archive, Building2, CalendarDays, Check, CheckCircle2, ChevronDown,
+  ChevronLeft, ChevronRight, Copy, Download, Edit, Eye, Globe, Layers, Loader2, Lock, MapPin,
+  MoreHorizontal, Package, Plane, Plus, RefreshCw, RotateCcw, Search, X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -29,9 +13,18 @@ import { supabase } from '@/lib/supabase/client.jsx';
 import { getAdminPackages, saveAdminOffer } from '@/services/packages/index.jsx';
 import { canUserAccessPath } from '@/services/roleAccessService.js';
 
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
+/* ---------- Shared style tokens ---------- */
+const inputCls =
+  'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 ' +
+  'focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition';
+const labelCls = 'block text-xs font-medium text-slate-600 mb-1.5';
+const btnGhost =
+  'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed';
+const btnPrimary =
+  'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-500 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+
+/* ---------- Constants ---------- */
+// Los valores se guardan en inglés en la base de datos; solo se traduce la etiqueta visible.
 const CATEGORIES = [
   'Adventure',
   'Beach & Island',
@@ -43,44 +36,57 @@ const CATEGORIES = [
   'Religious & Pilgrimage',
   'Other',
 ];
+const CATEGORY_LABELS = {
+  Adventure: 'Aventura',
+  'Beach & Island': 'Playa e islas',
+  'City & Culture': 'Ciudad y cultura',
+  'Desert & Safari': 'Desierto y safari',
+  Family: 'Familia',
+  'Food & Wine': 'Gastronomía y vinos',
+  Luxury: 'Lujo',
+  'Religious & Pilgrimage': 'Religioso y peregrinación',
+  Other: 'Otro',
+};
+const categoryLabel = (v) => CATEGORY_LABELS[v] || v || '—';
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }));
 
-const STATUS_FILTERS = [
-  { value: 'ALL', label: 'All statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'archived', label: 'Archived' },
+const PACKAGE_STATUS = {
+  draft: { label: 'Borrador', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  active: { label: 'Activo', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  inactive: { label: 'Inactivo', dot: 'bg-slate-400', cls: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  archived: { label: 'Archivado', dot: 'bg-slate-300', cls: 'bg-slate-100 text-slate-500 ring-slate-200' },
+};
+const STATUS_OPTIONS = [
+  { value: 'ALL', label: 'Todos' },
+  ...Object.entries(PACKAGE_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot })),
 ];
-
-const VISIBILITY_FILTERS = [
-  { value: 'ALL', label: 'Public & private' },
-  { value: 'public', label: 'Public only' },
-  { value: 'private', label: 'Private only' },
+const VISIBILITY_OPTIONS = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'public', label: 'Solo públicos', dot: 'bg-emerald-500' },
+  { value: 'private', label: 'Solo privados', dot: 'bg-slate-400' },
 ];
 
 const PAGE_SIZE = 15;
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
+/* ---------- Helpers ---------- */
 function formatCurrency(amount, currency) {
-  if (amount == null || amount === '') return 'Not priced';
+  if (amount == null || amount === '') return 'Sin precio';
   const code = currency || 'MAD';
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: code,
       maximumFractionDigits: 2,
     }).format(Number(amount));
   } catch {
-    return `${code} ${Number(amount).toLocaleString()}`;
+    return `${code} ${Number(amount).toLocaleString('es-ES')}`;
   }
 }
 
 function formatDate(value) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleDateString(undefined, {
+    return new Date(value).toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -109,45 +115,15 @@ const createInitialOffer = () => ({
   short_description: '',
 });
 
-/* ------------------------------------------------------------------ */
-/*  Icons (inline SVG fallbacks to keep bundle lean)                   */
-/* ------------------------------------------------------------------ */
-const Icon = ({ children, className = 'h-4 w-4', ...props }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-    {...props}
-  >
-    {children}
-  </svg>
-);
+const isLiveOffer = (o) => Boolean(o.is_public && o.status === 'active');
 
-const BuildingIcon = (p) => (<Icon {...p}><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" /><path d="M16 8h2a2 2 0 0 1 2 2v11" /><path d="M2 21h20M8 7h2M8 11h2M8 15h2" /></Icon>);
-const PlaneIcon = (p) => (<Icon {...p}><path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2a1 1 0 0 0-.9 1.7l5.6 4-2 2-2.4-.4a1 1 0 0 0-.9 1.7l4.5 3.2 3.2 4.5a1 1 0 0 0 1.7-.9l-.4-2.4 2-2 4 5.6a1 1 0 0 0 1.7-.9Z" /></Icon>);
-const ActivityIcon = (p) => (<Icon {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></Icon>);
-const CalendarIcon = (p) => (<Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></Icon>);
-
-/* ------------------------------------------------------------------ */
-/*  Small primitives                                                   */
-/* ------------------------------------------------------------------ */
+/* ---------- Small presentational pieces ---------- */
 function StatusBadge({ status }) {
-  const map = {
-    active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    draft: 'bg-amber-50 text-amber-700 ring-amber-200',
-    inactive: 'bg-slate-100 text-slate-600 ring-slate-200',
-    archived: 'bg-slate-100 text-slate-500 ring-slate-200',
-  };
-  const cls = map[status] || 'bg-slate-100 text-slate-600 ring-slate-200';
+  const s = PACKAGE_STATUS[status] || PACKAGE_STATUS.draft;
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${cls}`}>
-      {status || 'draft'}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${s.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+      {s.label}
     </span>
   );
 }
@@ -155,11 +131,11 @@ function StatusBadge({ status }) {
 function VisibilityBadge({ isPublic, status }) {
   const live = isPublic && status === 'active';
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${
-      live ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-slate-200'
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${
+      live ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-slate-200'
     }`}>
-      {live ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-      {live ? 'Live' : 'Private'}
+      {live ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+      {live ? 'En vivo' : 'Privado'}
     </span>
   );
 }
@@ -168,133 +144,458 @@ function ConfigIndicator({ icon: IconCmp, count, label }) {
   const ok = count > 0;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
         ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-50 text-slate-400 ring-slate-200'
       }`}
       title={`${label}: ${count}`}
+      aria-label={`${label}: ${count}`}
     >
-      <IconCmp className="h-3 w-3" />
+      <IconCmp className="w-3 h-3" />
       {count}
     </span>
   );
 }
 
-function StatCard({ label, value, tone = 'slate', icon: IconCmp, hint }) {
-  const tones = {
-    slate: 'bg-slate-50 text-slate-700 ring-slate-200',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-200',
-    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    sky: 'bg-sky-50 text-sky-700 ring-sky-200',
-  };
+function SectionTitle({ icon: Icon, children }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-1.5 text-2xl font-bold text-slate-900">{value}</p>
-          {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
-        </div>
-        {IconCmp && (
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ring-inset ${tones[tone]}`}>
-            <IconCmp className="h-4 w-4" />
-          </span>
-        )}
+    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+      <Icon className="w-4 h-4 text-amber-600" /> {children}
+    </h4>
+  );
+}
+
+function Modal({ children, onClose, maxW = 'max-w-2xl' }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" className={`bg-white border-slate-200 rounded-2xl w-full ${maxW} border shadow-2xl my-8 overflow-hidden rp-pop`}>
+        {children}
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Row action menu                                                    */
-/* ------------------------------------------------------------------ */
-function RowActions({ offer, canUpdate, canCreate, onDuplicate, onPublishToggle, onArchive }) {
+function ModalHeader({ title, subtitle, onClose }) {
+  return (
+    <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100">
+      <div>
+        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+      </div>
+      <button onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Cerrar">
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+function FieldError({ children }) {
+  return children ? <p className="mt-1 text-xs text-rose-600">{children}</p> : null;
+}
+
+/* ---------- Custom dropdown (portal menu, keyboard support, optional search) ----------
+   Options: { value, label, hint?, dot?, color?, disabled? } */
+function Select({
+  value, onChange, options, placeholder = 'Selecciona…', searchable = false, prefix,
+  compact = false, disabled = false, ariaLabel, className = '', menuMinWidth = 200, emptyValue = 'ALL',
+}) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const [pos, setPos] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  const listRef = useRef(null);
+
+  const selected = options.find((o) => o.value === value);
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => `${o.label} ${o.hint || ''}`.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const place = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const wanted = Math.min(288, visible.length * 40 + (searchable ? 56 : 12));
+    const below = window.innerHeight - r.bottom - 12;
+    const above = r.top - 12;
+    const up = below < wanted && above > below;
+    const width = Math.max(r.width, menuMinWidth);
+    setPos({
+      left: Math.min(Math.max(8, r.left), window.innerWidth - width - 8),
+      width,
+      top: up ? undefined : r.bottom + 6,
+      bottom: up ? window.innerHeight - r.top + 6 : undefined,
+      maxHeight: Math.max(160, Math.min(320, up ? above : below)),
+    });
+  }, [visible.length, searchable, menuMinWidth]);
+
+  useLayoutEffect(() => { if (open) place(); }, [open, place]);
 
   useEffect(() => {
-    function onDoc(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
+    if (!open) return;
+    const onDown = (e) => {
+      if (triggerRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setOpen(false);
     };
-  }, []);
+    const onScroll = (e) => { if (!menuRef.current?.contains(e.target)) place(); };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', place);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open, place]);
 
-  const isLive = offer.is_public && offer.status === 'active';
+  useEffect(() => { if (open && searchable) searchRef.current?.focus(); }, [open, searchable]);
+  useEffect(() => {
+    if (open) listRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [active, open, visible]);
+
+  const openMenu = () => {
+    if (disabled) return;
+    setQuery('');
+    const idx = options.findIndex((o) => o.value === value);
+    setActive(idx >= 0 ? idx : 0);
+    setOpen(true);
+  };
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) triggerRef.current?.focus();
+  };
+  const choose = (o) => {
+    if (!o || o.disabled) return;
+    onChange(o.value);
+    close();
+  };
+
+  const onKeyDown = (e) => {
+    if (!open) {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); openMenu(); }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActive((i) => Math.min(visible.length - 1, i + 1)); break;
+      case 'ArrowUp': e.preventDefault(); setActive((i) => Math.max(0, i - 1)); break;
+      case 'Home': if (!searchable) { e.preventDefault(); setActive(0); } break;
+      case 'End': if (!searchable) { e.preventDefault(); setActive(visible.length - 1); } break;
+      case 'Enter': e.preventDefault(); choose(visible[active]); break;
+      case ' ': if (!searchable) { e.preventDefault(); choose(visible[active]); } break;
+      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break; // no cierra también el modal de fondo
+      case 'Tab': setOpen(false); break;
+      default: break;
+    }
+  };
+
+  const isFiltered = prefix && value !== emptyValue && value !== '' && value != null;
+  const marker = (o, size) =>
+    o?.color ? <span className={`${size} rounded-full shrink-0`} style={{ backgroundColor: o.color }} /> :
+    o?.dot ? <span className={`${size} rounded-full shrink-0 ${o.dot}`} /> : null;
 
   return (
-    <div ref={ref} className="relative flex items-center justify-end gap-1.5">
+    <div className={`relative ${className}`}>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => (open ? close(false) : openMenu())}
+        onKeyDown={onKeyDown}
+        className={`w-full flex items-center justify-between gap-2 bg-white border rounded-lg px-3 ${compact ? 'py-1.5' : 'py-2'} text-sm text-left transition
+          focus:outline-none focus:ring-2 focus:ring-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed
+          ${open ? 'border-amber-500 ring-2 ring-amber-500/20' : isFiltered ? 'border-amber-300 bg-amber-50/60' : 'border-slate-200 hover:border-slate-300'}`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {marker(selected, 'w-2 h-2')}
+          {prefix && <span className="text-slate-400 shrink-0">{prefix}</span>}
+          <span className={`truncate ${selected ? (isFiltered ? 'text-amber-900 font-medium' : 'text-slate-800') : 'text-slate-400'}`}>
+            {selected ? selected.label : placeholder}
+          </span>
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180 text-amber-600' : ''}`} />
+      </button>
+
+      {open && pos && createPortal(
+        <div
+          ref={menuRef}
+          role="presentation"
+          style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxHeight }}
+          className="z-[100] flex flex-col bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 ring-1 ring-black/5 overflow-hidden rp-pop"
+        >
+          {searchable && (
+            <div className="p-2 border-b border-slate-100 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+                  onKeyDown={onKeyDown}
+                  placeholder="Buscar"
+                  aria-label="Buscar opciones"
+                  className="w-full bg-stone-50 rounded-md pl-8 pr-2 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500/30"
+                />
+              </div>
+            </div>
+          )}
+          <ul ref={listRef} role="listbox" className="overflow-y-auto p-1">
+            {visible.length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('Sin coincidencias')}</li>
+            ) : (
+              visible.map((o, i) => {
+                const isSel = o.value === value;
+                return (
+                  <li
+                    key={String(o.value)}
+                    role="option"
+                    aria-selected={isSel}
+                    data-idx={i}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => choose(o)}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm cursor-pointer
+                      ${i === active ? 'bg-amber-50' : ''} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    {marker(o, 'w-2 h-2')}
+                    <span className="flex-1 min-w-0">
+                      <span className={`block truncate ${isSel ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>{o.label}</span>
+                      {o.hint && <span className="block truncate text-xs text-slate-400">{o.hint}</span>}
+                    </span>
+                    {isSel && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+/* ---------- Row action menu (portal, so the table's overflow never clips it) ---------- */
+function RowActions({ offer, canUpdate, canCreate, duplicating, onDuplicate, onPublishToggle, onArchive }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const live = isLiveOffer(offer);
+  const name = offer.public_title || offer.reference;
+
+  const place = useCallback(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const up = window.innerHeight - r.bottom < 190 && r.top > 190;
+    setPos({
+      right: Math.max(8, window.innerWidth - r.right),
+      top: up ? undefined : r.bottom + 6,
+      bottom: up ? window.innerHeight - r.top + 6 : undefined,
+    });
+  }, []);
+
+  useLayoutEffect(() => { if (open) place(); }, [open, place]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (btnRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); btnRef.current?.focus(); } };
+    const onMove = () => setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
+    };
+  }, [open]);
+
+  const stop = (e) => e.stopPropagation();
+  const itemCls = 'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg disabled:cursor-not-allowed disabled:opacity-40';
+
+  return (
+    <div className="flex items-center justify-end gap-1" onClick={stop} onKeyDown={stop}>
       <Link
-        to={`/packages/${offer.id}${isLive ? '' : '?preview=true'}`}
+        to={`/packages/${offer.id}${live ? '' : '?preview=true'}`}
         target="_blank"
         rel="noreferrer"
-        aria-label={`Preview ${offer.public_title || offer.reference}`}
-        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-        title="Preview"
+        aria-label={`Vista previa de ${name}`}
+        title="Vista previa"
+        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
       >
-        <Eye className="h-3.5 w-3.5" />
+        <Eye className="w-4 h-4" />
       </Link>
       <Link
         to={`/admin/packages-services/${offer.id}`}
-        aria-label={`Edit ${offer.public_title || offer.reference}`}
-        className="rounded-md p-1.5 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-        title="Edit"
+        aria-label={`Editar ${name}`}
+        title="Editar"
+        className="rounded-lg p-2 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
       >
-        <Edit className="h-3.5 w-3.5" />
+        <Edit className="w-4 h-4" />
       </Link>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          title="More actions"
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Más acciones para ${name}`}
+        title="Más acciones"
+        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+      >
+        {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
+      </button>
+      {open && pos && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{ position: 'fixed', right: pos.right, top: pos.top, bottom: pos.bottom }}
+          className="z-[100] w-52 p-1 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 ring-1 ring-black/5 rp-pop"
         >
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
-        {open && (
-          <div role="menu" className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs shadow-lg">
-            <button
-              type="button"
-              role="menuitem"
-              disabled={!canCreate}
-              onClick={() => { setOpen(false); onDuplicate(offer); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Copy className="h-3.5 w-3.5" />{translate('Duplicate')}</button>
-            <button
-              type="button"
-              role="menuitem"
-              disabled={!canUpdate}
-              onClick={() => { setOpen(false); onPublishToggle(offer); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLive ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
-              {isLive ? 'Unpublish' : 'Publish'}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              disabled={!canUpdate || offer.status === 'archived'}
-              onClick={() => { setOpen(false); onArchive(offer); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Archive className="h-3.5 w-3.5" />{translate('Archive')}</button>
-          </div>
-        )}
-      </div>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={!canCreate || duplicating}
+            onClick={() => { setOpen(false); onDuplicate(offer); }}
+            className={`${itemCls} text-slate-700 hover:bg-amber-50`}
+          >
+            <Copy className="w-4 h-4 text-slate-400" />{translate('Duplicar')}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={!canUpdate}
+            onClick={() => { setOpen(false); onPublishToggle(offer); }}
+            className={`${itemCls} text-slate-700 hover:bg-amber-50`}
+          >
+            {live ? <Lock className="w-4 h-4 text-slate-400" /> : <Globe className="w-4 h-4 text-slate-400" />}
+            {live ? 'Despublicar' : 'Publicar'}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={!canUpdate || offer.status === 'archived'}
+            onClick={() => { setOpen(false); onArchive(offer); }}
+            className={`${itemCls} text-rose-600 hover:bg-rose-50`}
+          >
+            <Archive className="w-4 h-4" />{translate('Archivar')}
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
+/* ---------- Empty state graphics ---------- */
+function EmptyIllustrationPackages() {
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-40 w-auto" role="img" aria-label="Ilustración de paquetes de viaje">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+
+      {/* Ruta punteada entre las dos tarjetas */}
+      <path d="M120 54C150 22 214 22 244 46" className="stroke-amber-300" stroke="currentColor" strokeWidth="2" strokeDasharray="4 5" strokeLinecap="round" fill="none" />
+      <circle cx="120" cy="54" r="4" className="fill-amber-300" />
+
+      {/* Tarjeta de paquete (atrás, inclinada a la izquierda) */}
+      <g transform="rotate(-4 100 110)">
+        <rect x="38" y="56" width="122" height="94" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="48" y="66" width="102" height="44" rx="8" className="fill-slate-100" />
+        <path d="M48 110l26-26 18 16 14-12 44 22z" className="fill-slate-200" />
+        <circle cx="130" cy="82" r="6" className="fill-amber-200" />
+        <rect x="48" y="120" width="62" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="48" y="133" width="40" height="5" rx="2.5" className="fill-slate-200" />
+      </g>
+
+      {/* Tarjeta de destino (delante, inclinada a la derecha) */}
+      <g transform="rotate(4 205 105)">
+        <rect x="140" y="68" width="132" height="86" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <circle cx="170" cy="94" r="15" className="fill-amber-100" />
+        <path d="M170 86a6 6 0 0 1 6 6c0 5-6 11-6 11s-6-6-6-11a6 6 0 0 1 6-6z" className="fill-amber-500" />
+        <circle cx="170" cy="92" r="2.2" className="fill-white" />
+        <rect x="194" y="84" width="56" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="194" y="97" width="36" height="5" rx="2.5" className="fill-slate-200" />
+        <rect x="156" y="122" width="44" height="14" rx="7" className="fill-emerald-100" />
+        <circle cx="166" cy="129" r="3" className="fill-emerald-500" />
+        <rect x="208" y="127" width="44" height="5" rx="2.5" className="fill-slate-100" />
+      </g>
+
+      {/* Botón + */}
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
+
+      <circle cx="40" cy="36" r="4" className="fill-amber-200" />
+      <circle cx="290" cy="124" r="3" className="fill-amber-300" />
+      <circle cx="28" cy="158" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+function EmptyStatePackages({ hasFilters, canCreate, onClearFilters, onRefresh, onCreate }) {
+  if (hasFilters) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+          <Search aria-hidden="true" className="h-6 w-6" />
+        </span>
+        <h3 className="mt-4 text-base font-semibold text-slate-900">Ningún paquete coincide con estos filtros</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">Prueba con otra búsqueda o quita algunos filtros.</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={onClearFilters} className={btnGhost}>
+            <RotateCcw className="w-4 h-4" />Borrar todos los filtros
+          </button>
+          <button type="button" onClick={onCreate} disabled={!canCreate} className={btnPrimary}>
+            <Plus className="w-4 h-4" />Crear paquete
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="px-6 py-14 text-center">
+      <EmptyIllustrationPackages />
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">Aún no hay paquetes</h3>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        Crea tu primer paquete de viaje como borrador y complétalo con servicios, precios y salidas antes de publicarlo.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={onCreate} disabled={!canCreate} className={btnPrimary}>
+          <Plus className="w-4 h-4" />Crear primer paquete
+        </button>
+        <button type="button" onClick={onRefresh} className={btnGhost}>
+          <RefreshCw className="w-4 h-4" />Actualizar
+        </button>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {[
+          ['Crea el borrador', 'Título, destino y duración son lo único obligatorio.'],
+          ['Añade servicios y precios', 'Hoteles, vuelos, actividades, salidas y tarifas en el editor.'],
+          ['Publica cuando esté listo', 'Pasa el paquete a activo y público con un clic.'],
+        ].map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/* ---------- Page ---------- */
 export default function AdminPackagesAndServicesPage() {
   const navigate = useNavigate();
   const {
@@ -333,6 +634,8 @@ export default function AdminPackagesAndServicesPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(null);
 
+  const categoryFilterOptions = useMemo(() => [{ value: 'ALL', label: 'Todas' }, ...CATEGORY_OPTIONS], []);
+
   /* ------------ Data loading ------------ */
   const loadData = useCallback(async () => {
     if (authLoading) return;
@@ -344,8 +647,8 @@ export default function AdminPackagesAndServicesPage() {
       setDestinationsByOffer({});
       setError(
         !user
-          ? 'Sign in with an authorized account to manage offers.'
-          : 'Your account is missing the packages.view permission.',
+          ? 'Inicia sesión con una cuenta autorizada para gestionar las ofertas.'
+          : 'Tu cuenta no tiene el permiso packages.view.',
       );
       setLoading(false);
       return;
@@ -391,7 +694,7 @@ export default function AdminPackagesAndServicesPage() {
           .order('departure_date', { ascending: true }),
       ]);
 
-      // Fail fast on the first error — avoids silently showing wrong counts
+      // Falla en el primer error para no mostrar contadores incorrectos en silencio
       for (const res of [destinationsRes, accommodationsRes, transportsRes, activitiesRes, departuresRes]) {
         if (res.error) throw res.error;
       }
@@ -448,7 +751,7 @@ export default function AdminPackagesAndServicesPage() {
       setDestinationsByOffer(nextDestinations);
     } catch (loadError) {
       console.error('Error loading admin offers:', loadError);
-      setError(`Could not load offers and configuration counts: ${loadError.message}`);
+      setError(`No se pudieron cargar las ofertas y sus contadores de configuración: ${loadError.message}`);
     } finally {
       setLoading(false);
     }
@@ -458,10 +761,19 @@ export default function AdminPackagesAndServicesPage() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !submitting) setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isModalOpen, submitting]);
+
   /* ------------ KPIs ------------ */
   const kpis = useMemo(() => {
     const total = packages.length;
-    const published = packages.filter((o) => o.status === 'active' && o.is_public).length;
+    const published = packages.filter(isLiveOffer).length;
     const draft = packages.filter((o) => o.status === 'draft').length;
     const upcoming = Object.values(upcomingByOffer).reduce((sum, n) => sum + n, 0);
     return { total, published, draft, upcoming };
@@ -471,13 +783,13 @@ export default function AdminPackagesAndServicesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return packages.filter((offer) => {
-      // Server-relevant text search — matched against fields we already have
       const haystack = [
         offer.reference,
         offer.public_title,
         offer.internal_title,
         offer.destination_country,
         offer.package_category,
+        categoryLabel(offer.package_category),
         ...(destinationsByOffer[offer.id] || []).flatMap((d) => [d.name, d.country]),
       ]
         .filter(Boolean)
@@ -486,8 +798,8 @@ export default function AdminPackagesAndServicesPage() {
       if (q && !haystack.some((v) => v.includes(q))) return false;
       if (statusFilter !== 'ALL' && offer.status !== statusFilter) return false;
       if (categoryFilter !== 'ALL' && offer.package_category !== categoryFilter) return false;
-      if (visibilityFilter === 'public' && !(offer.is_public && offer.status === 'active')) return false;
-      if (visibilityFilter === 'private' && offer.is_public && offer.status === 'active') return false;
+      if (visibilityFilter === 'public' && !isLiveOffer(offer)) return false;
+      if (visibilityFilter === 'private' && isLiveOffer(offer)) return false;
       return true;
     });
   }, [packages, search, statusFilter, categoryFilter, visibilityFilter, destinationsByOffer]);
@@ -501,15 +813,11 @@ export default function AdminPackagesAndServicesPage() {
   );
 
   useEffect(() => {
-    // Reset to page 1 when filters change
-    setPage(1);
+    setPage(1); // volver a la página 1 al cambiar los filtros
   }, [search, statusFilter, categoryFilter, visibilityFilter]);
 
-  const activeFilterCount =
-    (search ? 1 : 0) +
-    (statusFilter !== 'ALL' ? 1 : 0) +
-    (categoryFilter !== 'ALL' ? 1 : 0) +
-    (visibilityFilter !== 'ALL' ? 1 : 0);
+  const hasFilters =
+    Boolean(search) || statusFilter !== 'ALL' || categoryFilter !== 'ALL' || visibilityFilter !== 'ALL';
 
   function resetFilters() {
     setSearch('');
@@ -519,16 +827,23 @@ export default function AdminPackagesAndServicesPage() {
   }
 
   /* ------------ Create ------------ */
+  function openCreateModal() {
+    setError('');
+    setFormErrors({});
+    setNewOffer(createInitialOffer());
+    setIsModalOpen(true);
+  }
+
   function validateOffer(o) {
     const errs = {};
-    if (!o.internal_title.trim()) errs.internal_title = 'Internal title is required.';
-    if (!o.public_title.trim()) errs.public_title = 'Public title is required.';
-    if (!o.destination_country.trim()) errs.destination_country = 'Country is required.';
+    if (!o.internal_title.trim()) errs.internal_title = 'El título interno es obligatorio.';
+    if (!o.public_title.trim()) errs.public_title = 'El título público es obligatorio.';
+    if (!o.destination_country.trim()) errs.destination_country = 'El país es obligatorio.';
     if (!Number.isFinite(Number(o.duration_days)) || Number(o.duration_days) < 1) {
-      errs.duration_days = 'Must be at least 1 day.';
+      errs.duration_days = 'Debe ser al menos 1 día.';
     }
     if (!Number.isFinite(Number(o.duration_nights)) || Number(o.duration_nights) < 0) {
-      errs.duration_nights = 'Must be 0 or more.';
+      errs.duration_nights = 'Debe ser 0 o más.';
     }
     return errs;
   }
@@ -536,7 +851,7 @@ export default function AdminPackagesAndServicesPage() {
   async function handleCreateOffer(event) {
     event.preventDefault();
     if (!canCreateOffers) {
-      setError('Your account is missing the packages.create permission required to create offers.');
+      setError('Tu cuenta no tiene el permiso packages.create necesario para crear ofertas.');
       return;
     }
     const errs = validateOffer(newOffer);
@@ -572,7 +887,7 @@ export default function AdminPackagesAndServicesPage() {
         });
         if (destErr) {
           console.error('Offer created but main city could not be added:', destErr);
-          destinationWarning = ` The offer was created, but its city could not be saved: ${destErr.message}`;
+          destinationWarning = ` La oferta se creó, pero no se pudo guardar su ciudad: ${destErr.message}`;
         }
       }
 
@@ -582,16 +897,16 @@ export default function AdminPackagesAndServicesPage() {
       await loadData();
       setNotice({
         id: createdOffer.id,
-        message: `Draft offer created successfully.${destinationWarning}`,
+        message: `Borrador creado correctamente.${destinationWarning}`,
       });
     } catch (createError) {
       console.error('Error creating draft offer:', createError);
-      setError(`Could not create offer: ${createError.message}`);
-      // If the offer was created but a later step failed, surface it clearly
+      setError(`No se pudo crear la oferta: ${createError.message}`);
+      // Si la oferta se creó pero falló un paso posterior, se muestra con claridad
       if (createdOffer) {
         setNotice({
           id: createdOffer.id,
-          message: `Draft created but some details failed to save. ${createError.message}`,
+          message: `Borrador creado, pero algunos detalles no se guardaron. ${createError.message}`,
         });
       }
     } finally {
@@ -606,11 +921,11 @@ export default function AdminPackagesAndServicesPage() {
     setError('');
 
     try {
-      // 1) Create the new draft row
+      // 1) Crear la nueva fila en borrador
       const newDraft = await saveAdminOffer({
         reference: generateReference(),
-        internal_title: `${offer.internal_title || offer.public_title || 'Untitled'} (copy)`,
-        public_title: `${offer.public_title || offer.internal_title || 'Untitled'} (copy)`,
+        internal_title: `${offer.internal_title || offer.public_title || 'Sin título'} (copia)`,
+        public_title: `${offer.public_title || offer.internal_title || 'Sin título'} (copia)`,
         package_category: offer.package_category || 'Other',
         destination_country: offer.destination_country || '',
         duration_days: Number(offer.duration_days) || 1,
@@ -623,8 +938,8 @@ export default function AdminPackagesAndServicesPage() {
         created_by: user?.id || null,
       });
 
-      // 2) Copy related configuration records (safe order, FK respected)
-      //    Each block is isolated so a partial failure is reported, not swallowed.
+      // 2) Copiar los registros de configuración relacionados.
+      //    Cada bloque está aislado para informar de un fallo parcial en lugar de ocultarlo.
       const childErrors = [];
 
       async function copyTable(table, columns) {
@@ -655,13 +970,12 @@ export default function AdminPackagesAndServicesPage() {
         try {
           await copyTable(table, columns);
         } catch (copyErr) {
-          // Column mismatch? Retry with only `sort_order` if present, else log
           childErrors.push(`${table}: ${copyErr.message}`);
         }
       }
 
-      // Landing-page configuration, if your schema uses `offer_landing_pages`
-      // with a 1:1 relationship. Guard with a try since the table may not exist.
+      // Configuración de la landing page, si el esquema usa `offer_landing_pages` (relación 1:1).
+      // Se protege con try porque la tabla puede no existir.
       try {
         const { data: landing } = await supabase
           .from('offer_landing_pages')
@@ -673,7 +987,7 @@ export default function AdminPackagesAndServicesPage() {
           await supabase.from('offer_landing_pages').insert({ offer_id: newDraft.id, ...rest });
         }
       } catch {
-        // Landing page table is optional — do not fail duplication over it.
+        // La tabla de landing pages es opcional: no se falla la duplicación por ella.
       }
 
       await loadData();
@@ -681,19 +995,19 @@ export default function AdminPackagesAndServicesPage() {
       if (childErrors.length) {
         setNotice({
           id: newDraft.id,
-          message: `Draft duplicated, but some sections could not be copied: ${childErrors
+          message: `Borrador duplicado, pero algunas secciones no se pudieron copiar: ${childErrors
             .slice(0, 2)
-            .join('; ')}${childErrors.length > 2 ? '…' : ''}. Review and re-add them in the editor.`,
+            .join('; ')}${childErrors.length > 2 ? '…' : ''}. Revísalas y vuelve a añadirlas en el editor.`,
         });
       } else {
         setNotice({
           id: newDraft.id,
-          message: 'Offer duplicated as a draft. Continue editing to review the copy.',
+          message: 'Oferta duplicada como borrador. Sigue editando para revisar la copia.',
         });
       }
     } catch (dupErr) {
       console.error('Duplicate failed:', dupErr);
-      setError(`Could not duplicate offer: ${dupErr.message}`);
+      setError(`No se pudo duplicar la oferta: ${dupErr.message}`);
     } finally {
       setDuplicatingId(null);
     }
@@ -702,8 +1016,8 @@ export default function AdminPackagesAndServicesPage() {
   /* ------------ Publish / Unpublish ------------ */
   async function handlePublishToggle(offer) {
     if (!canUpdateOffers) return;
-    const isLive = offer.is_public && offer.status === 'active';
-    const payload = isLive
+    const live = isLiveOffer(offer);
+    const payload = live
       ? { status: 'inactive', is_public: false }
       : { status: 'active', is_public: true };
 
@@ -712,11 +1026,11 @@ export default function AdminPackagesAndServicesPage() {
       await loadData();
       setNotice({
         id: offer.id,
-        message: isLive ? 'Offer unpublished.' : 'Offer published.',
+        message: live ? 'Oferta despublicada.' : 'Oferta publicada.',
       });
     } catch (pubErr) {
       console.error('Publish toggle failed:', pubErr);
-      setError(`Could not update publish state: ${pubErr.message}`);
+      setError(`No se pudo actualizar el estado de publicación: ${pubErr.message}`);
     }
   }
 
@@ -726,16 +1040,17 @@ export default function AdminPackagesAndServicesPage() {
     try {
       await saveAdminOffer({ id: offer.id, status: 'archived', is_public: false });
       await loadData();
-      setNotice({ id: offer.id, message: 'Offer archived.' });
+      setNotice({ id: offer.id, message: 'Oferta archivada.' });
     } catch (archErr) {
       console.error('Archive failed:', archErr);
-      setError(`Could not archive offer: ${archErr.message}`);
+      setError(`No se pudo archivar la oferta: ${archErr.message}`);
     }
   }
 
   /* ------------ CSV export (client-side) ------------ */
   function handleExportCsv() {
     if (!filtered.length) return;
+    // Las columnas se mantienen en inglés para que el archivo siga siendo apto para importar en otros sistemas.
     const header = [
       'reference',
       'internal_title',
@@ -781,7 +1096,7 @@ export default function AdminPackagesAndServicesPage() {
           o.starting_price ?? '',
           o.default_currency ?? 'MAD',
           o.status,
-          o.is_public && o.status === 'active' ? 'yes' : 'no',
+          isLiveOffer(o) ? 'yes' : 'no',
           o.updated_at,
         ]
           .map(escape)
@@ -800,504 +1115,471 @@ export default function AdminPackagesAndServicesPage() {
   }
 
   /* ------------ Guards ------------ */
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
-      <main className="flex min-h-[50vh] items-center justify-center gap-3 text-sm text-slate-500">
-        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />{translate('Checking account access and loading offers…')}</main>
+      <main className="min-h-screen bg-stone-50 flex items-center justify-center gap-3 text-sm text-slate-500">
+        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />{translate('Comprobando el acceso de la cuenta…')}
+      </main>
     );
   }
 
   if (!user || !canViewOffers) {
     return (
-      <main className="m-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
-        <p>
-          {!user
-            ? 'Sign in with an authorized account to manage offers.'
-            : 'Your account is missing the packages.view permission.'}
-        </p>
-        {!user && (
-          <button
-            type="button"
-            onClick={() => navigate('/auth/admin-login')}
-            className="mt-3 font-semibold underline"
-          >{translate('Sign in')}</button>
-        )}
+      <main className="min-h-screen bg-stone-50 p-6 lg:p-8">
+        <div role="alert" className="mx-auto max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 flex items-start gap-3">
+          <Lock className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-medium">
+              {!user
+                ? 'Inicia sesión con una cuenta autorizada para gestionar las ofertas.'
+                : 'Tu cuenta no tiene el permiso packages.view.'}
+            </p>
+            {!user && (
+              <button type="button" onClick={() => navigate('/auth/admin-login')} className={`${btnPrimary} mt-4`}>
+                {translate('Iniciar sesión')}
+              </button>
+            )}
+          </div>
+        </div>
       </main>
     );
   }
 
+  const statCards = [
+    { label: 'Total de paquetes', value: kpis.total, icon: Layers, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
+    { label: 'Publicados', value: kpis.published, icon: Globe, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600', hint: 'Visibles en el sitio público' },
+    { label: 'Borradores', value: kpis.draft, icon: Edit, tone: 'text-slate-900', chip: 'bg-amber-50 text-amber-600', hint: 'Pendientes de completar' },
+    { label: 'Salidas próximas', value: kpis.upcoming, icon: CalendarDays, tone: 'text-slate-900', chip: 'bg-sky-50 text-sky-600', hint: 'En todos los paquetes' },
+  ];
+
+  /* ---------- Render ---------- */
   return (
-    <main className="space-y-6 p-6">
-      {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span className="rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">{translate('OFFERS & SERVICES')}</span>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{translate('Packages & Services')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{translate('Create draft packages, complete their services and pricing, then publish when ready.')}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={!filtered.length}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />{translate('Export CSV')}</button>
-          <button
-            type="button"
-            disabled={!canCreateOffers}
-            onClick={() => {
-              setError('');
-              setFormErrors({});
-              setNewOffer(createInitialOffer());
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />{translate('Create Package')}</button>
-        </div>
-      </header>
+    <main className="min-h-screen bg-stone-50">
+      <style>{`
+        @keyframes rp-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+        .rp-pop { animation: rp-pop .16s ease-out; }
+        @media (prefers-reduced-motion: reduce) { .rp-pop { animation-duration: 1ms; } }
+      `}</style>
 
-      {!canCreateOffers && (
-        <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          You can view offers, but creating new ones requires the{' '}
-          <code className="rounded bg-amber-100 px-1">{translate('packages.create')}</code>{translate('permission.')}</div>
-      )}
-
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"
-        >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => setError('')}
-            className="ml-auto rounded p-0.5 text-rose-600 hover:bg-rose-100"
-            aria-label="Dismiss error"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      {notice && (
-        <div
-          role="status"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
-        >
-          <span className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            {notice.message}
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/packages-services/${notice.id}`)}
-              className="font-semibold underline underline-offset-2"
-            >{translate('Continue editing')}</button>
-            <button
-              type="button"
-              onClick={() => setNotice(null)}
-              className="rounded p-0.5 hover:bg-emerald-100"
-              aria-label="Dismiss notice"
-            >
-              <X className="h-3.5 w-3.5" />
+      <div className="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Paquetes y servicios')}</h1>
+            <p className="text-sm text-slate-500 mt-1">{translate('Crea borradores de paquetes, completa sus servicios y precios, y publícalos cuando estén listos.')}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={handleExportCsv} disabled={!filtered.length} className={btnGhost}>
+              <Download className="w-4 h-4 text-slate-500" />{translate('Exportar CSV')}
+            </button>
+            <button type="button" onClick={loadData} className={btnGhost} title="Actualizar registros">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Actualizar')}
+            </button>
+            <button type="button" disabled={!canCreateOffers} onClick={openCreateModal} className={btnPrimary}>
+              <Plus className="w-4 h-4" />{translate('Crear paquete')}
             </button>
           </div>
-        </div>
-      )}
+        </header>
 
-      {/* KPI cards */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total packages" value={kpis.total} icon={Layers} tone="slate" />
-        <StatCard label="Published" value={kpis.published} icon={Globe} tone="emerald" hint="Live on the public site" />
-        <StatCard label="Drafts" value={kpis.draft} icon={Edit} tone="amber" hint="Waiting to complete" />
-        <StatCard label="Upcoming departures" value={kpis.upcoming} icon={CalendarIcon} tone="sky" hint="Across all packages" />
-      </section>
-
-      {/* Filters */}
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full max-w-md">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-              <Search className="h-4 w-4" />
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search title, reference, country, city…"
-              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-9 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              aria-label="Search packages"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+        {/* Banners */}
+        {!canCreateOffers && (
+          <div role="status" className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
+            Puedes ver las ofertas, pero crear nuevas requiere el permiso{' '}
+            <code className="rounded bg-amber-100 px-1">packages.create</code>.
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              aria-label="Filter by status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-amber-500 focus:outline-none"
-            >
-              {STATUS_FILTERS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Filter by category"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-amber-500 focus:outline-none"
-            >
-              <option value="ALL">{translate('All categories')}</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Filter by visibility"
-              value={visibilityFilter}
-              onChange={(e) => setVisibilityFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-amber-500 focus:outline-none"
-            >
-              {VISIBILITY_FILTERS.map((v) => (
-                <option key={v.value} value={v.value}>{v.label}</option>
-              ))}
-            </select>
-
-            {activeFilterCount > 0 && (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-              >
-                <RotateCcw className="h-3.5 w-3.5" /> Reset ({activeFilterCount})
-              </button>
-            )}
-
-            <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-inset ring-slate-200">
-              <Filter className="h-3 w-3" />
-              {totalFiltered} of {packages.length}
+        )}
+        {notice && (
+          <div role="status" className="px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-emerald-800 text-sm rp-pop">
+            <span className="flex items-center gap-3">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              {notice.message}
             </span>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-left text-xs">
-            <thead className="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3">{translate('Package / Reference')}</th>
-                <th className="px-4 py-3">{translate('Destination')}</th>
-                <th className="px-4 py-3">{translate('Category')}</th>
-                <th className="px-4 py-3">{translate('Duration')}</th>
-                <th className="px-4 py-3">{translate('Configuration')}</th>
-                <th className="px-4 py-3">{translate('Starting price')}</th>
-                <th className="px-4 py-3">{translate('Next departure')}</th>
-                <th className="px-4 py-3">{translate('Status')}</th>
-                <th className="px-4 py-3">{translate('Visibility')}</th>
-                <th className="px-4 py-3">{translate('Updated')}</th>
-                <th className="px-4 py-3 text-right">{translate('Actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
-                    {packages.length === 0
-                      ? 'No packages yet. Create your first package to get started.'
-                      : 'No packages match the current filters.'}
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((offer) => {
-                  const cfg = counts[offer.id] || {};
-                  const dests = destinationsByOffer[offer.id] || [];
-                  const primaryDest =
-                    dests[0]?.name || offer.destination_country || '—';
-                  const extraDest = dests.length > 1 ? `+${dests.length - 1} more` : null;
-                  const nextDep = nextDepartureByOffer[offer.id];
-                  return (
-                    <tr key={offer.id} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-slate-900">
-                          {offer.public_title || offer.internal_title || 'Untitled package'}
-                        </div>
-                        <div className="font-mono text-[10px] text-amber-700">
-                          {offer.reference}
-                        </div>
-                        {offer.internal_title && offer.public_title && offer.internal_title !== offer.public_title && (
-                          <div className="mt-0.5 truncate text-[10px] text-slate-400">
-                            Internal: {offer.internal_title}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-start gap-1.5">
-                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                          <div>
-                            <div className="text-slate-800">{primaryDest}</div>
-                            <div className="text-[10px] text-slate-400">
-                              {offer.destination_country || '—'}
-                              {extraDest && ` · ${extraDest}`}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
-                          {offer.package_category || '—'}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-slate-600">
-                        {offer.duration_days ?? '—'}d / {offer.duration_nights ?? '—'}n
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex flex-wrap gap-1">
-                          <ConfigIndicator icon={BuildingIcon} count={cfg.hotels || 0} label="Hotels" />
-                          <ConfigIndicator icon={PlaneIcon} count={cfg.flights || 0} label="Flights" />
-                          <ConfigIndicator icon={ActivityIcon} count={cfg.activities || 0} label="Activities" />
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-900">
-                        {formatCurrency(offer.starting_price, offer.default_currency)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5">
-                        {nextDep ? (
-                          <div>
-                            <div className="text-slate-800">{formatDate(nextDep.departure_date)}</div>
-                            <div className="text-[10px] text-slate-400">
-                              {upcomingByOffer[offer.id] || 0} upcoming
-                              {nextDep.seats_available != null && ` · ${nextDep.seats_available} seats`}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">{translate('No departures')}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5"><StatusBadge status={offer.status} /></td>
-                      <td className="px-4 py-3.5">
-                        <VisibilityBadge isPublic={offer.is_public} status={offer.status} />
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">
-                        {formatDate(offer.updated_at || offer.created_at)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5">
-                        <RowActions
-                          offer={offer}
-                          canCreate={canCreateOffers}
-                          canUpdate={canUpdateOffers}
-                          onDuplicate={handleDuplicate}
-                          onPublishToggle={handlePublishToggle}
-                          onArchive={handleArchive}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalFiltered > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
-            <span>
-              Showing {(safePage - 1) * PAGE_SIZE + 1}–
-              {Math.min(safePage * PAGE_SIZE, totalFiltered)} of {totalFiltered}
-            </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />{translate('Prev')}</button>
-              <span className="px-2">Page {safePage} / {totalPages}</span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-40"
-              >
-                Next <ChevronRight className="h-3.5 w-3.5" />
+                onClick={() => navigate(`/admin/packages-services/${notice.id}`)}
+                className="font-semibold underline underline-offset-2"
+              >{translate('Seguir editando')}</button>
+              <button type="button" onClick={() => setNotice(null)} className="p-1 hover:bg-emerald-100 rounded" aria-label="Descartar aviso">
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
-      </section>
+        {error && !isModalOpen && (
+          <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm rp-pop">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button type="button" onClick={() => setError('')} className="p-1 hover:bg-rose-100 rounded" aria-label="Descartar error">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-      {/* Create modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-offer-title"
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
-          >
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h2 id="create-offer-title" className="text-lg font-bold text-slate-900">{translate('Create draft package')}</h2>
-                <p className="mt-1 text-xs text-slate-500">{translate('Add the essentials now; configure services and pricing in the editor.')}</p>
+        {/* Stats */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map(({ label, value, icon: Icon, tone, chip, hint }) => (
+            <div key={label} className="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-500">{label}</p>
+                <p className={`text-2xl font-semibold mt-1 truncate ${tone}`}>{value}</p>
+                {hint && <p className="text-xs text-slate-400 mt-0.5 truncate">{hint}</p>}
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close dialog"
-                className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${chip}`}>
+                <Icon className="w-5 h-5" />
+              </span>
             </div>
+          ))}
+        </section>
 
-            <form onSubmit={handleCreateOffer} className="mt-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-xs font-medium text-slate-700">
-                  Internal title <span className="text-red-500">{translate('*')}</span>
+        {/* Table card with toolbar */}
+        <section className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 space-y-3">
+            <div className="flex flex-col lg:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por título, referencia, país o ciudad"
+                  aria-label="Buscar paquetes"
+                  className={`${inputCls} pl-9 ${search ? 'pr-9' : ''}`}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label="Borrar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <Select className="lg:w-52" prefix="Estado" ariaLabel="Filtro de estado" value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+              <Select className="lg:w-60" prefix="Categoría" ariaLabel="Filtro de categoría" value={categoryFilter} onChange={setCategoryFilter} options={categoryFilterOptions} menuMinWidth={240} />
+              <Select className="lg:w-56" prefix="Visibilidad" ariaLabel="Filtro de visibilidad" value={visibilityFilter} onChange={setVisibilityFilter} options={VISIBILITY_OPTIONS} />
+            </div>
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>{totalFiltered} de {packages.length} paquetes</span>
+              {hasFilters && (
+                <button type="button" onClick={resetFilters} className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2">
+                  {translate('Borrar filtros')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1280px]">
+              <thead>
+                <tr className="bg-stone-50 border-b border-slate-100 text-xs font-medium text-slate-500">
+                  <th className="py-3 px-4">{translate('Paquete / Referencia')}</th>
+                  <th className="py-3 px-4">{translate('Destino')}</th>
+                  <th className="py-3 px-4">{translate('Categoría')}</th>
+                  <th className="py-3 px-4">{translate('Duración')}</th>
+                  <th className="py-3 px-4">{translate('Configuración')}</th>
+                  <th className="py-3 px-4">{translate('Precio desde')}</th>
+                  <th className="py-3 px-4">{translate('Próxima salida')}</th>
+                  <th className="py-3 px-4">{translate('Estado')}</th>
+                  <th className="py-3 px-4">{translate('Visibilidad')}</th>
+                  <th className="py-3 px-4">{translate('Actualizado')}</th>
+                  <th className="py-3 px-4 text-right">{translate('Acciones')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                {loading ? (
+                  <tr>
+                    <td colSpan={11} className="py-16 text-center text-slate-400">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Cargando paquetes…')}
+                    </td>
+                  </tr>
+                ) : pageRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={11}>
+                      <EmptyStatePackages
+                        hasFilters={hasFilters}
+                        canCreate={canCreateOffers}
+                        onClearFilters={resetFilters}
+                        onRefresh={loadData}
+                        onCreate={openCreateModal}
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((offer) => {
+                    const cfg = counts[offer.id] || {};
+                    const dests = destinationsByOffer[offer.id] || [];
+                    const primaryDest = dests[0]?.name || offer.destination_country || '—';
+                    const extraDest = dests.length > 1 ? `+${dests.length - 1} más` : null;
+                    const nextDep = nextDepartureByOffer[offer.id];
+                    const goEdit = () => navigate(`/admin/packages-services/${offer.id}`);
+                    return (
+                      <tr
+                        key={offer.id}
+                        tabIndex={0}
+                        onClick={goEdit}
+                        onKeyDown={(e) => { if (e.key === 'Enter') goEdit(); }}
+                        className="group cursor-pointer hover:bg-amber-50/40 focus:outline-none focus-visible:bg-amber-50/60 transition-colors"
+                      >
+                        <td className="py-3.5 px-4">
+                          <p className="font-medium text-slate-900">
+                            {offer.public_title || offer.internal_title || 'Paquete sin título'}
+                          </p>
+                          <p className="font-mono text-xs text-amber-700">{offer.reference}</p>
+                          {offer.internal_title && offer.public_title && offer.internal_title !== offer.public_title && (
+                            <p className="mt-0.5 max-w-[260px] truncate text-xs text-slate-400">
+                              Interno: {offer.internal_title}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-start gap-1.5">
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <div>
+                              <p className="text-slate-800">{primaryDest}</p>
+                              <p className="text-xs text-slate-400">
+                                {offer.destination_country || '—'}
+                                {extraDest && ` · ${extraDest}`}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                            {categoryLabel(offer.package_category)}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-600">
+                          {offer.duration_days ?? '—'} días / {offer.duration_nights ?? '—'} noches
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            <ConfigIndicator icon={Building2} count={cfg.hotels || 0} label="Hoteles" />
+                            <ConfigIndicator icon={Plane} count={cfg.flights || 0} label="Vuelos" />
+                            <ConfigIndicator icon={Activity} count={cfg.activities || 0} label="Actividades" />
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-semibold text-slate-900">
+                          {formatCurrency(offer.starting_price, offer.default_currency)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {nextDep ? (
+                            <div>
+                              <p className="text-slate-800">{formatDate(nextDep.departure_date)}</p>
+                              <p className="text-xs text-slate-400">
+                                {upcomingByOffer[offer.id] || 0} {(upcomingByOffer[offer.id] || 0) === 1 ? 'próxima' : 'próximas'}
+                                {nextDep.seats_available != null && ` · ${nextDep.seats_available} plazas`}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">{translate('Sin salidas')}</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4"><StatusBadge status={offer.status} /></td>
+                        <td className="py-3.5 px-4"><VisibilityBadge isPublic={offer.is_public} status={offer.status} /></td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-500">
+                          {formatDate(offer.updated_at || offer.created_at)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <RowActions
+                              offer={offer}
+                              canCreate={canCreateOffers}
+                              canUpdate={canUpdateOffers}
+                              duplicating={duplicatingId === offer.id}
+                              onDuplicate={handleDuplicate}
+                              onPublishToggle={handlePublishToggle}
+                              onArchive={handleArchive}
+                            />
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition" />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalFiltered > PAGE_SIZE && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-600">
+              <span>
+                Mostrando {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, totalFiltered)} de {totalFiltered}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className={`${btnGhost} !px-2.5 !py-1.5 !text-xs`}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />{translate('Anterior')}
+                </button>
+                <span className="px-1">Página {safePage} de {totalPages}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className={`${btnGhost} !px-2.5 !py-1.5 !text-xs`}
+                >
+                  {translate('Siguiente')}<ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* ================= CREAR PAQUETE EN BORRADOR ================= */}
+      {isModalOpen && (
+        <Modal onClose={() => !submitting && setIsModalOpen(false)}>
+          <ModalHeader
+            title="Crear paquete en borrador"
+            subtitle="Añade lo esencial ahora; los servicios y precios se configuran en el editor."
+            onClose={() => setIsModalOpen(false)}
+          />
+          <form onSubmit={handleCreateOffer} noValidate className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            <div className="space-y-3">
+              <SectionTitle icon={Package}>{translate('Información básica')}</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls} htmlFor="pkg-internal-title">{translate('Título interno *')}</label>
                   <input
+                    id="pkg-internal-title"
+                    type="text"
                     required
                     value={newOffer.internal_title}
                     onChange={(e) => setNewOffer({ ...newOffer, internal_title: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={inputCls}
                   />
-                  {formErrors.internal_title && (
-                    <span className="mt-1 block text-[11px] text-rose-600">{formErrors.internal_title}</span>
-                  )}
-                </label>
-                <label className="text-xs font-medium text-slate-700">
-                  Public title <span className="text-red-500">{translate('*')}</span>
+                  <FieldError>{formErrors.internal_title}</FieldError>
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="pkg-public-title">{translate('Título público *')}</label>
                   <input
+                    id="pkg-public-title"
+                    type="text"
                     required
                     value={newOffer.public_title}
                     onChange={(e) => setNewOffer({ ...newOffer, public_title: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={inputCls}
                   />
-                  {formErrors.public_title && (
-                    <span className="mt-1 block text-[11px] text-rose-600">{formErrors.public_title}</span>
-                  )}
-                </label>
-              </div>
-
-              <label className="block text-xs font-medium text-slate-700">
-                Reference (generated automatically)
-                <input
-                  readOnly
-                  value={newOffer.reference}
-                  className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-slate-500"
-                />
-              </label>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-xs font-medium text-slate-700">
-                  Package category
-                  <select
-                    value={newOffer.package_category}
-                    onChange={(e) => setNewOffer({ ...newOffer, package_category: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2"
-                  >
-                    {CATEGORIES.map((c) => (<option key={c}>{c}</option>))}
-                  </select>
-                </label>
-                <label className="text-xs font-medium text-slate-700">
-                  Destination country <span className="text-red-500">{translate('*')}</span>
+                  <FieldError>{formErrors.public_title}</FieldError>
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="pkg-reference">{translate('Referencia (se genera automáticamente)')}</label>
                   <input
+                    id="pkg-reference"
+                    readOnly
+                    value={newOffer.reference}
+                    className={`${inputCls} bg-slate-50 font-mono text-slate-500`}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>{translate('Categoría del paquete')}</label>
+                  <Select
+                    value={newOffer.package_category}
+                    onChange={(v) => setNewOffer({ ...newOffer, package_category: v })}
+                    options={CATEGORY_OPTIONS}
+                    ariaLabel="Categoría del paquete"
+                    menuMinWidth={240}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-5 border-t border-slate-100">
+              <SectionTitle icon={MapPin}>{translate('Destino y duración')}</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls} htmlFor="pkg-country">{translate('País de destino *')}</label>
+                  <input
+                    id="pkg-country"
+                    type="text"
                     required
+                    autoComplete="country-name"
+                    placeholder="Marruecos, Francia"
                     value={newOffer.destination_country}
                     onChange={(e) => setNewOffer({ ...newOffer, destination_country: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={inputCls}
                   />
-                  {formErrors.destination_country && (
-                    <span className="mt-1 block text-[11px] text-rose-600">{formErrors.destination_country}</span>
-                  )}
-                </label>
-              </div>
-
-              <label className="block text-xs font-medium text-slate-700">
-                Main destination city <span className="font-normal text-slate-400">{translate('(optional)')}</span>
-                <input
-                  value={newOffer.destination_city}
-                  onChange={(e) => setNewOffer({ ...newOffer, destination_city: e.target.value })}
-                  className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
-                />
-              </label>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-xs font-medium text-slate-700">
-                  Duration in days <span className="text-red-500">{translate('*')}</span>
+                  <FieldError>{formErrors.destination_country}</FieldError>
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="pkg-city">{translate('Ciudad principal de destino (opcional)')}</label>
                   <input
+                    id="pkg-city"
+                    type="text"
+                    placeholder="Marrakech, París"
+                    value={newOffer.destination_city}
+                    onChange={(e) => setNewOffer({ ...newOffer, destination_city: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="pkg-days">{translate('Duración en días *')}</label>
+                  <input
+                    id="pkg-days"
                     type="number"
                     min="1"
                     required
                     value={newOffer.duration_days}
                     onChange={(e) => setNewOffer({ ...newOffer, duration_days: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={inputCls}
                   />
-                  {formErrors.duration_days && (
-                    <span className="mt-1 block text-[11px] text-rose-600">{formErrors.duration_days}</span>
-                  )}
-                </label>
-                <label className="text-xs font-medium text-slate-700">
-                  Duration in nights <span className="text-red-500">{translate('*')}</span>
+                  <FieldError>{formErrors.duration_days}</FieldError>
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="pkg-nights">{translate('Duración en noches *')}</label>
                   <input
+                    id="pkg-nights"
                     type="number"
                     min="0"
                     required
                     value={newOffer.duration_nights}
                     onChange={(e) => setNewOffer({ ...newOffer, duration_nights: e.target.value })}
-                    className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={inputCls}
                   />
-                  {formErrors.duration_nights && (
-                    <span className="mt-1 block text-[11px] text-rose-600">{formErrors.duration_nights}</span>
-                  )}
-                </label>
+                  <FieldError>{formErrors.duration_nights}</FieldError>
+                </div>
               </div>
+            </div>
 
-              <label className="block text-xs font-medium text-slate-700">
-                Short description <span className="font-normal text-slate-400">{translate('(optional)')}</span>
+            <div className="space-y-3 pt-5 border-t border-slate-100">
+              <SectionTitle icon={Edit}>{translate('Descripción')}</SectionTitle>
+              <div>
+                <label className={labelCls} htmlFor="pkg-description">{translate('Descripción breve (opcional)')}</label>
                 <textarea
-                  rows={3}
+                  id="pkg-description"
+                  rows="3"
+                  placeholder="Resume en una o dos frases lo que incluye este paquete"
                   value={newOffer.short_description}
                   onChange={(e) => setNewOffer({ ...newOffer, short_description: e.target.value })}
-                  className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={inputCls}
                 />
-              </label>
-
-              {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
-
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-600"
-                >{translate('Cancel')}</button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {submitting ? 'Creating draft…' : 'Create draft package'}
-                </button>
               </div>
-            </form>
-          </section>
-        </div>
+            </div>
+
+            {error && (
+              <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span className="flex-1">{error}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+              <button type="button" onClick={() => setIsModalOpen(false)} disabled={submitting} className={btnGhost}>{translate('Cancelar')}</button>
+              <button type="submit" disabled={submitting} className={btnPrimary}>
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submitting ? 'Creando borrador…' : 'Crear paquete en borrador'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </main>
   );

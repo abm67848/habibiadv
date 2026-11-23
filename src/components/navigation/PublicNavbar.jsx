@@ -31,7 +31,7 @@ function LanguageMenu({ forceClose = false }) {
   const uid = useId();
   const listId = `${uid}-list`;
 
-  const current = (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0];
+  const current = (i18n.resolvedLanguage || i18n.language || 'es').split('-')[0];
   const selected = LANGUAGES.find((l) => l.code === current) || LANGUAGES[0];
 
   const [open, setOpen] = useState(false);

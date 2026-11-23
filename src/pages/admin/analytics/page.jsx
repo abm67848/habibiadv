@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart3, RefreshCw, Download, Wallet, CalendarDays, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, ShieldCheck, Clock, Users, XCircle, Lightbulb, X, Target,
+  AlertTriangle, ShieldCheck, Clock, Users, XCircle, Lightbulb, X, Target, Inbox, Filter,
+  Plus, Sparkles, ArrowRight, RotateCcw,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
@@ -15,25 +16,25 @@ const toMAD = (n, c) => Number(n || 0) * (RATES_TO_MAD[c] ?? 1);
 const DAY = 86400000;
 
 const PRESETS = [
-  { value: '30', label: 'Last 30 days' },
-  { value: '90', label: 'Last 90 days' },
-  { value: '365', label: 'Last 12 months' },
-  { value: 'ytd', label: 'Year to date' },
-  { value: 'all', label: 'All time' },
+  { value: '30', label: 'Últimos 30 días' },
+  { value: '90', label: 'Últimos 90 días' },
+  { value: '365', label: 'Últimos 12 meses' },
+  { value: 'ytd', label: 'Año hasta la fecha' },
+  { value: 'all', label: 'Todo el tiempo' },
 ];
 
 const STATUS_META = {
-  pending: { label: 'Pending', color: '#f59e0b' },
-  confirmed: { label: 'Confirmed', color: '#10b981' },
-  in_progress: { label: 'In progress', color: '#0ea5e9' },
-  completed: { label: 'Completed', color: '#8b5cf6' },
-  cancelled: { label: 'Cancelled', color: '#f43f5e' },
+  pending: { label: 'Pendiente', color: '#f59e0b' },
+  confirmed: { label: 'Confirmada', color: '#10b981' },
+  in_progress: { label: 'En curso', color: '#0ea5e9' },
+  completed: { label: 'Completada', color: '#8b5cf6' },
+  cancelled: { label: 'Cancelada', color: '#f43f5e' },
 };
 const METHOD_COLORS = ['#d97706', '#0ea5e9', '#10b981', '#8b5cf6', '#94a3b8'];
 
 /* ---------- Helpers ---------- */
-const fmt = (n, d = 0) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: d });
-const fmtCompact = (n) => Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n || 0));
+const fmt = (n, d = 0) => Number(n || 0).toLocaleString('es-ES', { maximumFractionDigits: d });
+const fmtCompact = (n) => Intl.NumberFormat('es-ES', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n || 0));
 const pct = (a, b) => (b > 0 ? (a / b) * 100 : 0);
 const delta = (cur, prev) => (prev === 0 ? (cur === 0 ? 0 : null) : ((cur - prev) / Math.abs(prev)) * 100);
 const label = (s = '') => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
@@ -58,10 +59,10 @@ function buildBuckets(start, end) {
     const d = new Date(start); d.setDate(1); d.setHours(0, 0, 0, 0);
     while (d.getTime() <= end) {
       const from = d.getTime(); d.setMonth(d.getMonth() + 1);
-      buckets.push({ from, to: d.getTime(), label: new Date(from).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) });
+      buckets.push({ from, to: d.getTime(), label: new Date(from).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }) });
     }
   } else {
-    for (let t = start; t < end; t += DAY) buckets.push({ from: t, to: t + DAY, label: new Date(t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) });
+    for (let t = start; t < end; t += DAY) buckets.push({ from: t, to: t + DAY, label: new Date(t).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) });
   }
   return buckets;
 }
@@ -81,7 +82,7 @@ function TrendChart({ labels, series, prev, height = 240 }) {
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => min + (max - min) * t);
   const step = Math.ceil(n / 8);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Revenue trend chart" onMouseLeave={() => setHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Gráfico de tendencia de ingresos" onMouseLeave={() => setHover(null)}>
       <defs>
         <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#d97706" stopOpacity=".22" /><stop offset="100%" stopColor="#d97706" stopOpacity="0" />
@@ -105,7 +106,7 @@ function TrendChart({ labels, series, prev, height = 240 }) {
             <rect width="140" height={prev ? 52 : 36} rx="8" fill="#0f172a" />
             <text x="10" y="16" fontSize="10" fill="#cbd5e1">{labels[hover]}</text>
             <text x="10" y="31" fontSize="12" fontWeight="600" fill="#fff">{fmt(series[hover])} MAD</text>
-            {prev && <text x="10" y="45" fontSize="10" fill="#94a3b8">Prev: {fmt(prev[hover])}</text>}
+            {prev && <text x="10" y="45" fontSize="10" fill="#94a3b8">Ant.: {fmt(prev[hover])}</text>}
           </g>
         </g>
       )}
@@ -122,7 +123,7 @@ function Donut({ data, size = 150 }) {
   const r = 52, c = 2 * Math.PI * r;
   let acc = 0;
   return (
-    <svg viewBox="0 0 140 140" width={size} height={size} role="img" aria-label="Distribution chart">
+    <svg viewBox="0 0 140 140" width={size} height={size} role="img" aria-label="Gráfico de distribución">
       <circle cx="70" cy="70" r={r} fill="none" stroke="#f1f5f9" strokeWidth="16" />
       {total > 0 && data.map((d) => {
         const len = (d.value / total) * c;
@@ -137,9 +138,9 @@ function Donut({ data, size = 150 }) {
   );
 }
 
-function HBars({ rows, unit = 'MAD', color = '#d97706' }) {
+function HBars({ rows, unit = 'MAD', color = '#d97706', emptyText }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
-  if (!rows.length) return <Empty text="No data in this period." />;
+  if (!rows.length) return <Empty text={emptyText || 'Sin datos en este periodo.'} />;
   return (
     <ul className="space-y-3">
       {rows.map((r) => (
@@ -162,7 +163,7 @@ function Columns({ rows, height = 150 }) {
   return (
     <div className="flex items-end gap-2" style={{ height }}>
       {rows.map((r) => (
-        <div key={r.label} className="flex flex-1 flex-col items-center justify-end gap-1.5" title={`${r.label}: ${fmt(r.value)} MAD, ${r.count} departures`}>
+        <div key={r.label} className="flex flex-1 flex-col items-center justify-end gap-1.5" title={`${r.label}: ${fmt(r.value)} MAD, ${r.count} salidas`}>
           <span className="text-[11px] tabular-nums text-slate-500">{r.value ? fmtCompact(r.value) : ''}</span>
           <div className="w-full rounded-t-md bg-gradient-to-t from-amber-500 to-amber-300" style={{ height: `${Math.max(2, (r.value / max) * (height - 46))}px` }} />
           <span className="text-[11px] text-slate-400">{r.label}</span>
@@ -193,7 +194,7 @@ function Card({ title, subtitle, right, children, className = '' }) {
 }
 
 function Delta({ value, invert = false }) {
-  if (value == null) return <span className="text-xs text-slate-400">{translate('new')}</span>;
+  if (value == null) return <span className="text-xs text-slate-400">{translate('nuevo')}</span>;
   const flat = Math.abs(value) < 0.5;
   const good = invert ? value < 0 : value > 0;
   const Icon = flat ? Minus : value > 0 ? TrendingUp : TrendingDown;
@@ -217,6 +218,117 @@ function Kpi({ label: l, value, unit, delta: d, invert, icon: Icon, chip, hint }
         </div>
       </div>
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${chip}`}><Icon className="h-5 w-5" /></span>
+    </div>
+  );
+}
+
+/* ---------- Graphic empty states ---------- */
+function EmptyIllustration({ variant = 'inbox' }) {
+  const Icon = variant === 'filter' ? Filter : Inbox;
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-44 w-auto" role="img" aria-label="Ilustración de datos vacíos">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+      {/* tarjeta trasera */}
+      <g transform="rotate(-6 100 100)">
+        <rect x="38" y="50" width="120" height="78" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="52" y="64" width="52" height="6" rx="3" className="fill-slate-200" />
+        <rect x="52" y="76" width="34" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="94" width="80" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="104" width="60" height="5" rx="2.5" className="fill-slate-100" />
+      </g>
+      {/* tarjeta frontal */}
+      <g transform="rotate(4 200 100)">
+        <rect x="140" y="62" width="130" height="86" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <rect x="156" y="78" width="26" height="26" rx="8" className="fill-amber-100" />
+        <path d="M163 91v-5h12v5M160 91h18" className="stroke-amber-600" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="190" y="80" width="56" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="190" y="93" width="36" height="5" rx="2.5" className="fill-slate-200" />
+        {/* barras diminutas que insinúan un gráfico */}
+        <rect x="156" y="116" width="10" height="14" rx="2" className="fill-amber-200" />
+        <rect x="170" y="112" width="10" height="18" rx="2" className="fill-amber-300" />
+        <rect x="184" y="118" width="10" height="12" rx="2" className="fill-amber-200" />
+        <rect x="198" y="108" width="10" height="22" rx="2" className="fill-amber-400" />
+        <rect x="212" y="120" width="10" height="10" rx="2" className="fill-amber-200" />
+      </g>
+      {/* insignia */}
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <Icon x="252" y="42" width="20" height="20" className="text-white" stroke="white" strokeWidth="2" fill="none" />
+      <circle cx="40" cy="40" r="4" className="fill-amber-200" />
+      <circle cx="288" cy="120" r="3" className="fill-amber-300" />
+      <circle cx="30" cy="150" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+function EmptyStateNoData({ onRefresh, onOpenBookings }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+      <EmptyIllustration variant="inbox" />
+      <h2 className="mt-4 text-xl font-semibold text-slate-900">Aún no hay datos analíticos</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        Cuando se registren reservas y pagos, aquí verás ingresos, conversión y rendimiento del equipo.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenBookings}
+          className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600"
+        >
+          <Plus className="h-4 w-4" />Ir a reservas
+        </button>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          <RefreshCw className="h-4 w-4" />Actualizar datos
+        </button>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {[
+          ['Registra reservas', 'Cada reserva alimenta las métricas de ingresos y conversión.'],
+          ['Registra pagos', 'Los pagos completados alimentan los KPI de cobro.'],
+          ['Asigna empleados', 'Asigna responsables para medir el rendimiento del equipo.'],
+        ].map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function EmptyStateNoResults({ onClearFilters, filtersOn }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+      <EmptyIllustration variant="filter" />
+      <h2 className="mt-4 text-xl font-semibold text-slate-900">Sin resultados para estos filtros</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        {filtersOn
+          ? 'Prueba a ampliar el periodo o a quitar el destino o el empleado seleccionado.'
+          : 'No hay actividad registrada en el periodo seleccionado.'}
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {filtersOn && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600"
+          >
+            <RotateCcw className="h-4 w-4" />Borrar filtros
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          <Sparkles className="h-4 w-4" />Ver todo el tiempo
+        </button>
+      </div>
     </div>
   );
 }
@@ -247,7 +359,7 @@ export default function AnalyticsPage() {
       setRaw({ bookings: b.data || [], payments: p.error ? [] : p.data || [], customers: c.error ? [] : c.data || [], profiles: pr.error ? [] : pr.data || [] });
     } catch (e) {
       console.error('Analytics load failed:', e);
-      setError('Could not load analytics data: ' + (e.message || 'Unknown error'));
+      setError('No se pudieron cargar los datos analíticos: ' + (e.message || 'Error desconocido'));
     } finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -326,8 +438,8 @@ export default function AnalyticsPage() {
       return Object.entries(m).map(([k, v]) => ({ label: k, ...v }));
     };
     const topDest = group(live(cur), (b) => b.destination, (b) => toMAD(b.total_amount, b.currency))
-      .sort((x, y) => y.value - x.value).slice(0, 7).map((r) => ({ ...r, note: `${r.count} bookings` }));
-    const methods = group(curPay.filter((p) => p.transaction_type === 'payment'), (p) => label(p.payment_method || 'other'), signed)
+      .sort((x, y) => y.value - x.value).slice(0, 7).map((r) => ({ ...r, note: `${r.count} reservas` }));
+    const methods = group(curPay.filter((p) => p.transaction_type === 'payment'), (p) => label(p.payment_method || 'otro'), signed)
       .sort((x, y) => y.value - x.value).map((r, i) => ({ ...r, color: METHOD_COLORS[i % METHOD_COLORS.length] }));
     const countries = (() => {
       const cMap = Object.fromEntries(customers.map((c) => [c.id, c]));
@@ -340,7 +452,7 @@ export default function AnalyticsPage() {
       const mine = cur.filter((b) => b.assigned_to === p.id);
       const won = mine.filter((b) => ['confirmed', 'in_progress', 'completed'].includes(b.booking_status));
       return {
-        id: p.id, name: p.full_name || p.email || 'Employee', bookings: mine.length,
+        id: p.id, name: p.full_name || p.email || 'Empleado', bookings: mine.length,
         value: booked(mine), conv: pct(won.length, mine.length), cancel: cancelRate(mine), avg: avgVal(mine),
       };
     }).filter((t) => t.bookings > 0).sort((x, y) => y.value - x.value);
@@ -351,7 +463,7 @@ export default function AnalyticsPage() {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const key = monthKey(d);
       const rows = live(scoped).filter((b) => b.departure_date && monthKey(new Date(b.departure_date)) === key);
-      return { label: d.toLocaleDateString(undefined, { month: 'short' }), value: booked(rows), count: rows.length };
+      return { label: d.toLocaleDateString('es-ES', { month: 'short' }), value: booked(rows), count: rows.length };
     });
 
     /* Customers */
@@ -376,14 +488,14 @@ export default function AnalyticsPage() {
     /* Auto-generated insights */
     const insights = [];
     const dRev = delta(k.revenue, k.revenuePrev);
-    if (dRev != null && Math.abs(dRev) >= 5) insights.push({ tone: dRev > 0 ? 'good' : 'bad', text: `Net revenue is ${dRev > 0 ? 'up' : 'down'} ${Math.abs(dRev).toFixed(0)}% against the previous period.` });
-    if (topDest[0] && booked(cur) > 0) insights.push({ tone: 'info', text: `${topDest[0].label} drives ${pct(topDest[0].value, booked(cur)).toFixed(0)}% of booked value${pct(topDest[0].value, booked(cur)) > 50 ? ', which is a concentration risk' : ''}.` });
-    if (aging.overdue > 0) insights.push({ tone: 'bad', text: `${fmt(aging.overdue)} MAD is unpaid on ${overdueCount} bookings whose departure date has passed.` });
-    if (aging.d30 > 0) insights.push({ tone: 'warn', text: `${fmt(aging.d30)} MAD is due to be collected before departures in the next 30 days.` });
-    if (k.cancel > k.cancelPrev + 3) insights.push({ tone: 'bad', text: `Cancellation rate rose to ${k.cancel.toFixed(1)}% from ${k.cancelPrev.toFixed(1)}%.` });
-    if (k.insure < 25 && k.bookings > 4) insights.push({ tone: 'warn', text: `Only ${k.insure.toFixed(0)}% of bookings include extra insurance. Offering it at checkout is an easy upsell.` });
+    if (dRev != null && Math.abs(dRev) >= 5) insights.push({ tone: dRev > 0 ? 'good' : 'bad', text: `Los ingresos netos ${dRev > 0 ? 'suben' : 'bajan'} un ${Math.abs(dRev).toFixed(0)}% frente al periodo anterior.` });
+    if (topDest[0] && booked(cur) > 0) insights.push({ tone: 'info', text: `${topDest[0].label} concentra el ${pct(topDest[0].value, booked(cur)).toFixed(0)}% del valor reservado${pct(topDest[0].value, booked(cur)) > 50 ? ', lo que supone un riesgo de concentración' : ''}.` });
+    if (aging.overdue > 0) insights.push({ tone: 'bad', text: `${fmt(aging.overdue)} MAD pendientes de cobro en ${overdueCount} reservas cuya fecha de salida ya pasó.` });
+    if (aging.d30 > 0) insights.push({ tone: 'warn', text: `${fmt(aging.d30)} MAD vencen antes de las salidas en los próximos 30 días.` });
+    if (k.cancel > k.cancelPrev + 3) insights.push({ tone: 'bad', text: `La tasa de cancelación sube al ${k.cancel.toFixed(1)}% desde ${k.cancelPrev.toFixed(1)}%.` });
+    if (k.insure < 25 && k.bookings > 4) insights.push({ tone: 'warn', text: `Solo el ${k.insure.toFixed(0)}% de las reservas incluyen seguro extra. Ofrecerlo en el checkout es un upsell sencillo.` });
     const slow = forecast.slice(0, 3).filter((f) => f.count === 0).length;
-    if (slow) insights.push({ tone: 'warn', text: `${slow} of the next 3 months have no departures booked yet.` });
+    if (slow) insights.push({ tone: 'warn', text: `${slow} de los próximos 3 meses aún no tienen salidas reservadas.` });
 
     return { range, k, trend, statusRows, topDest, methods, countries, team, forecast, aging, insights, cur, bookingById, paidByBooking };
   }, [raw, preset, destination, employee]);
@@ -396,7 +508,7 @@ export default function AnalyticsPage() {
     const blob = new Blob([[head, ...rows].map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `analiticas-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -406,13 +518,21 @@ export default function AnalyticsPage() {
     : metric === 'bookings' ? [a.trend.bookings, a.trend.bookingsPrev] : [a.trend.value, a.trend.valuePrev];
   const trendLabels = buildBuckets(a.range.start, a.range.end).map((b) => b.label);
   const agingRows = [
-    { label: 'Past departure', value: a.aging.overdue, color: '#f43f5e' },
-    { label: 'Departs within 30 days', value: a.aging.d30, color: '#f59e0b' },
-    { label: 'Departs in 31–90 days', value: a.aging.d90, color: '#0ea5e9' },
-    { label: 'Departs later', value: a.aging.later, color: '#94a3b8' },
+    { label: 'Salida pasada', value: a.aging.overdue, color: '#f43f5e' },
+    { label: 'Sale en los próximos 30 días', value: a.aging.d30, color: '#f59e0b' },
+    { label: 'Sale en 31–90 días', value: a.aging.d90, color: '#0ea5e9' },
+    { label: 'Sale más adelante', value: a.aging.later, color: '#94a3b8' },
   ];
   const toneCls = { good: 'bg-emerald-50 text-emerald-800 ring-emerald-200', bad: 'bg-rose-50 text-rose-800 ring-rose-200', warn: 'bg-amber-50 text-amber-800 ring-amber-200', info: 'bg-slate-50 text-slate-700 ring-slate-200' };
   const filtersOn = destination !== 'ALL' || employee !== 'ALL';
+
+  // Estado vacío global: no hay nada de nada en la BD
+  const noDataAtAll = !loading && !error && raw.bookings.length === 0;
+  // Estado vacío por filtros/periodo: hay reservas en BD, pero ninguna en el periodo/filtros
+  const noDataInRange = !loading && !error && raw.bookings.length > 0 && a.cur.length === 0;
+
+  const clearFilters = () => { setDestination('ALL'); setEmployee('ALL'); setPreset('all'); };
+  const clearFiltersOnly = () => { setDestination('ALL'); setEmployee('ALL'); };
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -420,29 +540,29 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{translate('Analytics')}</h1>
-            <p className="mt-1 text-sm text-slate-500">{translate('Revenue, bookings, collections and team performance. Amounts are converted to MAD.')}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{translate('Analíticas')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{translate('Ingresos, reservas, cobros y rendimiento del equipo. Importes convertidos a MAD.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select aria-label="Period" value={preset} onChange={(e) => setPreset(e.target.value)} className={selectCls}>
+            <select aria-label="Periodo" value={preset} onChange={(e) => setPreset(e.target.value)} className={selectCls}>
               {PRESETS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
-            <select aria-label="Destination" value={destination} onChange={(e) => setDestination(e.target.value)} className={selectCls}>
-              <option value="ALL">{translate('All destinations')}</option>
+            <select aria-label="Destino" value={destination} onChange={(e) => setDestination(e.target.value)} className={selectCls}>
+              <option value="ALL">{translate('Todos los destinos')}</option>
               {destinations.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select aria-label="Employee" value={employee} onChange={(e) => setEmployee(e.target.value)} className={selectCls}>
-              <option value="ALL">{translate('Everyone')}</option>
+            <select aria-label="Empleado" value={employee} onChange={(e) => setEmployee(e.target.value)} className={selectCls}>
+              <option value="ALL">{translate('Todos')}</option>
               {raw.profiles.map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
             </select>
             {filtersOn && (
-              <button onClick={() => { setDestination('ALL'); setEmployee('ALL'); }} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 underline underline-offset-2">
-                <X className="h-3 w-3" />{translate('Clear')}</button>
+              <button onClick={clearFiltersOnly} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 underline underline-offset-2">
+                <X className="h-3 w-3" />{translate('Borrar')}</button>
             )}
-            <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" title="Refresh data">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />{translate('Refresh')}</button>
+            <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" title="Actualizar datos">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />{translate('Actualizar')}</button>
             <button onClick={exportCsv} disabled={!a.cur.length} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 disabled:opacity-50">
-              <Download className="h-4 w-4" />{translate('Export CSV')}</button>
+              <Download className="h-4 w-4" />{translate('Exportar CSV')}</button>
           </div>
         </div>
 
@@ -453,30 +573,34 @@ export default function AnalyticsPage() {
         )}
 
         {loading ? (
-          <div className="py-24 text-center text-slate-400"><RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-amber-600" />{translate('Crunching the numbers…')}</div>
+          <div className="py-24 text-center text-slate-400"><RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-amber-600" />{translate('Calculando las cifras…')}</div>
+        ) : noDataAtAll ? (
+          <EmptyStateNoData onRefresh={load} onOpenBookings={() => navigate('/admin/bookings')} />
+        ) : noDataInRange ? (
+          <EmptyStateNoResults onClearFilters={clearFilters} filtersOn={filtersOn} />
         ) : (
           <>
             {/* KPIs */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Kpi label="Net revenue" value={fmt(k.revenue)} unit="MAD" delta={delta(k.revenue, k.revenuePrev)} icon={Wallet} chip="bg-emerald-50 text-emerald-600" hint="vs previous period" />
-              <Kpi label="New bookings" value={fmt(k.bookings)} delta={delta(k.bookings, k.bookingsPrev)} icon={CalendarDays} chip="bg-sky-50 text-sky-600" hint={`${fmt(k.booked)} MAD booked`} />
-              <Kpi label="Average booking value" value={fmt(k.avg)} unit="MAD" delta={delta(k.avg, k.avgPrev)} icon={Target} chip="bg-violet-50 text-violet-600" />
-              <Kpi label="Collection rate" value={k.collect.toFixed(1)} unit="%" delta={delta(k.collect, k.collectPrev)} icon={BarChart3} chip="bg-amber-50 text-amber-600" hint="paid vs booked" />
-              <Kpi label="Outstanding balance" value={fmt(k.outstanding)} unit="MAD" icon={Clock} chip="bg-rose-50 text-rose-600" hint={`${k.overdueCount} past departure`} />
-              <Kpi label="Cancellation rate" value={k.cancel.toFixed(1)} unit="%" delta={delta(k.cancel, k.cancelPrev)} invert icon={XCircle} chip="bg-rose-50 text-rose-600" />
-              <Kpi label="Insurance attach rate" value={k.insure.toFixed(1)} unit="%" delta={delta(k.insure, k.insurePrev)} icon={ShieldCheck} chip="bg-emerald-50 text-emerald-600" />
-              <Kpi label="Average lead time" value={fmt(k.lead)} unit="days" delta={delta(k.lead, k.leadPrev)} icon={Users} chip="bg-slate-100 text-slate-600" hint={`${k.repeat.toFixed(0)}% repeat buyers`} />
+              <Kpi label="Ingresos netos" value={fmt(k.revenue)} unit="MAD" delta={delta(k.revenue, k.revenuePrev)} icon={Wallet} chip="bg-emerald-50 text-emerald-600" hint="vs periodo anterior" />
+              <Kpi label="Nuevas reservas" value={fmt(k.bookings)} delta={delta(k.bookings, k.bookingsPrev)} icon={CalendarDays} chip="bg-sky-50 text-sky-600" hint={`${fmt(k.booked)} MAD reservados`} />
+              <Kpi label="Valor medio por reserva" value={fmt(k.avg)} unit="MAD" delta={delta(k.avg, k.avgPrev)} icon={Target} chip="bg-violet-50 text-violet-600" />
+              <Kpi label="Tasa de cobro" value={k.collect.toFixed(1)} unit="%" delta={delta(k.collect, k.collectPrev)} icon={BarChart3} chip="bg-amber-50 text-amber-600" hint="cobrado vs reservado" />
+              <Kpi label="Saldo pendiente" value={fmt(k.outstanding)} unit="MAD" icon={Clock} chip="bg-rose-50 text-rose-600" hint={`${k.overdueCount} con salida pasada`} />
+              <Kpi label="Tasa de cancelación" value={k.cancel.toFixed(1)} unit="%" delta={delta(k.cancel, k.cancelPrev)} invert icon={XCircle} chip="bg-rose-50 text-rose-600" />
+              <Kpi label="Tasa de seguro" value={k.insure.toFixed(1)} unit="%" delta={delta(k.insure, k.insurePrev)} icon={ShieldCheck} chip="bg-emerald-50 text-emerald-600" />
+              <Kpi label="Antelación media" value={fmt(k.lead)} unit="días" delta={delta(k.lead, k.leadPrev)} icon={Users} chip="bg-slate-100 text-slate-600" hint={`${k.repeat.toFixed(0)}% clientes recurrentes`} />
             </div>
 
             {/* Trend + insights */}
             <div className="grid gap-6 xl:grid-cols-3">
               <Card
                 className="xl:col-span-2"
-                title="Performance over time"
-                subtitle="Solid line is this period, dashed line is the previous period."
+                title="Rendimiento en el tiempo"
+                subtitle="Línea continua: este periodo. Línea discontinua: periodo anterior."
                 right={
                   <div role="tablist" className="flex gap-1 rounded-lg bg-stone-100 p-1 text-xs font-medium">
-                    {[['revenue', 'Revenue'], ['value', 'Booked value'], ['bookings', 'Bookings']].map(([v, l]) => (
+                    {[['revenue', 'Ingresos'], ['value', 'Valor reservado'], ['bookings', 'Reservas']].map(([v, l]) => (
                       <button key={v} role="tab" aria-selected={metric === v} onClick={() => setMetric(v)}
                         className={`rounded-md px-3 py-1.5 transition ${metric === v ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{l}</button>
                     ))}
@@ -486,8 +610,8 @@ export default function AnalyticsPage() {
                 <TrendChart labels={trendLabels} series={trendSeries[0]} prev={trendSeries[1]} />
               </Card>
 
-              <Card title="Insights" subtitle="Generated from your current filters." right={<Lightbulb className="h-4 w-4 text-amber-600" />}>
-                {a.insights.length === 0 ? <Empty text="Nothing unusual in this period." /> : (
+              <Card title="Perspectivas" subtitle="Generadas a partir de tus filtros actuales." right={<Lightbulb className="h-4 w-4 text-amber-600" />}>
+                {a.insights.length === 0 ? <Empty text="Nada destacable en este periodo." /> : (
                   <ul className="space-y-2.5">
                     {a.insights.map((i, idx) => (
                       <li key={idx} className={`rounded-lg px-3 py-2.5 text-sm ring-1 ring-inset ${toneCls[i.tone]}`}>{i.text}</li>
@@ -499,7 +623,7 @@ export default function AnalyticsPage() {
 
             {/* Breakdowns */}
             <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              <Card title="Booking status" subtitle="Bookings created in this period.">
+              <Card title="Estado de las reservas" subtitle="Reservas creadas en este periodo.">
                 <div className="flex flex-wrap items-center gap-6">
                   <Donut data={a.statusRows} />
                   <ul className="min-w-[140px] flex-1 space-y-2 text-sm">
@@ -513,48 +637,48 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
 
-              <Card title="Top destinations" subtitle="By booked value, cancelled bookings excluded.">
+              <Card title="Destinos principales" subtitle="Por valor reservado, sin canceladas.">
                 <HBars rows={a.topDest} />
               </Card>
 
-              <Card title="Payments by method" subtitle="Completed payments in this period.">
+              <Card title="Pagos por método" subtitle="Pagos completados en este periodo.">
                 <HBars rows={a.methods} />
               </Card>
 
-              <Card title="Receivables aging" subtitle="Unpaid balance grouped by departure date." right={<span className="text-xs font-semibold text-rose-600 tabular-nums">{fmt(k.outstanding)} MAD</span>}>
+              <Card title="Antigüedad de cobros" subtitle="Saldo pendiente agrupado por fecha de salida." right={<span className="text-xs font-semibold text-rose-600 tabular-nums">{fmt(k.outstanding)} MAD</span>}>
                 <HBars rows={agingRows} />
               </Card>
 
-              <Card title="Departure forecast" subtitle="Booked value by departure month, next 6 months.">
+              <Card title="Previsión de salidas" subtitle="Valor reservado por mes de salida, próximos 6 meses.">
                 <Columns rows={a.forecast} />
               </Card>
 
-              <Card title="Customer countries" subtitle="By booked value.">
+              <Card title="Países de clientes" subtitle="Por valor reservado.">
                 <HBars rows={a.countries} color="#0ea5e9" />
               </Card>
             </div>
 
             {/* Team */}
-            <Card title="Team performance" subtitle="Bookings created in this period, by assigned employee." className="overflow-hidden !p-0">
+            <Card title="Rendimiento del equipo" subtitle="Reservas creadas en este periodo, por empleado asignado." className="overflow-hidden !p-0">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] border-collapse text-left text-sm">
                   <thead>
                     <tr className="border-y border-slate-100 bg-stone-50 text-xs font-medium text-slate-500">
-                      <th className="px-5 py-3">{translate('Employee')}</th>
-                      <th className="px-4 py-3 text-right">{translate('Bookings')}</th>
-                      <th className="px-4 py-3 text-right">{translate('Booked value')}</th>
-                      <th className="px-4 py-3 text-right">{translate('Avg value')}</th>
-                      <th className="w-52 px-4 py-3">{translate('Win rate')}</th>
-                      <th className="px-5 py-3 text-right">{translate('Cancelled')}</th>
+                      <th className="px-5 py-3">{translate('Empleado')}</th>
+                      <th className="px-4 py-3 text-right">{translate('Reservas')}</th>
+                      <th className="px-4 py-3 text-right">{translate('Valor reservado')}</th>
+                      <th className="px-4 py-3 text-right">{translate('Valor medio')}</th>
+                      <th className="w-52 px-4 py-3">{translate('Tasa de éxito')}</th>
+                      <th className="px-5 py-3 text-right">{translate('Canceladas')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {a.team.length === 0 ? (
-                      <tr><td colSpan="6" className="py-10 text-center text-slate-400">{translate('No assigned bookings in this period.')}</td></tr>
+                      <tr><td colSpan="6" className="py-10 text-center text-slate-400">{translate('Sin reservas asignadas en este periodo.')}</td></tr>
                     ) : a.team.map((t) => (
                       <tr key={t.id} className="hover:bg-amber-50/40">
                         <td className="px-5 py-3.5 font-medium text-slate-900">
-                          <button onClick={() => setEmployee(t.id)} className="text-left hover:text-amber-700 hover:underline" title="Filter the page by this employee">{t.name}</button>
+                          <button onClick={() => setEmployee(t.id)} className="text-left hover:text-amber-700 hover:underline" title="Filtrar por este empleado">{t.name}</button>
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums">{t.bookings}</td>
                         <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-slate-900">{fmt(t.value)} MAD</td>
@@ -574,8 +698,8 @@ export default function AnalyticsPage() {
             </Card>
 
             <p className="text-xs text-slate-400">
-              Conversion rates: 1 EUR = {RATES_TO_MAD.EUR} MAD, 1 USD = {RATES_TO_MAD.USD} MAD. Edit <code className="rounded bg-slate-100 px-1">{translate('RATES_TO_MAD')}</code> at the top of this file to change them.{' '}
-              <button onClick={() => navigate('/admin/payments-transactions')} className="font-medium text-amber-700 underline underline-offset-2">{translate('Open payments ledger')}</button>
+              Tipos de conversión: 1 EUR = {RATES_TO_MAD.EUR} MAD, 1 USD = {RATES_TO_MAD.USD} MAD. Edita <code className="rounded bg-slate-100 px-1">{translate('RATES_TO_MAD')}</code> al inicio de este archivo para cambiarlos.{' '}
+              <button onClick={() => navigate('/admin/payments-transactions')} className="font-medium text-amber-700 underline underline-offset-2">{translate('Abrir libro de pagos')}</button>
             </p>
           </>
         )}

@@ -19,6 +19,14 @@ export const ADMIN_PAGES = [
     defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'reservation_agent', 'content_manager'],
   },
   {
+    path: '/admin/blog',
+    key: 'blog',
+    name: 'Blog Articles',
+    group: 'Sales & operations',
+    description: 'Travel stories, guides, and articles for the public blog',
+    defaultRoles: ['super_admin', 'administrator', 'manager', 'sales_agent', 'content_manager'],
+  },
+  {
     path: '/admin/bookings',
     key: 'bookings',
     name: 'Bookings',

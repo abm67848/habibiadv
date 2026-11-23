@@ -5,43 +5,7 @@ import {
   Phone, Mail, MapPin, MessageCircle, Clock, Send, Check, ChevronDown, ArrowUpRight,
   AlertCircle, Loader2,
 } from 'lucide-react';
-
-/* ------------------------------------------------------------------ */
-/*  Edit these once. Everything on the page reads from here.           */
-/* ------------------------------------------------------------------ */
-const CONTACT = {
-  phone: '+212 529-808080',
-  phoneHref: 'tel:+212529808080',
-  whatsappHref: 'https://wa.me/212600000000', // replace with your WhatsApp number
-  email: 'concierge@skyview-travel.com',
-  address: ['Boulevard Mohammed V', 'Tangier 90000, Morocco'],
-  mapsHref: 'https://www.google.com/maps/search/?api=1&query=Tangier+Morocco',
-  timeZone: 'Africa/Casablanca',
-  // 24h clock, [open, close]. null = closed.
-  hours: {
-    Mon: [9, 18], Tue: [9, 18], Wed: [9, 18], Thu: [9, 18], Fri: [9, 18], Sat: [10, 14], Sun: null,
-  },
-  socials: [
-    { label: 'Instagram', href: '' },
-    { label: 'Facebook', href: '' },
-    { label: 'YouTube', href: '' },
-  ],
-};
-
-const TOPICS = [
-  'Plan a trip',
-  'Question about a booking',
-  'Custom itinerary or group',
-  'Partnership',
-  'Something else',
-];
-
-const FAQS = [
-  { q: 'How fast will I get a reply?', a: 'Messages sent during office hours get a reply within a few hours. Anything sent overnight is answered first thing the next working day.' },
-  { q: 'Do I pay anything to ask for a quote?', a: 'No. Quotes are free and come with no obligation. You only pay once you confirm a trip and we’ve confirmed availability.' },
-  { q: 'Can you change a trip from the catalog?', a: 'Yes. Most packages can be shortened, extended or swapped for different stays. Tell us what you’d like and we’ll price it.' },
-  { q: 'I already booked. Who do I contact?', a: 'Choose “Question about a booking” and include your reference number, or call us directly if you’re travelling in the next 48 hours.' },
-];
+import { DEFAULT_CONTACT_CONTENT, fetchPublicSiteContent } from '@/services/publicSiteContent.js';
 
 const display = { fontFamily: "'Fraunces', Georgia, serif" };
 const body = { fontFamily: "'Manrope', system-ui, sans-serif" };
@@ -53,21 +17,23 @@ const MAX_MESSAGE = 1000;
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
-function getOfficeState(now = new Date()) {
+function getOfficeState(contact, now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: CONTACT.timeZone, weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false,
+    timeZone: contact.timeZone, weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false,
   }).formatToParts(now);
   const get = (t) => parts.find((p) => p.type === t)?.value;
   const day = get('weekday');
   const hour = Number(get('hour')) % 24;
   const minute = Number(get('minute'));
-  const today = CONTACT.hours[day];
+  const today = contact.hours[day];
   const decimal = hour + minute / 60;
-  const open = Boolean(today) && decimal >= today[0] && decimal < today[1];
+  const openAt = today ? Number(today.open.split(':')[0]) + Number(today.open.split(':')[1]) / 60 : 0;
+  const closeAt = today ? Number(today.close.split(':')[0]) + Number(today.close.split(':')[1]) / 60 : 0;
+  const open = Boolean(today) && !today.closed && decimal >= openAt && decimal < closeAt;
   return { open, day, today };
 }
 
-const fmtHour = (h) => `${String(h).padStart(2, '0')}:00`;
+const fmtHour = (value) => value;
 
 /**
  * Replace this with your real endpoint, e.g. a services/contact module that posts to your API.
@@ -102,7 +68,9 @@ export default function ContactPage() {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const packageRef = params.get('package') || '';
-  const initialTopic = TOPICS.includes(params.get('topic')) ? params.get('topic') : TOPICS[0];
+  const [contact, setContact] = useState(DEFAULT_CONTACT_CONTENT);
+  const topics = contact.topics.length ? contact.topics : DEFAULT_CONTACT_CONTENT.topics;
+  const initialTopic = topics.includes(params.get('topic')) ? params.get('topic') : topics[0];
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', topic: initialTopic, reply: 'email',
@@ -111,12 +79,26 @@ export default function ContactPage() {
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | done | error
-  const [office, setOffice] = useState(() => getOfficeState());
+  const [office, setOffice] = useState(() => getOfficeState(DEFAULT_CONTACT_CONTENT));
 
   useEffect(() => {
-    const id = setInterval(() => setOffice(getOfficeState()), 60000);
-    return () => clearInterval(id);
+    let active = true;
+    fetchPublicSiteContent()
+      .then((pages) => { if (active) setContact(pages.contact); })
+      .catch((error) => console.error('Could not load public Contact page content:', error));
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    const updateOffice = () => setOffice(getOfficeState(contact));
+    updateOffice();
+    const id = setInterval(updateOffice, 60000);
+    return () => clearInterval(id);
+  }, [contact]);
+
+  useEffect(() => {
+    if (!topics.includes(form.topic)) setForm((current) => ({ ...current, topic: topics[0] }));
+  }, [form.topic, topics]);
 
   const set = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -153,20 +135,24 @@ export default function ContactPage() {
   };
 
   const reset = () => {
-    setForm((f) => ({ ...f, name: '', email: '', phone: '', message: '', topic: TOPICS[0], reply: 'email' }));
+    setForm((f) => ({ ...f, name: '', email: '', phone: '', message: '', topic: topics[0], reply: 'email' }));
     setErrors({});
     setStatus('idle');
   };
 
-  const todayHours = office.today ? `${fmtHour(office.today[0])} to ${fmtHour(office.today[1])}` : 'Closed today';
-  const orderedDays = useMemo(() => Object.entries(CONTACT.hours), []);
+  const todayHours = office.today && !office.today.closed
+    ? `${fmtHour(office.today.open)} to ${fmtHour(office.today.close)}`
+    : 'Closed today';
+  const orderedDays = useMemo(() => Object.entries(contact.hours), [contact.hours]);
 
-  const channels = [
-    { icon: Phone, title: 'Call us', text: CONTACT.phone, href: CONTACT.phoneHref, note: 'Fastest for urgent trips' },
-    { icon: MessageCircle, title: 'WhatsApp', text: 'Chat with a planner', href: CONTACT.whatsappHref, note: 'Share photos and dates easily', external: true },
-    { icon: Mail, title: 'Email', text: CONTACT.email, href: `mailto:${CONTACT.email}`, note: 'Best for itineraries and quotes' },
-    { icon: MapPin, title: 'Visit', text: CONTACT.address[0], href: CONTACT.mapsHref, note: CONTACT.address[1], external: true },
-  ];
+  const channelIcons = { phone: Phone, whatsapp: MessageCircle, email: Mail, visit: MapPin };
+  const channels = contact.channels.map((channel) => ({
+    ...channel,
+    icon: channelIcons[channel.type] || Mail,
+    external: channel.type === 'whatsapp' || channel.type === 'visit',
+  }));
+  const phone = channels.find((channel) => channel.type === 'phone')?.text || '';
+  const email = channels.find((channel) => channel.type === 'email')?.text || '';
 
   return (
     <div className="min-h-screen bg-[#f3f6f1] text-slate-700 antialiased" style={body}>
@@ -194,19 +180,19 @@ export default function ContactPage() {
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/90 ring-1 ring-white/25 backdrop-blur">
             <span className={`h-2 w-2 rounded-full ${office.open ? 'bg-emerald-400' : 'bg-[#e6c877]'}`} />
-            {t(office.open ? 'We’re online now' : 'We’ll reply when we’re back')}
+            {t(office.open ? contact.heroOpenText : contact.heroClosedText)}
           </p>
           <h1 className="rise mt-6 max-w-3xl text-4xl leading-[1.05] sm:text-6xl lg:text-7xl" style={{ ...display, animationDelay: '.15s' }}>
-            {t('Tell us where you want to go')}
+            {t(contact.heroTitle)}
           </h1>
           <p className="rise mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg" style={{ animationDelay: '.3s' }}>
-            {t('A real planner reads every message. Send your dates, your group and your ideas, and we’ll come back with a plan and a price.')}
+            {t(contact.heroDescription)}
           </p>
         </div>
       </header>
 
       {/* CONTACT CHANNELS */}
-      <section className="relative z-10 mx-auto -mt-32 max-w-7xl px-5 lg:px-8" aria-label={t('Ways to reach us')}>
+      <section className="relative z-10 mx-auto -mt-32 max-w-7xl px-5 lg:px-8" aria-label={t(contact.waysHeading)}>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {channels.map(({ icon: Icon, title, text, href, note, external }) => (
             <li key={title}>
@@ -268,7 +254,7 @@ export default function ContactPage() {
                 </Field>
                 <Field id="topic" label={t('What’s this about?')}>
                   <select id="topic" value={form.topic} onChange={set('topic')} className={inputBase}>
-                    {TOPICS.map((topic) => <option key={topic}>{t(topic)}</option>)}
+                    {topics.map((topic) => <option key={topic}>{t(topic)}</option>)}
                   </select>
                 </Field>
               </div>
@@ -310,7 +296,7 @@ export default function ContactPage() {
               {status === 'error' && (
                 <p className="mt-5 flex items-start gap-2 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800" role="alert">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  {t('We couldn’t send your message. Try again, or reach us on {{phone}} or {{email}}.', { phone: CONTACT.phone, email: CONTACT.email })}
+                  {t('We couldn’t send your message. Try again, or reach us on {{phone}} or {{email}}.', { phone, email })}
                 </p>
               )}
 
@@ -330,17 +316,17 @@ export default function ContactPage() {
         <aside className="space-y-6 lg:col-span-2">
           <div className="rounded-3xl bg-[#0f3d2e] p-7 text-white">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-2xl" style={display}><Clock className="h-5 w-5 text-[#e6c877]" /> {t('Office hours')}</h2>
+              <h2 className="flex items-center gap-2 text-2xl" style={display}><Clock className="h-5 w-5 text-[#e6c877]" /> {t(contact.hoursHeading)}</h2>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${office.open ? 'bg-emerald-400/20 text-emerald-300' : 'bg-[#c9a24b]/20 text-[#e6c877]'}`}>
                 {t(office.open ? 'Open now' : 'Closed now')}
               </span>
             </div>
-            <p className="mt-2 text-sm text-white/70">{t('Today: {{hours}} (Morocco time)', { hours: todayHours })}</p>
+            <p className="mt-2 text-sm text-white/70">{t('Today: {{hours}} ({{timeZone}} time)', { hours: todayHours, timeZone: contact.timeZone })}</p>
             <dl className="mt-5 divide-y divide-white/10 text-sm">
               {orderedDays.map(([day, h]) => (
                 <div key={day} className={`flex justify-between py-2.5 ${day === office.day ? 'font-semibold text-[#e6c877]' : 'text-white/80'}`}>
                   <dt>{t(day)}</dt>
-                  <dd>{h ? `${fmtHour(h[0])} ${t('to')} ${fmtHour(h[1])}` : t('Closed')}</dd>
+                  <dd>{h && !h.closed ? `${fmtHour(h.open)} ${t('to')} ${fmtHour(h.close)}` : t('Closed')}</dd>
                 </div>
               ))}
             </dl>
@@ -352,26 +338,26 @@ export default function ContactPage() {
               <span className="relative grid h-12 w-12 place-items-center rounded-full bg-[#0f3d2e] text-[#e6c877] shadow-lg"><MapPin className="h-6 w-6" /></span>
             </div>
             <div className="p-6">
-              <h2 className="text-xl text-[#0a2a20]" style={display}>{t('Visit the office')}</h2>
+              <h2 className="text-xl text-[#0a2a20]" style={display}>{t(contact.visitHeading)}</h2>
               <address className="mt-2 text-sm not-italic leading-relaxed text-slate-600">
-                {CONTACT.address.map((line) => <span key={line} className="block">{line}</span>)}
+                {contact.address.map((line, index) => <span key={`${line}-${index}`} className="block">{line}</span>)}
               </address>
-              <a href={CONTACT.mapsHref} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>
+              <a href={contact.mapsHref} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>
                 {t('Get directions')} <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
           </div>
 
           <div className="rounded-3xl bg-white p-6 ring-1 ring-[#0f3d2e]/10">
-            <h2 className="text-xl text-[#0a2a20]" style={display}>{t('Follow our trips')}</h2>
+            <h2 className="text-xl text-[#0a2a20]" style={display}>{t(contact.socialsHeading)}</h2>
             <div className="mt-4 flex gap-3">
-              {CONTACT.socials.map(({ label, href }) => (
+              {contact.socials.map(({ label, href }, index) => (
                 href ? (
-                  <a key={label} href={href} aria-label={label} className={`grid h-11 w-11 place-items-center rounded-full bg-[#f3f6f1] text-xs font-bold text-[#0f3d2e] transition hover:bg-[#c9a24b] hover:text-[#082a1f] ${ring}`}>
+                  <a key={`${label}-${index}`} href={href} aria-label={label} className={`grid h-11 w-11 place-items-center rounded-full bg-[#f3f6f1] text-xs font-bold text-[#0f3d2e] transition hover:bg-[#c9a24b] hover:text-[#082a1f] ${ring}`}>
                     {label.slice(0, 2).toUpperCase()}
                   </a>
                 ) : (
-                  <span key={label} aria-label={`${label} link not configured`} title={`${label} link not configured`} className="grid h-11 w-11 place-items-center rounded-full bg-[#f3f6f1] text-xs font-bold text-[#0f3d2e]/50">
+                  <span key={`${label}-${index}`} aria-label={`${label} link not configured`} title={`${label} link not configured`} className="grid h-11 w-11 place-items-center rounded-full bg-[#f3f6f1] text-xs font-bold text-[#0f3d2e]/50">
                     {label.slice(0, 2).toUpperCase()}
                   </span>
                 )
@@ -383,10 +369,10 @@ export default function ContactPage() {
 
       {/* FAQ */}
       <section className="mx-auto max-w-4xl px-5 pb-24 lg:px-8">
-        <h2 className="text-3xl text-[#0a2a20] sm:text-4xl" style={display}>{t('Before you write')}</h2>
+        <h2 className="text-3xl text-[#0a2a20] sm:text-4xl" style={display}>{t(contact.faqHeading)}</h2>
         <div className="mt-6 divide-y divide-[#0f3d2e]/10 rounded-3xl bg-white px-6 ring-1 ring-[#0f3d2e]/10 sm:px-8">
-          {FAQS.map(({ q, a }) => (
-            <details key={q} className="group py-5">
+          {contact.faqs.map(({ q, a }, index) => (
+            <details key={`${q}-${index}`} className="group py-5">
               <summary className={`flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[#0a2a20] ${ring} rounded`}>
                 {t(q)}
                 <ChevronDown className="h-5 w-5 shrink-0 text-[#c9a24b] transition-transform group-open:rotate-180" />

@@ -2,7 +2,6 @@
 // Direct mapping to the SQL schema tables
 import { supabase } from '@/lib/supabase/client.jsx';
 import { DEFAULT_TEMPLATES, getSavedContractTemplate } from './defaultTemplates.js';
-import { INITIAL_MOCK_CONTRACTS } from './mockContracts.js';
 
 /* ------------------------------------------------------------------ */
 /*  1. TEMPLATES: Fetch & Auto-Seed                                    */
@@ -81,44 +80,37 @@ export async function seedDefaultTemplates() {
 /*  2. CONTRACTS: Fetch All with Relations                             */
 /* ------------------------------------------------------------------ */
 export async function fetchContracts() {
-  try {
-    const { data: dbContracts, error } = await supabase
-      .from('contracts')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const { data: dbContracts, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (error) throw error;
+  if (error) throw error;
+  if (!dbContracts?.length) return [];
 
-    if (dbContracts && dbContracts.length > 0) {
-      const contractIds = dbContracts.map((c) => c.id);
+  const contractIds = dbContracts.map((c) => c.id);
 
-      // Fetch all related child tables in parallel
-      const [partsRes, pricesRes, paysRes, srvsRes, accsRes, itinRes, secsRes] = await Promise.all([
-        supabase.from('contract_participants').select('*').in('contract_id', contractIds),
-        supabase.from('contract_price_items').select('*').in('contract_id', contractIds),
-        supabase.from('contract_payments').select('*').in('contract_id', contractIds).order('due_date', { ascending: true }),
-        supabase.from('contract_service_items').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
-        supabase.from('contract_accommodations').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
-        supabase.from('contract_itinerary_items').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
-        supabase.from('contract_sections').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
-      ]);
+  // Fetch all related child tables in parallel
+  const [partsRes, pricesRes, paysRes, srvsRes, accsRes, itinRes, secsRes] = await Promise.all([
+    supabase.from('contract_participants').select('*').in('contract_id', contractIds),
+    supabase.from('contract_price_items').select('*').in('contract_id', contractIds),
+    supabase.from('contract_payments').select('*').in('contract_id', contractIds).order('due_date', { ascending: true }),
+    supabase.from('contract_service_items').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
+    supabase.from('contract_accommodations').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
+    supabase.from('contract_itinerary_items').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
+    supabase.from('contract_sections').select('*').in('contract_id', contractIds).order('sort_order', { ascending: true }),
+  ]);
 
-      return dbContracts.map((ctr) => ({
-        ...ctr,
-        participants: (partsRes.data || []).filter((p) => p.contract_id === ctr.id),
-        pricing_items: (pricesRes.data || []).filter((p) => p.contract_id === ctr.id),
-        payments: (paysRes.data || []).filter((p) => p.contract_id === ctr.id),
-        services: (srvsRes.data || []).filter((s) => s.contract_id === ctr.id),
-        accommodations: (accsRes.data || []).filter((a) => a.contract_id === ctr.id),
-        itinerary: (itinRes.data || []).filter((i) => i.contract_id === ctr.id),
-        sections: (secsRes.data || []).filter((s) => s.contract_id === ctr.id),
-      }));
-    }
-  } catch (err) {
-    console.warn('Database query note (using fallback initial data if offline):', err);
-  }
-
-  return INITIAL_MOCK_CONTRACTS;
+  return dbContracts.map((ctr) => ({
+    ...ctr,
+    participants: (partsRes.data || []).filter((p) => p.contract_id === ctr.id),
+    pricing_items: (pricesRes.data || []).filter((p) => p.contract_id === ctr.id),
+    payments: (paysRes.data || []).filter((p) => p.contract_id === ctr.id),
+    services: (srvsRes.data || []).filter((s) => s.contract_id === ctr.id),
+    accommodations: (accsRes.data || []).filter((a) => a.contract_id === ctr.id),
+    itinerary: (itinRes.data || []).filter((i) => i.contract_id === ctr.id),
+    sections: (secsRes.data || []).filter((i) => i.contract_id === ctr.id),
+  }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -445,7 +437,13 @@ export async function updateContractStatusInDb(contractId, status, { signed_at, 
 }
 
 export async function deleteContractFromDb(contractId) {
-  const { error } = await supabase.from('contracts').delete().eq('id', contractId);
+  if (!/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(contractId || '')) {
+    throw new Error('Este contrato no está guardado en la base de datos.');
+  }
+
+  const { error } = await supabase.rpc('delete_contract_with_details', {
+    p_contract_id: contractId,
+  });
   if (error) throw error;
 }
 

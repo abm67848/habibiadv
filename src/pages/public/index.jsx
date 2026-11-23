@@ -22,3 +22,4 @@ export { default as BookingRequest } from './BookingRequest.jsx';
 export { default as CustomTripInquiry } from './CustomTripInquiry.jsx';
 export { default as Terms } from './Terms.jsx';
 export { default as Privacy } from './Privacy.jsx';
+export { default as Cookies } from './Cookies.jsx';

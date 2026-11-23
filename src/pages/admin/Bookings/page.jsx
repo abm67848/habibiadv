@@ -7,10 +7,9 @@ import {
   Clock, AlertCircle, XCircle, Phone, Mail, RefreshCw, X, AlertTriangle, Copy, Check,
   FileText, ChevronRight, ChevronDown, ArrowUpRight, StickyNote, MessageSquare, Wallet,
   UserPlus, UserCheck, Upload, Trash2, Edit, Download, File, Image as ImageIcon, Loader2,
-  Shield, ShieldCheck,
+  Shield, ShieldCheck, SlidersHorizontal, RotateCcw,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-
 
 /* ---------- Shared style tokens ---------- */
 const inputCls =
@@ -25,52 +24,52 @@ const btnDanger =
   'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition';
 
 const BOOKING_STATUS = {
-  pending: { label: 'Pending', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200', icon: AlertCircle },
-  confirmed: { label: 'Confirmed', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200', icon: CheckCircle2 },
-  in_progress: { label: 'In progress', dot: 'bg-sky-500', cls: 'bg-sky-50 text-sky-800 ring-sky-200', icon: Clock },
-  completed: { label: 'Completed', dot: 'bg-violet-500', cls: 'bg-violet-50 text-violet-800 ring-violet-200', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200', icon: XCircle },
+  pending: { label: 'Pendiente', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200', icon: AlertCircle },
+  confirmed: { label: 'Confirmada', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200', icon: CheckCircle2 },
+  in_progress: { label: 'En curso', dot: 'bg-sky-500', cls: 'bg-sky-50 text-sky-800 ring-sky-200', icon: Clock },
+  completed: { label: 'Completada', dot: 'bg-violet-500', cls: 'bg-violet-50 text-violet-800 ring-violet-200', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelada', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200', icon: XCircle },
 };
 
 const PAYMENT_STATUS = {
-  paid: { label: 'Paid', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  partially_paid: { label: 'Partially paid', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  overpaid: { label: 'Overpaid', dot: 'bg-violet-500', cls: 'bg-violet-50 text-violet-800 ring-violet-200' },
-  unpaid: { label: 'Unpaid', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
+  paid: { label: 'Pagado', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  partially_paid: { label: 'Parcial', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  overpaid: { label: 'Sobrepagado', dot: 'bg-violet-500', cls: 'bg-violet-50 text-violet-800 ring-violet-200' },
+  unpaid: { label: 'Sin pagar', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
 };
 
 const BOOKING_STATUS_OPTIONS = Object.entries(BOOKING_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
 const PAYMENT_STATUS_OPTIONS = Object.entries(PAYMENT_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
 const CURRENCY_OPTIONS = ['MAD', 'EUR', 'USD'].map((c) => ({ value: c, label: c }));
 const METHOD_OPTIONS = [
-  { value: 'bank_transfer', label: 'Bank transfer' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'other', label: 'Other' },
+  { value: 'bank_transfer', label: 'Transferencia bancaria' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'other', label: 'Otro' },
 ];
 const TXN_TYPE_OPTIONS = [
-  { value: 'payment', label: 'Payment', hint: 'Adds to the amount paid', dot: 'bg-emerald-500' },
-  { value: 'refund', label: 'Refund', hint: 'Subtracts from the amount paid', dot: 'bg-rose-500' },
+  { value: 'payment', label: 'Pago', hint: 'Suma al importe pagado', dot: 'bg-emerald-500' },
+  { value: 'refund', label: 'Reembolso', hint: 'Resta del importe pagado', dot: 'bg-rose-500' },
 ];
 const TXN_STATUS_OPTIONS = [
-  { value: 'completed', label: 'Completed', hint: 'Locked once saved', dot: 'bg-emerald-500' },
-  { value: 'pending', label: 'Pending', dot: 'bg-amber-500' },
-  { value: 'failed', label: 'Failed', dot: 'bg-rose-500' },
+  { value: 'completed', label: 'Completada', hint: 'Bloqueada al guardar', dot: 'bg-emerald-500' },
+  { value: 'pending', label: 'Pendiente', dot: 'bg-amber-500' },
+  { value: 'failed', label: 'Fallida', dot: 'bg-rose-500' },
 ];
 const INITIAL_STATUS_OPTIONS = BOOKING_STATUS_OPTIONS.filter((o) => ['pending', 'confirmed'].includes(o.value));
 
 /* Insurance option catalogue */
 const INSURANCE_TYPE_OPTIONS = [
-  { value: 'individual', label: 'Individual coverage', hint: 'Per-traveler premium' },
-  { value: 'collective', label: 'Collective coverage', hint: 'One premium for the group' },
+  { value: 'individual', label: 'Cobertura individual', hint: 'Prima por viajero' },
+  { value: 'collective', label: 'Cobertura colectiva', hint: 'Una prima para todo el grupo' },
 ];
 
 const EMPTY_FORM = (userId) => ({
   customer_id: '', destination: '', departure_date: '', return_date: '', traveler_count: 1,
   total_amount: '', currency: 'MAD', booking_status: 'pending', assigned_to: userId || '',
   special_requests: '', internal_notes: '', initial_payment_amount: '',
-  payment_method: 'bank_transfer', payment_notes: 'Initial booking deposit',
-  /* INSURANCE */
+  payment_method: 'bank_transfer', payment_notes: 'Depósito inicial de la reserva',
+  /* SEGURO */
   extra_insurance: false,
   insurance_type: 'individual',
   insurance_premium: '',
@@ -86,8 +85,8 @@ const EMPTY_PAYMENT = {
 };
 
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD';
-const fmtMoney = (n) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Por definir';
+const fmtMoney = (n) => Number(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 });
 const fmtBytes = (bytes) => {
   if (!bytes) return '0 B';
   const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
@@ -99,7 +98,6 @@ const initials = (name = '') =>
 
 /* ---------- Small presentational pieces ---------- */
 function StatusBadge({ status }) {
-  // pull translation helper
   const s = BOOKING_STATUS[status] || BOOKING_STATUS.pending;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${s.cls}`}>
@@ -120,7 +118,7 @@ function PaymentBadge({ status }) {
 
 function InsuranceBadge({ selected, type, label }) {
   const hasInsurance = selected ?? Boolean(type || label);
-  const text = label || (type === 'collective' ? 'Collective insurance' : 'Individual insurance');
+  const text = label || (type === 'collective' ? 'Seguro colectivo' : 'Seguro individual');
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${
       hasInsurance
@@ -128,7 +126,7 @@ function InsuranceBadge({ selected, type, label }) {
         : 'bg-slate-100 text-slate-600 ring-slate-200'
     }`}>
       {hasInsurance ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-      {hasInsurance ? text : 'No extra insurance'}
+      {hasInsurance ? text : 'Sin seguro extra'}
     </span>
   );
 }
@@ -148,14 +146,14 @@ function PaidBar({ paid, total }) {
       <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-[11px] text-slate-400 mt-1">{pct}% collected</p>
+      <p className="text-[11px] text-slate-400 mt-1">{pct}% cobrado</p>
     </div>
   );
 }
 
 /* ---------- Custom dropdown ---------- */
 function Select({
-  value, onChange, options, placeholder = 'Select…', searchable = false, prefix,
+  value, onChange, options, placeholder = 'Selecciona…', searchable = false, prefix,
   compact = false, disabled = false, ariaLabel, className = '', menuMinWidth = 200, emptyValue = 'ALL',
 }) {
   const [open, setOpen] = useState(false);
@@ -309,8 +307,8 @@ function Select({
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setActive(0); }}
                   onKeyDown={onKeyDown}
-                  placeholder="Search"
-                  aria-label="Search options"
+                  placeholder="Buscar"
+                  aria-label="Buscar opciones"
                   className="w-full bg-stone-50 rounded-md pl-8 pr-2 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500/30"
                 />
               </div>
@@ -318,7 +316,7 @@ function Select({
           )}
           <ul ref={listRef} role="listbox" className="overflow-y-auto p-1">
             {visible.length === 0 ? (
-              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('No matches')}</li>
+              <li className="px-3 py-6 text-center text-sm text-slate-400">{translate('Sin coincidencias')}</li>
             ) : (
               visible.map((o, i) => {
                 const isSel = o.value === value;
@@ -369,7 +367,7 @@ function ModalHeader({ title, subtitle, onClose }) {
         <h3 className="text-base font-semibold text-slate-900">{title}</h3>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
-      <button onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Close">
+      <button onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Cerrar">
         <X className="w-5 h-5" />
       </button>
     </div>
@@ -388,11 +386,11 @@ function SectionTitle({ icon: Icon, children }) {
 function InsuranceBlock({ formData, setFormData }) {
   return (
     <div className="space-y-3 pt-5 border-t border-slate-100">
-      <SectionTitle icon={ShieldCheck}>{translate('Extra insurance')}</SectionTitle>
+      <SectionTitle icon={ShieldCheck}>{translate('Seguro extra')}</SectionTitle>
       <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 cursor-pointer">
         <span className="min-w-0">
-          <span className="block text-sm font-medium text-slate-800">{translate('Add extra insurance to this booking')}</span>
-          <span className="block text-xs text-slate-500 mt-0.5">{translate('Off by default. When on, pick individual or collective coverage and set the premium.')}</span>
+          <span className="block text-sm font-medium text-slate-800">{translate('Añadir seguro extra a esta reserva')}</span>
+          <span className="block text-xs text-slate-500 mt-0.5">{translate('Desactivado por defecto. Si se activa, elige cobertura individual o colectiva y fija la prima.')}</span>
         </span>
         <input
           type="checkbox"
@@ -409,17 +407,17 @@ function InsuranceBlock({ formData, setFormData }) {
       {formData.extra_insurance && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>{translate('Insurance type *')}</label>
+            <label className={labelCls}>{translate('Tipo de seguro *')}</label>
             <Select
               value={formData.insurance_type}
               onChange={(v) => setFormData((p) => ({ ...p, insurance_type: v }))}
               options={INSURANCE_TYPE_OPTIONS}
-              ariaLabel="Insurance type"
+              ariaLabel="Tipo de seguro"
               menuMinWidth={240}
             />
           </div>
           <div>
-            <label className={labelCls}>Premium ({formData.currency || 'MAD'})</label>
+            <label className={labelCls}>Prima ({formData.currency || 'MAD'})</label>
             <input
               type="number"
               step="0.01"
@@ -431,12 +429,95 @@ function InsuranceBlock({ formData, setFormData }) {
             />
             <p className="mt-1 text-[11px] text-slate-500">
               {formData.insurance_type === 'individual'
-                ? 'Total premium for all travelers.'
-                : 'Flat premium for the whole group.'}
+                ? 'Prima total para todos los viajeros.'
+                : 'Prima fija para todo el grupo.'}
             </p>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Empty state graphics ---------- */
+function EmptyIllustrationReservations() {
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-40 w-auto" role="img" aria-label="Ilustración de reservas">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+      <g transform="rotate(-4 100 100)">
+        <rect x="38" y="52" width="120" height="78" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="52" y="68" width="52" height="6" rx="3" className="fill-slate-200" />
+        <rect x="52" y="82" width="80" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="94" width="60" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="52" y="108" width="36" height="10" rx="5" className="fill-emerald-100" />
+      </g>
+      <g transform="rotate(4 200 100)">
+        <rect x="140" y="62" width="130" height="86" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <rect x="156" y="78" width="26" height="26" rx="8" className="fill-amber-100" />
+        <path d="M163 91v-5h12v5M160 91h18" className="stroke-amber-600" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="190" y="80" width="56" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="190" y="93" width="36" height="5" rx="2.5" className="fill-slate-200" />
+        <rect x="156" y="116" width="42" height="14" rx="7" className="fill-emerald-100" />
+        <circle cx="166" cy="123" r="3" className="fill-emerald-500" />
+        <rect x="206" y="121" width="40" height="5" rx="2.5" className="fill-slate-100" />
+      </g>
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="40" cy="40" r="4" className="fill-amber-200" />
+      <circle cx="288" cy="120" r="3" className="fill-amber-300" />
+      <circle cx="30" cy="150" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+function EmptyStateReservations({ hasFilters, onClearFilters, onCreate }) {
+  if (hasFilters) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+          <Search aria-hidden="true" className="h-6 w-6" />
+        </span>
+        <h3 className="mt-4 text-base font-semibold text-slate-900">Ninguna reserva coincide con estos filtros</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">Prueba con otra búsqueda o quita algunos filtros.</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={onClearFilters} className={btnGhost}>
+            <RotateCcw className="w-4 h-4" />Borrar todos los filtros
+          </button>
+          <button type="button" onClick={onCreate} className={btnPrimary}>
+            <Plus className="w-4 h-4" />Nueva reserva
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="px-6 py-14 text-center">
+      <EmptyIllustrationReservations />
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">Aún no hay reservas</h3>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        Registra tu primera reserva para empezar a hacer seguimiento de viajeros, pagos y documentos en un solo lugar.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={onCreate} className={btnPrimary}>
+          <Plus className="w-4 h-4" />Crear primera reserva
+        </button>
+        <button type="button" onClick={onClearFilters} className={btnGhost}>
+          <RefreshCw className="w-4 h-4" />Actualizar
+        </button>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {[
+          ['Elige o crea un cliente', 'Puedes usar uno existente o registrar uno nuevo en el acto.'],
+          ['Añade los datos del viaje', 'Destino, fechas, viajeros e importe total.'],
+          ['Registra el pago inicial', 'Opcional, pero acelera el cobro y el seguimiento.'],
+        ].map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -523,7 +604,7 @@ export default function ReservationsPage() {
       setDocuments(docsRes.data || []);
     } catch (err) {
       console.error('Error fetching reservations data:', err);
-      setError('Could not load reservations. Check that the booking schema migrations have been applied in Supabase.');
+      setError('No se pudieron cargar las reservas. Comprueba que las migraciones del esquema de reservas estén aplicadas en Supabase.');
     } finally {
       setLoading(false);
     }
@@ -547,8 +628,8 @@ export default function ReservationsPage() {
 
   const enrichedReservations = useMemo(() => {
     return reservations.map((res) => {
-      const customer = customers.find((c) => c.id === res.customer_id) || { full_name: 'Unknown customer', phone: '', email: '' };
-      const assignedProfile = profiles.find((p) => p.id === res.assigned_to) || { full_name: 'Unassigned' };
+      const customer = customers.find((c) => c.id === res.customer_id) || { full_name: 'Cliente desconocido', phone: '', email: '' };
+      const assignedProfile = profiles.find((p) => p.id === res.assigned_to) || { full_name: 'Sin asignar' };
       const fin = financials.find((f) => f.booking_id === res.id) || {};
       const resPayments = payments.filter((p) => p.booking_id === res.id);
       const resDocuments = documents.filter((d) => d.booking_id === res.id);
@@ -570,7 +651,6 @@ export default function ReservationsPage() {
         else paymentStatus = 'unpaid';
       }
 
-      // INSURANCE derived from booking row
       const extraInsurance = Boolean(res.extra_insurance);
       const insuranceType = res.insurance_type || null;
       const insurancePremium = Number(res.insurance_premium || 0);
@@ -604,27 +684,26 @@ export default function ReservationsPage() {
     [enrichedReservations]
   );
 
-  /* ----- Dropdown option lists ----- */
   const destinationOptions = useMemo(
-    () => [{ value: 'ALL', label: 'All' }, ...uniqueDestinations.map((d) => ({ value: d, label: d }))],
+    () => [{ value: 'ALL', label: 'Todos' }, ...uniqueDestinations.map((d) => ({ value: d, label: d }))],
     [uniqueDestinations]
   );
   const employeeOptions = useMemo(
     () => [
-      { value: 'ALL', label: 'Everyone' },
-      ...profiles.map((p) => ({ value: p.id, label: p.full_name || p.email || 'Employee', hint: p.full_name ? p.email : undefined, avatar: true })),
+      { value: 'ALL', label: 'Todos' },
+      ...profiles.map((p) => ({ value: p.id, label: p.full_name || p.email || 'Empleado', hint: p.full_name ? p.email : undefined, avatar: true })),
     ],
     [profiles]
   );
   const assignOptions = useMemo(
     () => [
-      { value: '', label: 'Unassigned' },
-      ...profiles.map((p) => ({ value: p.id, label: p.full_name || p.email || 'Employee', hint: p.full_name ? p.email : undefined, avatar: true })),
+      { value: '', label: 'Sin asignar' },
+      ...profiles.map((p) => ({ value: p.id, label: p.full_name || p.email || 'Empleado', hint: p.full_name ? p.email : undefined, avatar: true })),
     ],
     [profiles]
   );
   const customerOptions = useMemo(
-    () => customers.map((c) => ({ value: c.id, label: c.full_name, hint: c.phone || c.email || 'No contact info', avatar: true })),
+    () => customers.map((c) => ({ value: c.id, label: c.full_name, hint: c.phone || c.email || 'Sin datos de contacto', avatar: true })),
     [customers]
   );
 
@@ -650,6 +729,11 @@ export default function ReservationsPage() {
   }, [enrichedReservations, searchQuery, bookingStatusFilter, paymentStatusFilter, destinationFilter, employeeFilter]);
 
   const hasFilters = searchQuery || bookingStatusFilter !== 'ALL' || paymentStatusFilter !== 'ALL' || destinationFilter !== 'ALL' || employeeFilter !== 'ALL';
+
+  const clearFilters = () => {
+    setSearchQuery(''); setBookingStatusFilter('ALL'); setPaymentStatusFilter('ALL');
+    setDestinationFilter('ALL'); setEmployeeFilter('ALL');
+  };
 
   /* ----- Detail sheet open / close ----- */
   const openDetail = (res) => {
@@ -685,7 +769,6 @@ export default function ReservationsPage() {
     return () => { document.body.style.overflow = ''; };
   }, [isDetailOpen]);
 
-  /* ----- Insurance payload helper ----- */
   const buildInsurancePayload = () => ({
     extra_insurance: Boolean(formData.extra_insurance),
     insurance_type: formData.extra_insurance ? (formData.insurance_type || 'individual') : null,
@@ -701,7 +784,7 @@ export default function ReservationsPage() {
     if ((customerMode === 'existing' && !formData.customer_id) ||
       (customerMode === 'new' && (!newCustomer.first_name.trim() || !newCustomer.last_name.trim() || !newCustomer.phone.trim())) ||
       formData.total_amount === '' || !formData.departure_date) {
-      setError('Complete the customer details, departure date and total amount.');
+      setError('Completa los datos del cliente, la fecha de salida y el importe total.');
       return;
     }
     try {
@@ -728,7 +811,7 @@ export default function ReservationsPage() {
           .select('id, full_name, phone, email')
           .single();
         if (customerError) throw customerError;
-        if (!createdCustomer) throw new Error('The new customer record was not returned.');
+        if (!createdCustomer) throw new Error('No se devolvió el registro del nuevo cliente.');
 
         customerId = createdCustomer.id;
         setCustomers((current) => [createdCustomer, ...current.filter((customer) => customer.id !== createdCustomer.id)]);
@@ -742,7 +825,7 @@ export default function ReservationsPage() {
         .from('bookings')
         .insert([{
           customer_id: customerId,
-          destination: formData.destination || 'General Trip',
+          destination: formData.destination || 'Viaje general',
           departure_date: formData.departure_date,
           return_date: formData.return_date || null,
           traveler_count: Number(formData.traveler_count) || 1,
@@ -773,7 +856,7 @@ export default function ReservationsPage() {
         if (paymentError) console.error('Error inserting initial payment:', paymentError);
       }
 
-      flash('Reservation created.');
+      flash('Reserva creada.');
       setIsCreateModalOpen(false);
       setFormData(EMPTY_FORM(user?.id));
       setCustomerMode('existing');
@@ -781,7 +864,7 @@ export default function ReservationsPage() {
       await fetchData();
     } catch (err) {
       console.error('Error creating reservation:', err);
-      setError('Could not create the reservation: ' + (err.message || 'Unknown error'));
+      setError('No se pudo crear la reserva: ' + (err.message || 'Error desconocido'));
     } finally {
       setFormSubmitting(false);
     }
@@ -809,12 +892,12 @@ export default function ReservationsPage() {
       }).eq('id', selectedReservation.id);
 
       if (updateError) throw updateError;
-      flash('Reservation updated successfully.');
+      flash('Reserva actualizada correctamente.');
       setIsEditModalOpen(false);
       await fetchData();
     } catch (err) {
       console.error('Error updating reservation:', err);
-      setError('Could not update the reservation: ' + (err.message || 'Unknown error'));
+      setError('No se pudo actualizar la reserva: ' + (err.message || 'Error desconocido'));
     } finally {
       setFormSubmitting(false);
     }
@@ -827,13 +910,13 @@ export default function ReservationsPage() {
       const { error: delError } = await supabase.from('bookings').delete().eq('id', selectedReservation.id);
       if (delError) throw delError;
 
-      flash('Reservation deleted.');
+      flash('Reserva eliminada.');
       setIsDeleteModalOpen(false);
       closeDetail();
       await fetchData();
     } catch (err) {
       console.error('Error deleting reservation:', err);
-      setError('Could not delete the reservation: ' + (err.message || 'Unknown error'));
+      setError('No se pudo eliminar la reserva: ' + (err.message || 'Error desconocido'));
     } finally {
       setFormSubmitting(false);
     }
@@ -858,13 +941,13 @@ export default function ReservationsPage() {
       }]);
       if (paymentError) throw paymentError;
 
-      flash('Transaction recorded.');
+      flash('Transacción registrada.');
       setIsPaymentModalOpen(false);
       setPaymentData(EMPTY_PAYMENT);
       await fetchData();
     } catch (err) {
       console.error('Error recording payment:', err);
-      setError('Could not record the transaction: ' + (err.message || 'Unknown error'));
+      setError('No se pudo registrar la transacción: ' + (err.message || 'Error desconocido'));
     } finally {
       setFormSubmitting(false);
     }
@@ -875,11 +958,11 @@ export default function ReservationsPage() {
       setError(null);
       const { error: updateError } = await supabase.from('bookings').update({ booking_status: newStatus }).eq('id', reservationId);
       if (updateError) throw updateError;
-      flash(`Status changed to ${BOOKING_STATUS[newStatus]?.label || newStatus}.`, 3000);
+      flash(`Estado cambiado a ${BOOKING_STATUS[newStatus]?.label || newStatus}.`, 3000);
       await fetchData();
     } catch (err) {
       console.error('Error updating status:', err);
-      setError('Could not update the booking status.');
+      setError('No se pudo actualizar el estado de la reserva.');
     }
   };
 
@@ -916,11 +999,11 @@ export default function ReservationsPage() {
 
       if (dbError) throw dbError;
 
-      flash('Document uploaded successfully.');
+      flash('Documento subido correctamente.');
       await fetchData();
     } catch (err) {
       console.error('Upload error:', err);
-      setError('Could not upload the document: ' + (err.message || 'Unknown error'));
+      setError('No se pudo subir el documento: ' + (err.message || 'Error desconocido'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -928,7 +1011,7 @@ export default function ReservationsPage() {
   };
 
   const handleDeleteDocument = async (docId, fileUrl) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) return;
+    if (!window.confirm('¿Seguro que quieres eliminar este documento?')) return;
 
     try {
       setError(null);
@@ -941,16 +1024,15 @@ export default function ReservationsPage() {
         await supabase.storage.from('booking-documents').remove([filePath]);
       }
 
-      flash('Document deleted.');
+      flash('Documento eliminado.');
       await fetchData();
     } catch (err) {
       console.error('Delete doc error:', err);
-      setError('Could not delete the document: ' + (err.message || 'Unknown error'));
+      setError('No se pudo eliminar el documento: ' + (err.message || 'Error desconocido'));
     }
   };
 
-  /* SQL snippet shown in the admin modal — the actual migration to run in Supabase SQL editor */
-  const sqlMigrationCode = `-- Migration: extra insurance on bookings
+  const sqlMigrationCode = `-- Migración: seguro extra en reservas
 ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS extra_insurance   boolean  NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS insurance_type    text     CHECK (insurance_type IN ('individual','collective')),
@@ -960,15 +1042,15 @@ ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS insurance_pricing_model text,
   ADD COLUMN IF NOT EXISTS insurance_currency text;
 
--- Backfill
+-- Relleno
 UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
 `;
 
   const statCards = [
-    { label: 'Total reservations', value: stats.total, icon: CalendarIcon, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
-    { label: 'Confirmed', value: stats.confirmed, icon: CheckCircle2, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Pending', value: stats.pending, icon: Clock, tone: 'text-amber-600', chip: 'bg-amber-50 text-amber-600' },
-    { label: 'Outstanding balance', value: `${fmtMoney(stats.outstanding)} MAD`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
+    { label: 'Total reservas', value: stats.total, icon: CalendarIcon, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
+    { label: 'Confirmadas', value: stats.confirmed, icon: CheckCircle2, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Pendientes', value: stats.pending, icon: Clock, tone: 'text-amber-600', chip: 'bg-amber-50 text-amber-600' },
+    { label: 'Saldo pendiente', value: `${fmtMoney(stats.outstanding)} MAD`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
   ];
 
   /* ---------- Render ---------- */
@@ -984,7 +1066,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
         .rp-backdrop-in { animation: rp-fade .22s ease-out forwards; }
         .rp-backdrop-out { animation: rp-fade-out .26s ease-in forwards; }
         .rp-sheet-in { animation: rp-up .3s cubic-bezier(.22,1,.36,1) forwards; }
-        .rp-sheet-out { animation: rp-down .26s cubic-bezier(.4,0,1,1) forwards; }
+        .rp-sheet-out { animation: rp-down .26s cubic-bezier(.22,1,.36,1) forwards; }
         @media (prefers-reduced-motion: reduce) {
           .rp-pop, .rp-backdrop-in, .rp-backdrop-out, .rp-sheet-in, .rp-sheet-out { animation-duration: 1ms; }
         }
@@ -994,16 +1076,16 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Reservations')}</h1>
-            <p className="text-sm text-slate-500 mt-1">{translate('Bookings, travelers and payment ledgers in one place.')}</p>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Reservas')}</h1>
+            <p className="text-sm text-slate-500 mt-1">{translate('Reservas, viajeros y pagos en un solo lugar.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setIsSqlModalOpen(true)} className={btnGhost}>
-              <FileText className="w-4 h-4 text-slate-500" />{translate('SQL migration')}</button>
-            <button onClick={fetchData} className={btnGhost} title="Refresh records">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Refresh')}</button>
+              <FileText className="w-4 h-4 text-slate-500" />{translate('Migración SQL')}</button>
+            <button onClick={fetchData} className={btnGhost} title="Actualizar registros">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Actualizar')}</button>
             <button onClick={openCreateModal} className={btnPrimary}>
-              <Plus className="w-4 h-4" />{translate('New reservation')}</button>
+              <Plus className="w-4 h-4" />{translate('Nueva reserva')}</button>
           </div>
         </div>
 
@@ -1017,7 +1099,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
           <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm rp-pop">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             <span className="flex-1">{error}</span>
-            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Dismiss"><X className="w-4 h-4" /></button>
+            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Descartar"><X className="w-4 h-4" /></button>
           </div>
         )}
 
@@ -1044,7 +1126,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by reference, customer, phone or destination"
+                  placeholder="Buscar por referencia, cliente, teléfono o destino"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={`${inputCls} pl-9`}
@@ -1052,24 +1134,24 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
               </div>
               <Select
                 className="lg:w-52"
-                prefix="Status"
-                ariaLabel="Booking status filter"
+                prefix="Estado"
+                ariaLabel="Filtro de estado de reserva"
                 value={bookingStatusFilter}
                 onChange={setBookingStatusFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...BOOKING_STATUS_OPTIONS]}
+                options={[{ value: 'ALL', label: 'Todos' }, ...BOOKING_STATUS_OPTIONS]}
               />
               <Select
                 className="lg:w-52"
-                prefix="Payment"
-                ariaLabel="Payment status filter"
+                prefix="Pago"
+                ariaLabel="Filtro de estado de pago"
                 value={paymentStatusFilter}
                 onChange={setPaymentStatusFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...PAYMENT_STATUS_OPTIONS]}
+                options={[{ value: 'ALL', label: 'Todos' }, ...PAYMENT_STATUS_OPTIONS]}
               />
               <Select
                 className="lg:w-56"
-                prefix="Destination"
-                ariaLabel="Destination filter"
+                prefix="Destino"
+                ariaLabel="Filtro de destino"
                 value={destinationFilter}
                 onChange={setDestinationFilter}
                 options={destinationOptions}
@@ -1077,8 +1159,8 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
               />
               <Select
                 className="lg:w-56"
-                prefix="Assigned"
-                ariaLabel="Assigned employee filter"
+                prefix="Asignado"
+                ariaLabel="Filtro de empleado asignado"
                 value={employeeFilter}
                 onChange={setEmployeeFilter}
                 options={employeeOptions}
@@ -1086,15 +1168,11 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
               />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>{filteredReservations.length} of {enrichedReservations.length} reservations</span>
+              <span>{filteredReservations.length} de {enrichedReservations.length} reservas</span>
               {hasFilters && (
-                <button
-                  onClick={() => {
-                    setSearchQuery(''); setBookingStatusFilter('ALL'); setPaymentStatusFilter('ALL');
-                    setDestinationFilter('ALL'); setEmployeeFilter('ALL');
-                  }}
-                  className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2"
-                >{translate('Clear filters')}</button>
+                <button onClick={clearFilters} className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2">
+                  {translate('Borrar filtros')}
+                </button>
               )}
             </div>
           </div>
@@ -1103,14 +1181,14 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
             <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr className="bg-stone-50 border-b border-slate-100 text-xs font-medium text-slate-500">
-                  <th className="py-3 px-4">{translate('Reference')}</th>
-                  <th className="py-3 px-4">{translate('Customer')}</th>
-                  <th className="py-3 px-4">{translate('Trip')}</th>
-                  <th className="py-3 px-4">{translate('Dates')}</th>
-                  <th className="py-3 px-4 text-center">{translate('Travelers')}</th>
-                  <th className="py-3 px-4 w-52">{translate('Payment')}</th>
-                  <th className="py-3 px-4">{translate('Status')}</th>
-                  <th className="py-3 px-4">{translate('Assigned to')}</th>
+                  <th className="py-3 px-4">{translate('Referencia')}</th>
+                  <th className="py-3 px-4">{translate('Cliente')}</th>
+                  <th className="py-3 px-4">{translate('Viaje')}</th>
+                  <th className="py-3 px-4">{translate('Fechas')}</th>
+                  <th className="py-3 px-4 text-center">{translate('Viajeros')}</th>
+                  <th className="py-3 px-4 w-52">{translate('Pago')}</th>
+                  <th className="py-3 px-4">{translate('Estado')}</th>
+                  <th className="py-3 px-4">{translate('Asignado a')}</th>
                   <th className="py-3 px-4 w-24" />
                 </tr>
               </thead>
@@ -1118,14 +1196,12 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 {loading ? (
                   <tr>
                     <td colSpan="9" className="py-16 text-center text-slate-400">
-                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Loading reservations…')}</td>
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Cargando reservas…')}</td>
                   </tr>
                 ) : filteredReservations.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="py-16 text-center text-slate-500">
-                      <CalendarIcon className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      <p className="font-medium text-slate-700">{translate('No reservations match')}</p>
-                      <p className="text-xs mt-1">{translate('Try a different search or clear the filters.')}</p>
+                    <td colSpan="9">
+                      <EmptyStateReservations hasFilters={hasFilters} onClearFilters={clearFilters} onCreate={openCreateModal} />
                     </td>
                   </tr>
                 ) : (
@@ -1144,13 +1220,13 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                           <Avatar name={res.customer.full_name} />
                           <div className="min-w-0">
                             <p className="font-medium text-slate-900 truncate">{res.customer.full_name}</p>
-                            <p className="text-xs text-slate-400 truncate">{res.customer.phone || res.customer.email || 'No contact'}</p>
+                            <p className="text-xs text-slate-400 truncate">{res.customer.phone || res.customer.email || 'Sin contacto'}</p>
                           </div>
                         </div>
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <p className="font-medium text-slate-900">{res.offer_title || res.destination || 'General Trip'}</p>
+                        <p className="font-medium text-slate-900">{res.offer_title || res.destination || 'Viaje general'}</p>
                         {res.offer_reference && <p className="text-xs text-amber-700">{res.offer_reference}</p>}
                         {res.offer_title && res.destination && <p className="text-xs text-slate-400">{res.destination}</p>}
                         <div className="mt-1">
@@ -1164,7 +1240,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
 
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <p>{fmtDate(res.departure_date)}</p>
-                        <p className="text-xs text-slate-400">to {fmtDate(res.return_date)}</p>
+                        <p className="text-xs text-slate-400">a {fmtDate(res.return_date)}</p>
                       </td>
 
                       <td className="py-3.5 px-4 text-center font-medium">{res.traveler_count || 1}</td>
@@ -1179,7 +1255,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
 
                       <td className="py-3.5 px-4"><StatusBadge status={res.booking_status} /></td>
 
-                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">{res.assignedProfile?.full_name || 'Unassigned'}</td>
+                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">{res.assignedProfile?.full_name || 'Sin asignar'}</td>
 
                       <td className="py-3.5 px-4">
                         <div className="flex items-center justify-end gap-1">
@@ -1187,8 +1263,8 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                             onClick={(e) => { e.stopPropagation(); setSelectedId(res.id); setIsPaymentModalOpen(true); }}
                             onKeyDown={(e) => e.stopPropagation()}
                             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                            title="Add payment"
-                            aria-label="Add payment"
+                            title="Añadir pago"
+                            aria-label="Añadir pago"
                           >
                             <DollarSign className="w-4 h-4" />
                           </button>
@@ -1206,7 +1282,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
 
       {/* ================= DETAIL SLIDE-UP SHEET ================= */}
       {isDetailOpen && selectedReservation && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Booking ${selectedReservation.booking_reference}`}>
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Reserva ${selectedReservation.booking_reference}`}>
           <div
             className={`absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] ${detailClosing ? 'rp-backdrop-out' : 'rp-backdrop-in'}`}
             onClick={closeDetail}
@@ -1214,12 +1290,10 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
           <div
             className={`absolute bottom-0 left-0 w-full h-[75vh] bg-stone-50 rounded-t-3xl shadow-[0_-20px_60px_-15px_rgba(15,23,42,0.35)] flex flex-col ${detailClosing ? 'rp-sheet-out' : 'rp-sheet-in'}`}
           >
-            {/* Grab handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <button onClick={closeDetail} className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition" aria-label="Close panel" />
+              <button onClick={closeDetail} className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition" aria-label="Cerrar panel" />
             </div>
 
-            {/* Sheet header */}
             <div className="flex flex-wrap items-center justify-between gap-4 px-6 lg:px-10 py-3 border-b border-slate-200 bg-stone-50">
               <div className="flex items-center gap-4 min-w-0">
                 <Avatar name={selectedReservation.customer.full_name} size="w-12 h-12 text-sm" />
@@ -1235,7 +1309,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                       label={selectedReservation.insurancePlanLabel}
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">Created {fmtDate(selectedReservation.created_at)}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Creada el {fmtDate(selectedReservation.created_at)}</p>
                 </div>
               </div>
 
@@ -1244,8 +1318,8 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 <Select
                   compact
                   className="w-48"
-                  prefix="Status"
-                  ariaLabel="Change booking status"
+                  prefix="Estado"
+                  ariaLabel="Cambiar estado de la reserva"
                   value={selectedReservation.booking_status || 'pending'}
                   onChange={(v) => handleUpdateStatus(selectedReservation.id, v)}
                   options={BOOKING_STATUS_OPTIONS}
@@ -1264,97 +1338,95 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                     assigned_to: selectedReservation.assigned_to || '',
                     special_requests: selectedReservation.special_requests || '',
                     internal_notes: selectedReservation.internal_notes || '',
-                    /* INSURANCE */
                     extra_insurance: Boolean(selectedReservation.extraInsurance),
                     insurance_type: selectedReservation.insuranceType || 'individual',
                     insurance_premium: selectedReservation.insurancePremium ?? '',
                   });
                   setIsEditModalOpen(true);
                 }} className={btnGhost}>
-                  <Edit className="w-4 h-4" />{translate('Edit')}</button>
+                  <Edit className="w-4 h-4" />{translate('Editar')}</button>
 
                 <button
                   onClick={() => navigate(`/admin/contracts?bookingId=${selectedReservation.id}`)}
                   className={btnGhost}
-                  title="Create or manage contract for this booking"
+                  title="Crear o gestionar el contrato de esta reserva"
                 >
-                  <FileText className="w-4 h-4 text-amber-600" />{translate('Contract')}</button>
+                  <FileText className="w-4 h-4 text-amber-600" />{translate('Contrato')}</button>
 
                 <button onClick={() => setIsDeleteModalOpen(true)} className={btnDanger}>
-                  <Trash2 className="w-4 h-4" />{translate('Delete')}</button>
+                  <Trash2 className="w-4 h-4" />{translate('Eliminar')}</button>
 
                 <button onClick={() => setIsPaymentModalOpen(true)} className={btnPrimary}>
-                  <Plus className="w-4 h-4" />{translate('Add payment')}</button>
-                <button onClick={closeDetail} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition" aria-label="Close">
+                  <Plus className="w-4 h-4" />{translate('Añadir pago')}</button>
+                <button onClick={closeDetail} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition" aria-label="Cerrar">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Sheet body */}
             <div className="flex-1 overflow-y-auto px-6 lg:px-10 py-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-[1500px] mx-auto">
                 {/* Left: customer + trip + insurance */}
                 <div className="space-y-4">
                   <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-3">
-                    <SectionTitle icon={Users}>{translate('Customer')}</SectionTitle>
+                    <SectionTitle icon={Users}>{translate('Cliente')}</SectionTitle>
                     <div className="space-y-2 text-sm">
                       <p className="font-medium text-slate-900">{selectedReservation.customer.full_name}</p>
-                      <p className="text-slate-600 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedReservation.customer.phone || 'No phone'}</p>
-                      <p className="text-slate-600 flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-slate-400" /> {selectedReservation.customer.email || 'No email'}</p>
+                      <p className="text-slate-600 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedReservation.customer.phone || 'Sin teléfono'}</p>
+                      <p className="text-slate-600 flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-slate-400" /> {selectedReservation.customer.email || 'Sin correo'}</p>
                     </div>
                   </section>
 
                   <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-3">
-                    <SectionTitle icon={Compass}>{translate('Trip')}</SectionTitle>
+                    <SectionTitle icon={Compass}>{translate('Viaje')}</SectionTitle>
                     <div className="space-y-2 text-sm">
                       {selectedReservation.offer_title && (
                         <div>
                           <p className="font-medium text-slate-900">{selectedReservation.offer_title}</p>
-                          {selectedReservation.offer_reference && <p className="text-xs text-slate-500">Package ref: {selectedReservation.offer_reference}</p>}
+                          {selectedReservation.offer_reference && <p className="text-xs text-slate-500">Ref. del paquete: {selectedReservation.offer_reference}</p>}
                           {selectedReservation.offer_id && (
                             <button
                               type="button"
                               onClick={() => navigate(`/admin/packages-services/${selectedReservation.offer_id}`)}
                               className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:underline mt-1"
                             >
-                              Open package in admin <ArrowUpRight className="w-3 h-3" />
+                              Abrir paquete en admin <ArrowUpRight className="w-3 h-3" />
                             </button>
                           )}
                         </div>
                       )}
-                      <p className="text-slate-700"><span className="text-slate-400">{translate('Destination')}</span> &nbsp;{selectedReservation.destination || 'TBD'}</p>
+                      <p className="text-slate-700"><span className="text-slate-400">{translate('Destino')}</span> &nbsp;{selectedReservation.destination || 'Por definir'}</p>
                       <p className="text-slate-700 flex items-center gap-2">
                         <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-                        {fmtDate(selectedReservation.departure_date)} to {fmtDate(selectedReservation.return_date)}
+                        {fmtDate(selectedReservation.departure_date)} a {fmtDate(selectedReservation.return_date)}
                       </p>
-                      <p className="text-slate-700"><span className="text-slate-400">{translate('Travelers')}</span> &nbsp;<span className="font-semibold">{selectedReservation.traveler_count || 1}</span></p>
-                      <p className="text-slate-700"><span className="text-slate-400">{translate('Assigned to')}</span> &nbsp;{selectedReservation.assignedProfile?.full_name || 'Unassigned'}</p>
+                      <p className="text-slate-700"><span className="text-slate-400">{translate('Viajeros')}</span> &nbsp;<span className="font-semibold">{selectedReservation.traveler_count || 1}</span></p>
+                      <p className="text-slate-700"><span className="text-slate-400">{translate('Asignado a')}</span> &nbsp;{selectedReservation.assignedProfile?.full_name || 'Sin asignar'}</p>
                     </div>
                   </section>
 
                   <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-3">
-                    <SectionTitle icon={ShieldCheck}>{translate('Extra insurance')}</SectionTitle>
+                    <SectionTitle icon={ShieldCheck}>{translate('Seguro extra')}</SectionTitle>
                     {selectedReservation.extraInsurance ? (
                       <div className="space-y-1.5 text-sm">
                         <p className="font-medium text-slate-900">
                           {selectedReservation.insurancePlanLabel
-                            || (selectedReservation.insuranceType === 'collective' ? 'Collective coverage' : 'Individual coverage')}
+                            || (selectedReservation.insuranceType === 'collective' ? 'Cobertura colectiva' : 'Cobertura individual')}
                         </p>
                         <p className="text-slate-600">
-                          Premium:&nbsp;
+                          Prima:&nbsp;
                           <span className="font-semibold text-slate-900">
                             {fmtMoney(selectedReservation.insurancePremium)} {selectedReservation.insuranceCurrency}
                           </span>
                         </p>
                         <p className="text-xs text-slate-500">
                           {selectedReservation.insurancePricingModel === 'flat' || selectedReservation.insuranceType === 'collective'
-                            ? 'Single flat premium for the whole group.'
-                            : 'Charged per traveler.'}
+                            ? 'Prima fija para todo el grupo.'
+                            : 'Cobrada por viajero.'}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">{translate('No extra insurance was selected for this booking.')}</p>
+                      <p className="text-sm text-slate-500">{translate('No se ha seleccionado seguro extra para esta reserva.')}</p>
                     )}
                   </section>
                 </div>
@@ -1362,13 +1434,13 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 {/* Middle + right: financials & documents */}
                 <div className="lg:col-span-2 space-y-4">
                   <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-5">
-                    <SectionTitle icon={Wallet}>{translate('Payments')}</SectionTitle>
+                    <SectionTitle icon={Wallet}>{translate('Pagos')}</SectionTitle>
 
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { l: 'Total', v: selectedReservation.total_amount, c: 'text-slate-900' },
-                        { l: 'Net paid', v: selectedReservation.totalPaid, c: 'text-emerald-600' },
-                        { l: 'Balance due', v: selectedReservation.balance, c: selectedReservation.balance > 0 ? 'text-rose-600' : 'text-slate-700' },
+                        { l: 'Neto cobrado', v: selectedReservation.totalPaid, c: 'text-emerald-600' },
+                        { l: 'Saldo pendiente', v: selectedReservation.balance, c: selectedReservation.balance > 0 ? 'text-rose-600' : 'text-slate-700' },
                       ].map((x) => (
                         <div key={x.l} className="bg-stone-50 rounded-lg px-4 py-3">
                           <p className="text-xs text-slate-500">{x.l}</p>
@@ -1379,28 +1451,28 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                     <PaidBar paid={selectedReservation.totalPaid} total={Number(selectedReservation.total_amount || 0)} />
 
                     <div>
-                      <p className="text-sm font-medium text-slate-800 mb-2">{translate('Transactions')}</p>
+                      <p className="text-sm font-medium text-slate-800 mb-2">{translate('Transacciones')}</p>
                       {selectedReservation.resPayments.length === 0 ? (
-                        <div className="border border-dashed border-slate-200 rounded-lg py-6 text-center text-sm text-slate-500">{translate('No transactions yet.')}</div>
+                        <div className="border border-dashed border-slate-200 rounded-lg py-6 text-center text-sm text-slate-500">{translate('Sin transacciones todavía.')}</div>
                       ) : (
                         <div className="border border-slate-200 rounded-lg overflow-x-auto">
                           <table className="w-full text-left text-sm min-w-[520px]">
                             <thead className="bg-stone-50 text-xs text-slate-500">
                               <tr>
-                                <th className="py-2 px-3 font-medium">{translate('Type')}</th>
-                                <th className="py-2 px-3 font-medium">{translate('Date')}</th>
-                                <th className="py-2 px-3 font-medium">{translate('Method')}</th>
-                                <th className="py-2 px-3 font-medium">{translate('Status')}</th>
-                                <th className="py-2 px-3 font-medium text-right">{translate('Amount')}</th>
+                                <th className="py-2 px-3 font-medium">{translate('Tipo')}</th>
+                                <th className="py-2 px-3 font-medium">{translate('Fecha')}</th>
+                                <th className="py-2 px-3 font-medium">{translate('Método')}</th>
+                                <th className="py-2 px-3 font-medium">{translate('Estado')}</th>
+                                <th className="py-2 px-3 font-medium text-right">{translate('Importe')}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {selectedReservation.resPayments.map((pay) => (
                                 <tr key={pay.id}>
-                                  <td className="py-2 px-3 capitalize font-medium text-slate-800">{pay.transaction_type}</td>
+                                  <td className="py-2 px-3 font-medium text-slate-800">{pay.transaction_type === 'refund' ? 'Reembolso' : 'Pago'}</td>
                                   <td className="py-2 px-3 text-slate-600">{fmtDate(pay.transaction_date || pay.created_at)}</td>
-                                  <td className="py-2 px-3 capitalize text-slate-700">{(pay.payment_method || '').replace('_', ' ')}</td>
-                                  <td className="py-2 px-3 capitalize text-slate-600">{pay.transaction_status}</td>
+                                  <td className="py-2 px-3 text-slate-700">{(pay.payment_method || '').replace('_', ' ')}</td>
+                                  <td className="py-2 px-3 text-slate-600">{pay.transaction_status === 'completed' ? 'Completada' : pay.transaction_status === 'pending' ? 'Pendiente' : 'Fallida'}</td>
                                   <td className={`py-2 px-3 text-right font-semibold ${pay.transaction_type === 'refund' ? 'text-rose-600' : 'text-emerald-600'}`}>
                                     {pay.transaction_type === 'refund' ? '−' : '+'}{fmtMoney(pay.amount)} {pay.currency}
                                   </td>
@@ -1416,7 +1488,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                   {/* DOCUMENTS SECTION */}
                   <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                      <SectionTitle icon={FileText}>{translate('Documents & Attachments')}</SectionTitle>
+                      <SectionTitle icon={FileText}>{translate('Documentos y archivos adjuntos')}</SectionTitle>
                       <div className="relative">
                         <input
                           type="file"
@@ -1431,27 +1503,26 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                           className={btnGhost}
                         >
                           {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                          {isUploading ? 'Uploading...' : 'Upload document'}
+                          {isUploading ? 'Subiendo…' : 'Subir documento'}
                         </button>
                       </div>
                     </div>
 
-                    {/* Quick Travel Contract banner */}
                     <div className="flex items-center justify-between p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs">
                       <div className="flex items-center gap-2.5">
                         <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
                           <FileText className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900">{translate('Official Travel Contract & Terms')}</p>
-                          <p className="text-[11px] text-slate-500">{translate('Generate, customize, or review the legal contract for this booking.')}</p>
+                          <p className="font-semibold text-slate-900">{translate('Contrato de viaje y condiciones')}</p>
+                          <p className="text-[11px] text-slate-500">{translate('Genera, personaliza o revisa el contrato legal de esta reserva.')}</p>
                         </div>
                       </div>
                       <button
                         onClick={() => navigate(`/admin/contracts?bookingId=${selectedReservation.id}`)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-500 transition shadow-xs text-xs"
                       >
-                        <span>{translate('Contract')}</span>
+                        <span>{translate('Contrato')}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1459,8 +1530,8 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                     {selectedReservation.resDocuments.length === 0 ? (
                       <div className="border border-dashed border-slate-200 rounded-lg py-8 text-center bg-stone-50/50">
                         <File className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="text-sm font-medium text-slate-700">{translate('No documents yet')}</p>
-                        <p className="text-xs text-slate-500 mt-1">{translate('Upload tickets, passports, or itineraries.')}</p>
+                        <p className="text-sm font-medium text-slate-700">{translate('Aún no hay documentos')}</p>
+                        <p className="text-xs text-slate-500 mt-1">{translate('Sube billetes, pasaportes o itinerarios.')}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1483,14 +1554,14 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded"
-                                  title="Download"
+                                  title="Descargar"
                                 >
                                   <Download className="w-4 h-4" />
                                 </a>
                                 <button
                                   onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
                                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
-                                  title="Delete"
+                                  title="Eliminar"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -1506,12 +1577,12 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 {/* Notes row */}
                 <section className="bg-white rounded-xl border border-slate-200/80 p-5 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <SectionTitle icon={MessageSquare}>{translate('Special requests')}</SectionTitle>
-                    <p className="text-sm text-slate-600 mt-2">{selectedReservation.special_requests || 'None specified.'}</p>
+                    <SectionTitle icon={MessageSquare}>{translate('Solicitudes especiales')}</SectionTitle>
+                    <p className="text-sm text-slate-600 mt-2">{selectedReservation.special_requests || 'Sin especificar.'}</p>
                   </div>
                   <div>
-                    <SectionTitle icon={StickyNote}>{translate('Internal notes')}</SectionTitle>
-                    <p className="text-sm text-slate-600 mt-2">{selectedReservation.internal_notes || 'None specified.'}</p>
+                    <SectionTitle icon={StickyNote}>{translate('Notas internas')}</SectionTitle>
+                    <p className="text-sm text-slate-600 mt-2">{selectedReservation.internal_notes || 'Sin especificar.'}</p>
                   </div>
                 </section>
               </div>
@@ -1523,74 +1594,73 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
       {/* ================= EDIT MODAL ================= */}
       {isEditModalOpen && selectedReservation && (
         <Modal onClose={() => setIsEditModalOpen(false)}>
-          <ModalHeader title="Edit reservation" subtitle={`Ref: ${selectedReservation.booking_reference}`} onClose={() => setIsEditModalOpen(false)} />
+          <ModalHeader title="Editar reserva" subtitle={`Ref: ${selectedReservation.booking_reference}`} onClose={() => setIsEditModalOpen(false)} />
           <form onSubmit={handleEditReservation} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
             <div className="space-y-3">
-              <SectionTitle icon={Compass}>{translate('Trip details')}</SectionTitle>
+              <SectionTitle icon={Compass}>{translate('Detalles del viaje')}</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>{translate('Destination *')}</label>
-                  <input type="text" required placeholder="e.g. Marrakech" value={formData.destination} onChange={(e) => setFormData((p) => ({ ...p, destination: e.target.value }))} className={inputCls} />
+                  <label className={labelCls}>{translate('Destino *')}</label>
+                  <input type="text" required placeholder="p. ej. Marrakech" value={formData.destination} onChange={(e) => setFormData((p) => ({ ...p, destination: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Travelers *')}</label>
+                  <label className={labelCls}>{translate('Viajeros *')}</label>
                   <input type="number" min="1" required value={formData.traveler_count} onChange={(e) => setFormData((p) => ({ ...p, traveler_count: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Departure date *')}</label>
+                  <label className={labelCls}>{translate('Fecha de salida *')}</label>
                   <input type="date" required value={formData.departure_date} onChange={(e) => setFormData((p) => ({ ...p, departure_date: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Return date')}</label>
+                  <label className={labelCls}>{translate('Fecha de regreso')}</label>
                   <input type="date" min={formData.departure_date || undefined} value={formData.return_date} onChange={(e) => setFormData((p) => ({ ...p, return_date: e.target.value }))} className={inputCls} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={DollarSign}>{translate('Pricing & Status')}</SectionTitle>
+              <SectionTitle icon={DollarSign}>{translate('Precio y estado')}</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Total amount *')}</label>
+                  <label className={labelCls}>{translate('Importe total *')}</label>
                   <input type="number" step="0.01" required placeholder="0.00" value={formData.total_amount} onChange={(e) => setFormData((p) => ({ ...p, total_amount: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Currency')}</label>
-                  <Select value={formData.currency} onChange={(v) => setFormData((p) => ({ ...p, currency: v }))} options={CURRENCY_OPTIONS} ariaLabel="Currency" menuMinWidth={120} />
+                  <label className={labelCls}>{translate('Moneda')}</label>
+                  <Select value={formData.currency} onChange={(v) => setFormData((p) => ({ ...p, currency: v }))} options={CURRENCY_OPTIONS} ariaLabel="Moneda" menuMinWidth={120} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Assigned employee')}</label>
+                  <label className={labelCls}>{translate('Empleado asignado')}</label>
                   <Select
                     searchable={assignOptions.length > 7}
                     value={formData.assigned_to}
                     onChange={(v) => setFormData((p) => ({ ...p, assigned_to: v }))}
                     options={assignOptions}
-                    placeholder="Select an employee"
-                    ariaLabel="Assigned employee"
+                    placeholder="Selecciona un empleado"
+                    ariaLabel="Empleado asignado"
                     menuMinWidth={280}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Status')}</label>
-                  <Select value={formData.booking_status} onChange={(v) => setFormData((p) => ({ ...p, booking_status: v }))} options={BOOKING_STATUS_OPTIONS} ariaLabel="Status" />
+                  <label className={labelCls}>{translate('Estado')}</label>
+                  <Select value={formData.booking_status} onChange={(v) => setFormData((p) => ({ ...p, booking_status: v }))} options={BOOKING_STATUS_OPTIONS} ariaLabel="Estado" />
                 </div>
               </div>
               <div>
-                <label className={labelCls}>{translate('Special requests')}</label>
+                <label className={labelCls}>{translate('Solicitudes especiales')}</label>
                 <textarea rows="2" value={formData.special_requests} onChange={(e) => setFormData((p) => ({ ...p, special_requests: e.target.value }))} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>{translate('Internal notes')}</label>
+                <label className={labelCls}>{translate('Notas internas')}</label>
                 <textarea rows="2" value={formData.internal_notes} onChange={(e) => setFormData((p) => ({ ...p, internal_notes: e.target.value }))} className={inputCls} />
               </div>
             </div>
 
-            {/* INSURANCE — edit */}
             <InsuranceBlock formData={formData} setFormData={setFormData} />
 
             <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
-              <button type="button" onClick={() => setIsEditModalOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Saving…' : 'Save changes'}</button>
+              <button type="button" onClick={() => setIsEditModalOpen(false)} className={btnGhost}>{translate('Cancelar')}</button>
+              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Guardando…' : 'Guardar cambios'}</button>
             </div>
           </form>
         </Modal>
@@ -1603,13 +1673,13 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-rose-600 mb-4">
               <AlertTriangle className="w-6 h-6" />
             </span>
-            <h3 className="text-lg font-semibold text-slate-900">{translate('Delete this reservation?')}</h3>
+            <h3 className="text-lg font-semibold text-slate-900">{translate('¿Eliminar esta reserva?')}</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Are you sure you want to delete booking <strong>{selectedReservation.booking_reference}</strong>{translate('? This will also remove all associated payments and documents. This action cannot be undone.')}</p>
+              ¿Seguro que quieres eliminar la reserva <strong>{selectedReservation.booking_reference}</strong>{translate('? También se eliminarán todos los pagos y documentos asociados. Esta acción no se puede deshacer.')}</p>
             <div className="mt-6 flex items-center justify-center gap-3">
-              <button type="button" onClick={() => setIsDeleteModalOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
+              <button type="button" onClick={() => setIsDeleteModalOpen(false)} className={btnGhost}>{translate('Cancelar')}</button>
               <button type="button" onClick={handleDeleteReservation} disabled={formSubmitting} className={btnDanger}>
-                {formSubmitting ? 'Deleting…' : 'Delete reservation'}
+                {formSubmitting ? 'Eliminando…' : 'Eliminar reserva'}
               </button>
             </div>
           </div>
@@ -1619,14 +1689,14 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
       {/* ================= CREATE RESERVATION ================= */}
       {isCreateModalOpen && (
         <Modal onClose={() => setIsCreateModalOpen(false)}>
-          <ModalHeader title="New reservation" subtitle="Add a booking and, optionally, its first payment." onClose={() => setIsCreateModalOpen(false)} />
+          <ModalHeader title="Nueva reserva" subtitle="Añade una reserva y, opcionalmente, su primer pago." onClose={() => setIsCreateModalOpen(false)} />
           <form onSubmit={handleCreateReservation} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
             <div className="space-y-3">
-              <SectionTitle icon={Users}>{translate('Customer')}</SectionTitle>
-              <div role="tablist" aria-label="Customer source" className="grid grid-cols-2 gap-1 p-1 bg-stone-100 rounded-lg">
+              <SectionTitle icon={Users}>{translate('Cliente')}</SectionTitle>
+              <div role="tablist" aria-label="Origen del cliente" className="grid grid-cols-2 gap-1 p-1 bg-stone-100 rounded-lg">
                 {[
-                  { mode: 'existing', label: 'Existing customer', icon: UserCheck },
-                  { mode: 'new', label: 'New customer', icon: UserPlus },
+                  { mode: 'existing', label: 'Cliente existente', icon: UserCheck },
+                  { mode: 'new', label: 'Cliente nuevo', icon: UserPlus },
                 ].map(({ mode, label, icon: Icon }) => (
                   <button
                     key={mode}
@@ -1644,41 +1714,41 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
 
               {customerMode === 'existing' ? (
                 <div>
-                  <label className={labelCls}>{translate('Customer *')}</label>
+                  <label className={labelCls}>{translate('Cliente *')}</label>
                   <Select
                     searchable
                     value={formData.customer_id}
                     onChange={(v) => setFormData((p) => ({ ...p, customer_id: v }))}
                     options={customerOptions}
-                    placeholder="Select an existing customer"
-                    ariaLabel="Customer"
+                    placeholder="Selecciona un cliente existente"
+                    ariaLabel="Cliente"
                     menuMinWidth={320}
                   />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className={labelCls}>{translate('First name *')}</label>
+                    <label className={labelCls}>{translate('Nombre *')}</label>
                     <input type="text" required autoComplete="given-name" value={newCustomer.first_name}
                       onChange={(e) => setNewCustomer((current) => ({ ...current, first_name: e.target.value }))} className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>{translate('Last name *')}</label>
+                    <label className={labelCls}>{translate('Apellidos *')}</label>
                     <input type="text" required autoComplete="family-name" value={newCustomer.last_name}
                       onChange={(e) => setNewCustomer((current) => ({ ...current, last_name: e.target.value }))} className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>{translate('Phone *')}</label>
+                    <label className={labelCls}>{translate('Teléfono *')}</label>
                     <input type="tel" required autoComplete="tel" value={newCustomer.phone}
                       onChange={(e) => setNewCustomer((current) => ({ ...current, phone: e.target.value }))} className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>{translate('Email')}</label>
+                    <label className={labelCls}>{translate('Correo electrónico')}</label>
                     <input type="email" autoComplete="email" value={newCustomer.email}
                       onChange={(e) => setNewCustomer((current) => ({ ...current, email: e.target.value }))} className={inputCls} />
                   </div>
                   <div className="md:col-span-2">
-                    <label className={labelCls}>{translate('Country')}</label>
+                    <label className={labelCls}>{translate('País')}</label>
                     <input type="text" autoComplete="country-name" value={newCustomer.country}
                       onChange={(e) => setNewCustomer((current) => ({ ...current, country: e.target.value }))} className={inputCls} />
                   </div>
@@ -1687,79 +1757,78 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
             </div>
 
             <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={Compass}>{translate('Trip details')}</SectionTitle>
+              <SectionTitle icon={Compass}>{translate('Detalles del viaje')}</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>{translate('Destination *')}</label>
-                  <input type="text" required placeholder="e.g. Marrakech, Agadir, Chefchaouen" value={formData.destination} onChange={(e) => setFormData((p) => ({ ...p, destination: e.target.value }))} className={inputCls} />
+                  <label className={labelCls}>{translate('Destino *')}</label>
+                  <input type="text" required placeholder="p. ej. Marrakech, Agadir, Chefchaouen" value={formData.destination} onChange={(e) => setFormData((p) => ({ ...p, destination: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Travelers *')}</label>
+                  <label className={labelCls}>{translate('Viajeros *')}</label>
                   <input type="number" min="1" required value={formData.traveler_count} onChange={(e) => setFormData((p) => ({ ...p, traveler_count: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Departure date *')}</label>
+                  <label className={labelCls}>{translate('Fecha de salida *')}</label>
                   <input type="date" required value={formData.departure_date} onChange={(e) => setFormData((p) => ({ ...p, departure_date: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Return date')}</label>
+                  <label className={labelCls}>{translate('Fecha de regreso')}</label>
                   <input type="date" min={formData.departure_date || undefined} value={formData.return_date} onChange={(e) => setFormData((p) => ({ ...p, return_date: e.target.value }))} className={inputCls} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={DollarSign}>{translate('Pricing and first payment')}</SectionTitle>
+              <SectionTitle icon={DollarSign}>{translate('Precio y primer pago')}</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Total amount *')}</label>
+                  <label className={labelCls}>{translate('Importe total *')}</label>
                   <input type="number" step="0.01" required placeholder="0.00" value={formData.total_amount} onChange={(e) => setFormData((p) => ({ ...p, total_amount: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Currency')}</label>
-                  <Select value={formData.currency} onChange={(v) => setFormData((p) => ({ ...p, currency: v }))} options={CURRENCY_OPTIONS} ariaLabel="Currency" menuMinWidth={120} />
+                  <label className={labelCls}>{translate('Moneda')}</label>
+                  <Select value={formData.currency} onChange={(v) => setFormData((p) => ({ ...p, currency: v }))} options={CURRENCY_OPTIONS} ariaLabel="Moneda" menuMinWidth={120} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Initial payment')}</label>
+                  <label className={labelCls}>{translate('Pago inicial')}</label>
                   <input type="number" step="0.01" placeholder="0.00" value={formData.initial_payment_amount} onChange={(e) => setFormData((p) => ({ ...p, initial_payment_amount: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Payment method')}</label>
-                  <Select value={formData.payment_method} onChange={(v) => setFormData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Payment method" />
+                  <label className={labelCls}>{translate('Método de pago')}</label>
+                  <Select value={formData.payment_method} onChange={(v) => setFormData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Método de pago" />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Assigned employee')}</label>
+                  <label className={labelCls}>{translate('Empleado asignado')}</label>
                   <Select
                     searchable={assignOptions.length > 7}
                     value={formData.assigned_to}
                     onChange={(v) => setFormData((p) => ({ ...p, assigned_to: v }))}
                     options={assignOptions}
-                    placeholder="Select an employee"
-                    ariaLabel="Assigned employee"
+                    placeholder="Selecciona un empleado"
+                    ariaLabel="Empleado asignado"
                     menuMinWidth={280}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>{translate('Initial status')}</label>
-                  <Select value={formData.booking_status} onChange={(v) => setFormData((p) => ({ ...p, booking_status: v }))} options={INITIAL_STATUS_OPTIONS} ariaLabel="Initial status" />
+                  <label className={labelCls}>{translate('Estado inicial')}</label>
+                  <Select value={formData.booking_status} onChange={(v) => setFormData((p) => ({ ...p, booking_status: v }))} options={INITIAL_STATUS_OPTIONS} ariaLabel="Estado inicial" />
                 </div>
               </div>
               <div>
-                <label className={labelCls}>{translate('Special requests')}</label>
-                <textarea rows="2" placeholder="Dietary requirements, room preferences" value={formData.special_requests} onChange={(e) => setFormData((p) => ({ ...p, special_requests: e.target.value }))} className={inputCls} />
+                <label className={labelCls}>{translate('Solicitudes especiales')}</label>
+                <textarea rows="2" placeholder="Requisitos dietéticos, preferencias de habitación" value={formData.special_requests} onChange={(e) => setFormData((p) => ({ ...p, special_requests: e.target.value }))} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>{translate('Internal notes')}</label>
-                <textarea rows="2" placeholder="Notes for staff only" value={formData.internal_notes} onChange={(e) => setFormData((p) => ({ ...p, internal_notes: e.target.value }))} className={inputCls} />
+                <label className={labelCls}>{translate('Notas internas')}</label>
+                <textarea rows="2" placeholder="Notas solo para el equipo" value={formData.internal_notes} onChange={(e) => setFormData((p) => ({ ...p, internal_notes: e.target.value }))} className={inputCls} />
               </div>
             </div>
 
-            {/* INSURANCE — create */}
             <InsuranceBlock formData={formData} setFormData={setFormData} />
 
             <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
-              <button type="button" onClick={() => setIsCreateModalOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Saving…' : 'Save reservation'}</button>
+              <button type="button" onClick={() => setIsCreateModalOpen(false)} className={btnGhost}>{translate('Cancelar')}</button>
+              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Guardando…' : 'Guardar reserva'}</button>
             </div>
           </form>
         </Modal>
@@ -1768,42 +1837,42 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
       {/* ================= ADD PAYMENT ================= */}
       {isPaymentModalOpen && selectedReservation && (
         <Modal onClose={() => setIsPaymentModalOpen(false)} maxW="max-w-md">
-          <ModalHeader title="Record transaction" subtitle={`Booking ${selectedReservation.booking_reference}`} onClose={() => setIsPaymentModalOpen(false)} />
+          <ModalHeader title="Registrar transacción" subtitle={`Reserva ${selectedReservation.booking_reference}`} onClose={() => setIsPaymentModalOpen(false)} />
           <form onSubmit={handleAddPayment} className="p-6 space-y-4">
             <div className="bg-amber-50 px-4 py-3 rounded-lg border border-amber-200 text-sm text-amber-900 flex justify-between">
-              <span>{translate('Balance due')}</span>
+              <span>{translate('Saldo pendiente')}</span>
               <span className="font-semibold">{fmtMoney(selectedReservation.balance)} {selectedReservation.currency}</span>
             </div>
             <div>
-              <label className={labelCls}>{translate('Transaction type')}</label>
-              <Select value={paymentData.transaction_type} onChange={(v) => setPaymentData((p) => ({ ...p, transaction_type: v }))} options={TXN_TYPE_OPTIONS} ariaLabel="Transaction type" />
+              <label className={labelCls}>{translate('Tipo de transacción')}</label>
+              <Select value={paymentData.transaction_type} onChange={(v) => setPaymentData((p) => ({ ...p, transaction_type: v }))} options={TXN_TYPE_OPTIONS} ariaLabel="Tipo de transacción" />
             </div>
             <div>
-              <label className={labelCls}>Amount ({selectedReservation.currency}) *</label>
+              <label className={labelCls}>Importe ({selectedReservation.currency}) *</label>
               <input type="number" step="0.01" min="0.01" required placeholder="0.00" value={paymentData.amount} onChange={(e) => setPaymentData((p) => ({ ...p, amount: e.target.value }))} className={inputCls} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>{translate('Method')}</label>
-                <Select value={paymentData.payment_method} onChange={(v) => setPaymentData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Payment method" />
+                <label className={labelCls}>{translate('Método')}</label>
+                <Select value={paymentData.payment_method} onChange={(v) => setPaymentData((p) => ({ ...p, payment_method: v }))} options={METHOD_OPTIONS} ariaLabel="Método de pago" />
               </div>
               <div>
-                <label className={labelCls}>{translate('Status')}</label>
-                <Select value={paymentData.transaction_status} onChange={(v) => setPaymentData((p) => ({ ...p, transaction_status: v }))} options={TXN_STATUS_OPTIONS} ariaLabel="Transaction status" menuMinWidth={220} />
+                <label className={labelCls}>{translate('Estado')}</label>
+                <Select value={paymentData.transaction_status} onChange={(v) => setPaymentData((p) => ({ ...p, transaction_status: v }))} options={TXN_STATUS_OPTIONS} ariaLabel="Estado de la transacción" menuMinWidth={220} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>{translate('Reference (optional)')}</label>
-              <input type="text" placeholder="e.g. TXN-998234" value={paymentData.transaction_reference} onChange={(e) => setPaymentData((p) => ({ ...p, transaction_reference: e.target.value }))} className={inputCls} />
+              <label className={labelCls}>{translate('Referencia (opcional)')}</label>
+              <input type="text" placeholder="p. ej. TXN-998234" value={paymentData.transaction_reference} onChange={(e) => setPaymentData((p) => ({ ...p, transaction_reference: e.target.value }))} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>{translate('Notes')}</label>
-              <textarea rows="2" placeholder="Receipt or deposit notes" value={paymentData.notes} onChange={(e) => setPaymentData((p) => ({ ...p, notes: e.target.value }))} className={inputCls} />
+              <label className={labelCls}>{translate('Notas')}</label>
+              <textarea rows="2" placeholder="Notas del recibo o depósito" value={paymentData.notes} onChange={(e) => setPaymentData((p) => ({ ...p, notes: e.target.value }))} className={inputCls} />
             </div>
-            <p className="text-xs text-slate-500">{translate('Completed transactions can’t be edited later. Record a refund to correct one.')}</p>
+            <p className="text-xs text-slate-500">{translate('Las transacciones completadas no se pueden editar después. Para corregirlas, registra un reembolso.')}</p>
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Recording…' : 'Record transaction'}</button>
+              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className={btnGhost}>{translate('Cancelar')}</button>
+              <button type="submit" disabled={formSubmitting} className={btnPrimary}>{formSubmitting ? 'Registrando…' : 'Registrar transacción'}</button>
             </div>
           </form>
         </Modal>
@@ -1815,7 +1884,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-amber-500" />
-              <h3 className="text-sm font-semibold text-white">{translate('Migration: extra insurance on bookings')}</h3>
+              <h3 className="text-sm font-semibold text-white">{translate('Migración: seguro extra en reservas')}</h3>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -1827,9 +1896,9 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition"
               >
                 {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copiedSql ? 'Copied' : 'Copy SQL'}
+                {copiedSql ? 'Copiado' : 'Copiar SQL'}
               </button>
-              <button onClick={() => setIsSqlModalOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-lg" aria-label="Close">
+              <button onClick={() => setIsSqlModalOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-lg" aria-label="Cerrar">
                 <X className="w-5 h-5" />
               </button>
             </div>

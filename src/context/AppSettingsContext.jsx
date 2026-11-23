@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { fetchPublicSiteContent, savePublicPageContent } from '@/services/publicSiteContent.js';
 
 // Default agency invoice settings
 export const DEFAULT_INVOICE_SETTINGS = {
@@ -372,6 +373,8 @@ const SETTINGS_KEY = 'ha_agency_settings';
 const AppSettingsContext = createContext(null);
 
 export function AppSettingsProvider({ children }) {
+  const [hydratedFromDatabase, setHydratedFromDatabase] = useState(false);
+
   // Load initial settings from localStorage or fallback
   const [settings, setSettings] = useState(() => {
     try {
@@ -380,7 +383,7 @@ export function AppSettingsProvider({ children }) {
         const parsed = JSON.parse(stored);
         return {
           agencyName: parsed.agencyName || 'Habibi Adventure',
-          contactEmail: parsed.contactEmail || 'contact@skyview-travel.com',
+          contactEmail: parsed.contactEmail || 'habibiadventure.26@gmail.com',
           timezone: parsed.timezone || 'Africa/Casablanca (UTC+1)',
           currency: parsed.currency || 'MAD',
           adminLanguage: parsed.adminLanguage || 'en',
@@ -393,7 +396,7 @@ export function AppSettingsProvider({ children }) {
 
     return {
       agencyName: 'Habibi Adventure',
-      contactEmail: 'contact@skyview-travel.com',
+      contactEmail: 'habibiadventure.26@gmail.com',
       timezone: 'Africa/Casablanca (UTC+1)',
       currency: 'MAD',
       adminLanguage: 'en',
@@ -401,7 +404,32 @@ export function AppSettingsProvider({ children }) {
     };
   });
 
-  // Keep localStorage updated whenever settings change
+  useEffect(() => {
+    let active = true;
+    fetchPublicSiteContent()
+      .then((content) => {
+        if (!active || !content?.agencySettings || Object.keys(content.agencySettings).length === 0) return;
+        const saved = content.agencySettings;
+        setSettings((current) => ({
+          ...current,
+          agencyName: saved.agencyName || current.agencyName,
+          contactEmail: saved.contactEmail || current.contactEmail,
+          timezone: saved.timezone || current.timezone,
+          currency: saved.currency || current.currency,
+          adminLanguage: saved.adminLanguage || current.adminLanguage,
+          invoice: mergeInvoiceSettings(saved.invoice || current.invoice),
+        }));
+      })
+      .catch((error) => {
+        console.warn('Could not load agency settings from the database:', error);
+      })
+      .finally(() => {
+        if (active) setHydratedFromDatabase(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  // Keep browser cache and database synchronized.
   useEffect(() => {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -409,7 +437,15 @@ export function AppSettingsProvider({ children }) {
     } catch (e) {
       console.error('Failed to save settings:', e);
     }
-  }, [settings]);
+
+    if (!hydratedFromDatabase) return undefined;
+    const timeout = window.setTimeout(() => {
+      savePublicPageContent('agencySettings', settings).catch((error) => {
+        console.error('Could not save agency settings to the database:', error);
+      });
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [settings, hydratedFromDatabase]);
 
   // Update specific section or field
   const updateSettings = (updates) => {
@@ -441,7 +477,7 @@ export function AppSettingsProvider({ children }) {
   const resetSettings = () => {
     const defaults = {
       agencyName: 'Habibi Adventure',
-      contactEmail: 'contact@skyview-travel.com',
+      contactEmail: 'habibiadventure.26@gmail.com',
       timezone: 'Africa/Casablanca (UTC+1)',
       currency: 'MAD',
       adminLanguage: 'en',

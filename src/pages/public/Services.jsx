@@ -1,64 +1,91 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Route, BedDouble, Car, Compass, Mountain, Users, Heart, FileCheck, Headphones,
   Check, Plus, ArrowRight, X, PackageOpen, Wrench, Wand2, MessageCircle, Sparkles,
+  MapPin, Shield, Star,
 } from 'lucide-react';
+import {
+  DEFAULT_SERVICES_CONTENT,
+  fetchPublicSiteContent,
+} from '@/services/publicSiteContent.js';
 
-/* ------------------------------------------------------------------ */
-/*  Content. Placeholder copy: replace with what you actually offer.   */
-/* ------------------------------------------------------------------ */
-const CATEGORIES = [
-  { id: 'all', label: 'All services' },
-  { id: 'plan', label: 'Planning' },
-  { id: 'stay', label: 'Stays' },
-  { id: 'move', label: 'Getting around' },
-  { id: 'experience', label: 'Experiences' },
-  { id: 'support', label: 'Support' },
-];
+const ICON_MAP = {
+  Route,
+  BedDouble,
+  Car,
+  Compass,
+  Mountain,
+  Users,
+  Heart,
+  FileCheck,
+  Headphones,
+  PackageOpen,
+  Wrench,
+  Wand2,
+  Sparkles,
+  MapPin,
+  Shield,
+  Star,
+};
 
-const SERVICES = [
-  { id: 'itineraries', category: 'plan', icon: Route, title: 'Custom itineraries', text: 'A day-by-day plan built around your dates, pace and budget, with room to change it.', includes: ['Route and timing', 'Stay and activity picks', 'Fixed, written price'], goodFor: 'First visits and complex routes' },
-  { id: 'groups', category: 'plan', icon: Users, title: 'Group and corporate trips', text: 'Family reunions, team retreats and friend groups, handled from first quote to last transfer.', includes: ['One point of contact', 'Group rates', 'Shared payment options'], goodFor: '6 or more travelers' },
-  { id: 'celebrations', category: 'plan', icon: Heart, title: 'Honeymoons and celebrations', text: 'Private dinners, rooftop breakfasts and quiet stays for the moments worth marking.', includes: ['Romantic stays', 'Surprise arrangements', 'Photographer on request'], goodFor: 'Honeymoons, anniversaries, birthdays' },
-  { id: 'stays', category: 'stay', icon: BedDouble, title: 'Riads, hotels and villas', text: 'Places we’ve visited ourselves, from courtyard riads to private pool villas.', includes: ['Handpicked properties', 'Room upgrades where we can', 'Late check-in coordination'], goodFor: 'Anyone who wants a stay with character' },
-  { id: 'transfers', category: 'move', icon: Car, title: 'Private transfers', text: 'Airport pickups and city-to-city rides in clean, air-conditioned cars with a driver who waits.', includes: ['Meet and greet', 'Flight tracking', 'Child seats on request'], goodFor: 'Arrivals, departures, long drives' },
-  { id: 'driver', category: 'move', icon: Compass, title: 'Car with a driver', text: 'Keep a driver for the day or the week and change the plan as you go.', includes: ['Local driver-guide', 'Flexible stops', 'Fuel and tolls included'], goodFor: 'Families and photographers' },
-  { id: 'tours', category: 'experience', icon: Compass, title: 'Guided tours', text: 'Medina walks, food tours and day trips led by people who live there.', includes: ['Licensed local guides', 'Small groups or private', 'Tastings and tickets sorted'], goodFor: 'Culture, food and history' },
-  { id: 'treks', category: 'experience', icon: Mountain, title: 'Desert and mountain treks', text: 'Camel treks, Atlas hikes and nights in camps run by partner families.', includes: ['Camp or lodge stay', 'Guides and gear', 'Meals on the trail'], goodFor: 'Adventure and big landscapes' },
-  { id: 'documents', category: 'support', icon: FileCheck, title: 'Entry and document guidance', text: 'A checklist of what you need to enter and move around, so nothing surprises you at the border.', includes: ['Document checklist', 'Booking letters', 'Pointers to official sources'], goodFor: 'International first-timers' },
-  { id: 'support', category: 'support', icon: Headphones, title: '24/7 trip support', text: 'A real person on call from the moment you land until you’re home.', includes: ['Phone and WhatsApp', 'Rebooking help', 'Local emergency contacts'], goodFor: 'Every trip we book' },
-];
-
-const WAYS = [
-  { icon: PackageOpen, title: 'Book a ready-made package', text: 'Pick a trip from the catalog, choose a departure date and request it. Fastest way to go.', cta: 'Browse packages', to: '/packages' },
-  { icon: Wrench, title: 'Tweak a package', text: 'Like a trip but want one more night, a different stay or a private guide? We’ll adjust and re-price it.', cta: 'Ask for changes', to: '/contact?topic=Custom%20itinerary%20or%20group' },
-  { icon: Wand2, title: 'Build it from scratch', text: 'Choose the services you need above and we’ll assemble a plan around them.', cta: 'Start with services', to: '#catalog' },
-];
+function DynamicIcon({ name, className = 'h-6 w-6' }) {
+  const Comp = ICON_MAP[name] || Compass;
+  return <Comp className={className} strokeWidth={1.6} />;
+}
 
 const display = { fontFamily: "'Fraunces', Georgia, serif" };
 const body = { fontFamily: "'Manrope', system-ui, sans-serif" };
 const ring = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a24b]';
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
 export default function ServicesPage() {
   const { t } = useTranslation();
+  const [content, setContent] = useState(DEFAULT_SERVICES_CONTENT);
   const [category, setCategory] = useState('all');
   const [selected, setSelected] = useState(() => new Set());
 
+  useEffect(() => {
+    let active = true;
+    fetchPublicSiteContent()
+      .then((data) => {
+        if (active && data.services) {
+          setContent(data.services);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load public services:', err);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const categories = useMemo(() => {
+    const list = content.categories || DEFAULT_SERVICES_CONTENT.categories;
+    return [{ id: 'all', label: 'All services' }, ...list];
+  }, [content.categories]);
+
+  const servicesList = useMemo(() => {
+    return content.services && content.services.length > 0
+      ? content.services
+      : DEFAULT_SERVICES_CONTENT.services;
+  }, [content.services]);
+
+  const waysList = useMemo(() => {
+    return content.ways && content.ways.length > 0
+      ? content.ways
+      : DEFAULT_SERVICES_CONTENT.ways;
+  }, [content.ways]);
+
   const visible = useMemo(
-    () => (category === 'all' ? SERVICES : SERVICES.filter((s) => s.category === category)),
-    [category],
+    () => (category === 'all' ? servicesList : servicesList.filter((s) => s.category === category)),
+    [category, servicesList],
   );
 
   const counts = useMemo(() => {
-    const c = { all: SERVICES.length };
-    SERVICES.forEach((s) => { c[s.category] = (c[s.category] || 0) + 1; });
+    const c = { all: servicesList.length };
+    servicesList.forEach((s) => { c[s.category] = (c[s.category] || 0) + 1; });
     return c;
-  }, []);
+  }, [servicesList]);
 
   const toggle = (id) =>
     setSelected((prev) => {
@@ -67,11 +94,14 @@ export default function ServicesPage() {
       return next;
     });
 
-  const chosen = SERVICES.filter((s) => selected.has(s.id));
+  const chosen = servicesList.filter((s) => selected.has(s.id));
   const quoteLink = `/contact?${new URLSearchParams({
     topic: 'Custom itinerary or group',
     services: chosen.map((s) => s.title).join(', '),
   }).toString()}`;
+
+  const hero = content.hero || DEFAULT_SERVICES_CONTENT.hero;
+  const cta = content.cta || DEFAULT_SERVICES_CONTENT.cta;
 
   return (
     <div className={`min-h-screen bg-[#f3f6f1] text-slate-700 antialiased ${chosen.length ? 'pb-28' : ''}`} style={body}>
@@ -88,7 +118,7 @@ export default function ServicesPage() {
       <header className="relative isolate overflow-hidden bg-[#082a1f] pb-44 pt-36 text-white sm:pt-44">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#082a1f] via-[#0f3d2e] to-[#1f6b4f]" />
         <img
-          src="/images/services-hero.jpg"
+          src={hero.image || '/images/services-hero.jpg'}
           alt=""
           onError={(e) => (e.currentTarget.style.display = 'none')}
           className="absolute inset-0 -z-10 h-full w-full object-cover opacity-55"
@@ -98,11 +128,16 @@ export default function ServicesPage() {
         <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#f3f6f1] to-transparent" />
 
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <h1 className="rise max-w-3xl text-5xl leading-[1.05] sm:text-6xl lg:text-7xl" style={display}>
-            {t('Everything a trip needs, handled')}
+          {hero.badge && (
+            <p className="rise text-xs font-semibold uppercase tracking-widest text-[#e6c877]">
+              {t(hero.badge)}
+            </p>
+          )}
+          <h1 className="rise mt-3 max-w-3xl text-5xl leading-[1.05] sm:text-6xl lg:text-7xl" style={display}>
+            {t(hero.title)}
           </h1>
           <p className="rise mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg" style={{ animationDelay: '.2s' }}>
-            {t('Take a ready-made package, or pick only the services you want. Add what you need to a request and we’ll send one clear quote.')}
+            {t(hero.description)}
           </p>
         </div>
       </header>
@@ -111,7 +146,7 @@ export default function ServicesPage() {
       <section id="catalog" className="relative z-10 mx-auto -mt-32 max-w-7xl scroll-mt-24 px-5 lg:px-8" aria-label={t('Browse services')}>
         <div className="rounded-3xl bg-white p-3 shadow-2xl shadow-[#082a1f]/15 ring-1 ring-[#0f3d2e]/5 sm:p-4">
           <div role="tablist" aria-label={t('Service categories')} className="flex gap-2 overflow-x-auto">
-            {CATEGORIES.map(({ id, label }) => {
+            {categories.map(({ id, label }) => {
               const active = category === id;
               return (
                 <button
@@ -137,28 +172,34 @@ export default function ServicesPage() {
         </p>
 
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {visible.map(({ id, icon: Icon, title, text, includes, goodFor }) => {
+          {visible.map(({ id, icon, title, text, includes = [], goodFor }) => {
             const on = selected.has(id);
             return (
               <li key={id}>
                 <article className={`flex h-full flex-col rounded-3xl bg-white p-7 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#0f3d2e]/10 ${on ? 'ring-2 ring-[#c9a24b]' : 'ring-1 ring-[#0f3d2e]/10'}`}>
                   <div className="flex items-start justify-between gap-3">
-                    <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0f3d2e] text-[#e6c877]"><Icon className="h-6 w-6" strokeWidth={1.6} /></span>
+                    <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0f3d2e] text-[#e6c877]">
+                      <DynamicIcon name={icon} className="h-6 w-6" />
+                    </span>
                     {on && <span className="inline-flex items-center gap-1 rounded-full bg-[#c9a24b]/20 px-3 py-1 text-xs font-semibold text-[#7a5c17]"><Check className="h-3 w-3" strokeWidth={3} /> {t('In your request')}</span>}
                   </div>
                   <h2 className="mt-5 text-2xl leading-snug text-[#0a2a20]" style={display}>{t(title)}</h2>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">{t(text)}</p>
 
-                  <ul className="mt-5 space-y-2 border-t border-[#0f3d2e]/10 pt-5">
-                    {includes.map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                        <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#c9a24b] text-[#082a1f]"><Check className="h-2.5 w-2.5" strokeWidth={3.5} /></span>
-                        {t(item)}
-                      </li>
-                    ))}
-                  </ul>
+                  {includes && includes.length > 0 && (
+                    <ul className="mt-5 space-y-2 border-t border-[#0f3d2e]/10 pt-5">
+                      {includes.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-700">
+                          <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#c9a24b] text-[#082a1f]"><Check className="h-2.5 w-2.5" strokeWidth={3.5} /></span>
+                          {t(item)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
-                  <p className="mt-5 text-xs text-slate-500"><span className="font-semibold text-slate-700">{t('Good for:')}</span> {t(goodFor)}</p>
+                  {goodFor && (
+                    <p className="mt-5 text-xs text-slate-500"><span className="font-semibold text-slate-700">{t('Good for:')}</span> {t(goodFor)}</p>
+                  )}
 
                   <button
                     onClick={() => toggle(id)}
@@ -176,25 +217,29 @@ export default function ServicesPage() {
       </main>
 
       {/* WAYS TO BOOK */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
-          <h2 className="max-w-2xl text-4xl leading-tight text-[#0a2a20] sm:text-5xl" style={display}>{t('Three ways to book with us')}</h2>
-          <ul className="mt-12 grid gap-6 md:grid-cols-3">
-            {WAYS.map(({ icon: Icon, title, text, cta, to }) => (
-              <li key={title} className="flex flex-col rounded-3xl bg-[#f3f6f1] p-8">
-                <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#0f3d2e] ring-1 ring-[#c9a24b]/60"><Icon className="h-5 w-5" strokeWidth={1.6} /></span>
-                <h3 className="mt-5 text-2xl text-[#0a2a20]" style={display}>{t(title)}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{t(text)}</p>
-                {to.startsWith('#') ? (
-                  <a href={to} className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>{t(cta)} <ArrowRight className="h-4 w-4" /></a>
-                ) : (
-                  <Link to={to} className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>{t(cta)} <ArrowRight className="h-4 w-4" /></Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      {waysList && waysList.length > 0 && (
+        <section className="bg-white">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
+            <h2 className="max-w-2xl text-4xl leading-tight text-[#0a2a20] sm:text-5xl" style={display}>{t('Three ways to book with us')}</h2>
+            <ul className="mt-12 grid gap-6 md:grid-cols-3">
+              {waysList.map(({ icon, title, text, cta: ctaText, to }) => (
+                <li key={title} className="flex flex-col rounded-3xl bg-[#f3f6f1] p-8">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#0f3d2e] ring-1 ring-[#c9a24b]/60">
+                    <DynamicIcon name={icon} className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 text-2xl text-[#0a2a20]" style={display}>{t(title)}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{t(text)}</p>
+                  {to.startsWith('#') ? (
+                    <a href={to} className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>{t(ctaText)} <ArrowRight className="h-4 w-4" /></a>
+                  ) : (
+                    <Link to={to} className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>{t(ctaText)} <ArrowRight className="h-4 w-4" /></Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
@@ -202,11 +247,11 @@ export default function ServicesPage() {
           <div className="absolute -right-16 -top-16 -z-10 h-72 w-72 rounded-full bg-[#c9a24b]/25 blur-3xl" />
           <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
             <div>
-              <p className="flex items-center gap-2 text-sm font-medium text-[#e6c877]"><Sparkles className="h-4 w-4" /> {t('Not sure what you need?')}</p>
-              <h2 className="mt-3 max-w-xl text-4xl leading-tight sm:text-5xl" style={display}>{t('Describe the trip and we’ll suggest the rest')}</h2>
+              <p className="flex items-center gap-2 text-sm font-medium text-[#e6c877]"><Sparkles className="h-4 w-4" /> {t(cta.kicker)}</p>
+              <h2 className="mt-3 max-w-xl text-4xl leading-tight sm:text-5xl" style={display}>{t(cta.title)}</h2>
             </div>
-            <Link to="/contact" className={`inline-flex items-center gap-2 rounded-full bg-[#c9a24b] px-7 py-4 text-sm font-bold text-[#082a1f] transition hover:bg-[#e6c877] ${ring}`}>
-              <MessageCircle className="h-4 w-4" /> {t('Talk to a planner')}
+            <Link to={cta.buttonLink || '/contact'} className={`inline-flex items-center gap-2 rounded-full bg-[#c9a24b] px-7 py-4 text-sm font-bold text-[#082a1f] transition hover:bg-[#e6c877] ${ring}`}>
+              <MessageCircle className="h-4 w-4" /> {t(cta.buttonText || 'Talk to a planner')}
             </Link>
           </div>
         </div>

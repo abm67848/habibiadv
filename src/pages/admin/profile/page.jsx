@@ -1,132 +1,181 @@
-import { useAppSettings, translate } from '@/context/index.jsx';
+import { translate } from '@/context/index.jsx';
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  User,
-  Mail,
-  Lock,
-  Camera,
-  Save,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Shield,
-  Clock,
-  Hash,
-  Phone,
-  Briefcase,
-  Building2,
-  Star,
-  RefreshCw,
-  Upload,
+  User, Mail, Lock, Camera, Save, Eye, EyeOff, CheckCircle2, XCircle, AlertCircle, Shield,
+  Clock, Hash, Phone, Briefcase, Building2, Star, RefreshCw, Upload, KeyRound, IdCard,
 } from 'lucide-react';
 import { useAuth } from '../../../context/index.jsx';
 import { supabase } from '../../../lib/supabase/client.jsx';
 
-/* ─────────────────────────── helpers ─────────────────────────── */
+/* ---------- Shared style tokens ---------- */
+const inputCls =
+  'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 ' +
+  'focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition';
+const labelCls = 'block text-xs font-medium text-slate-600 mb-1.5';
+const btnGhost =
+  'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition';
+const btnPrimary =
+  'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-500 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+
+/* ---------- Helpers ---------- */
 function fmtDate(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-GB', {
+  return new Date(iso).toLocaleString('es-ES', {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }
 
-function Alert({ type = 'info', children }) {
+const ROLE_LABELS = {
+  super_admin: 'Superadministrador',
+  admin: 'Administrador',
+  manager: 'Gerente',
+  agent: 'Agente',
+  staff: 'Personal',
+  accountant: 'Contable',
+};
+const roleLabel = (r = '') =>
+  ROLE_LABELS[r] || r.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+/* ---------- Small presentational pieces ---------- */
+function Banner({ type = 'info', children }) {
   const cfg = {
-    success: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', Icon: CheckCircle },
-    error:   { bg: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-800',    Icon: XCircle },
-    info:    { bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800',   Icon: AlertCircle },
+    success: { cls: 'bg-emerald-50 border-emerald-200 text-emerald-800', Icon: CheckCircle2, icon: 'text-emerald-600', role: 'status' },
+    error: { cls: 'bg-rose-50 border-rose-200 text-rose-800', Icon: XCircle, icon: 'text-rose-600', role: 'alert' },
+    info: { cls: 'bg-amber-50 border-amber-200 text-amber-800', Icon: AlertCircle, icon: 'text-amber-600', role: 'status' },
   }[type];
-  const { bg, border, text, Icon } = cfg;
+  const { cls, Icon, icon, role } = cfg;
   return (
-    <div className={`flex items-start gap-2.5 rounded-lg border ${border} ${bg} px-4 py-3 text-xs ${text} font-medium`}>
-      <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+    <div role={role} className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm rp-pop ${cls}`}>
+      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${icon}`} />
       <span>{children}</span>
     </div>
   );
 }
 
-/* ─────────────────────────── main component ─────────────────────────── */
+function Card({ children, className = '' }) {
+  return <section className={`bg-white rounded-xl border border-slate-200/80 p-6 ${className}`}>{children}</section>;
+}
+
+function SectionTitle({ icon: Icon, children, aside }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+        <Icon className="w-4 h-4 text-amber-600" /> {children}
+      </h2>
+      {aside}
+    </div>
+  );
+}
+
+function IconInput({ icon: Icon, id, className = '', children, ...props }) {
+  return (
+    <div className="relative">
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+      <input id={id} {...props} className={`${inputCls} pl-9 ${className}`} />
+      {children}
+    </div>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value, mono = false, valueColor = 'text-slate-800' }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-stone-50/60 px-4 py-3">
+      <Icon className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs text-slate-500">{label}</p>
+        <p className={`mt-0.5 text-sm ${valueColor} ${mono ? 'font-mono' : 'font-medium'} break-all`}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Page ---------- */
 export default function AdminProfilePage() {
-  const { user, profile, roles, isSuperAdmin, refreshSession } = useAuth();
+  const { user, profile, roles = [], isSuperAdmin, refreshSession } = useAuth();
 
-  /* ── avatar ── */
+  /* avatar */
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [avatarFile, setAvatarFile]       = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
-  const [avatarMsg, setAvatarMsg]         = useState(null);
+  const [avatarMsg, setAvatarMsg] = useState(null);
   const fileInputRef = useRef(null);
+  const objectUrlRef = useRef(null);
 
-  /* ── personal info ── */
-  const [info, setInfo] = useState({
-    full_name:  '',
-    phone:      '',
-    department: '',
-    job_title:  '',
-  });
+  /* personal info */
+  const [info, setInfo] = useState({ full_name: '', phone: '', department: '', job_title: '' });
   const [infoLoading, setInfoLoading] = useState(false);
-  const [infoMsg, setInfoMsg]         = useState(null);
+  const [infoMsg, setInfoMsg] = useState(null);
 
-  /* ── email ── */
-  const [newEmail, setNewEmail]       = useState('');
+  /* email */
+  const [newEmail, setNewEmail] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
-  const [emailMsg, setEmailMsg]       = useState(null);
+  const [emailMsg, setEmailMsg] = useState(null);
 
-  /* ── password ── */
-  const [passwords, setPasswords]       = useState({ newPwd: '', confirmPwd: '' });
-  const [showNew, setShowNew]           = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false);
-  const [pwdLoading, setPwdLoading]     = useState(false);
-  const [pwdMsg, setPwdMsg]             = useState(null);
+  /* password */
+  const [passwords, setPasswords] = useState({ newPwd: '', confirmPwd: '' });
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState(null);
 
-  /* sync profile changes from context */
+  /* sincroniza el perfil del contexto */
   useEffect(() => {
     if (profile) {
       setInfo({
-        full_name:  profile.full_name  || '',
-        phone:      profile.phone      || '',
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
         department: profile.department || '',
-        job_title:  profile.job_title  || '',
+        job_title: profile.job_title || '',
       });
       setAvatarPreview(profile.avatar_url || null);
     }
   }, [profile]);
 
-  /* ── initials avatar ── */
+  /* libera la URL temporal de la imagen al desmontar */
+  useEffect(() => () => {
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+  }, []);
+
   const displayName = info.full_name || user?.email?.split('@')[0] || 'Admin';
   const initials = displayName
     .split(' ')
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
-    .join('');
+    .join('') || '?';
+
+  const infoChanged =
+    info.full_name.trim() !== (profile?.full_name || '') ||
+    info.phone.trim() !== (profile?.phone || '') ||
+    info.department.trim() !== (profile?.department || '') ||
+    info.job_title.trim() !== (profile?.job_title || '');
 
   /* ═══════════════════ HANDLERS ═══════════════════ */
 
-  /* avatar file pick */
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      setAvatarMsg({ type: 'error', text: 'Image must be under 2 MB.' });
+      setAvatarMsg({ type: 'error', text: 'La imagen debe pesar menos de 2 MB.' });
       return;
     }
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = URL.createObjectURL(file);
     setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarPreview(objectUrlRef.current);
     setAvatarMsg(null);
   }
 
-  /* upload avatar */
   async function handleAvatarUpload() {
     if (!avatarFile || !user) return;
     setAvatarLoading(true);
     setAvatarMsg(null);
     try {
-      const ext  = avatarFile.name.split('.').pop();
+      const ext = avatarFile.name.split('.').pop();
       const path = `${user.id}/avatar.${ext}`;
 
-      /* try Supabase Storage first */
+      /* primero intenta Supabase Storage */
       const { error: storageErr } = await supabase.storage
         .from('avatars')
         .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
@@ -136,7 +185,7 @@ export default function AdminProfilePage() {
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
         avatarUrl = urlData?.publicUrl;
       } else {
-        /* fallback: base64 inline in profiles table */
+        /* alternativa: base64 dentro de la tabla profiles */
         avatarUrl = await new Promise((res) => {
           const reader = new FileReader();
           reader.onloadend = () => res(reader.result);
@@ -151,16 +200,15 @@ export default function AdminProfilePage() {
 
       if (updateErr) throw updateErr;
       await refreshSession();
-      setAvatarMsg({ type: 'success', text: 'Profile picture updated!' });
+      setAvatarMsg({ type: 'success', text: '¡Foto de perfil actualizada!' });
       setAvatarFile(null);
     } catch (err) {
-      setAvatarMsg({ type: 'error', text: err.message || 'Upload failed.' });
+      setAvatarMsg({ type: 'error', text: err.message || 'No se pudo subir la imagen.' });
     } finally {
       setAvatarLoading(false);
     }
   }
 
-  /* save personal info */
   async function handleSaveInfo(e) {
     e.preventDefault();
     if (!user) return;
@@ -170,27 +218,26 @@ export default function AdminProfilePage() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name:  info.full_name.trim(),
-          phone:      info.phone.trim(),
+          full_name: info.full_name.trim(),
+          phone: info.phone.trim(),
           department: info.department.trim(),
-          job_title:  info.job_title.trim(),
+          job_title: info.job_title.trim(),
         })
         .eq('id', user.id);
       if (error) throw error;
       await refreshSession();
-      setInfoMsg({ type: 'success', text: 'Personal information saved.' });
+      setInfoMsg({ type: 'success', text: 'Información personal guardada.' });
     } catch (err) {
-      setInfoMsg({ type: 'error', text: err.message || 'Could not save changes.' });
+      setInfoMsg({ type: 'error', text: err.message || 'No se pudieron guardar los cambios.' });
     } finally {
       setInfoLoading(false);
     }
   }
 
-  /* change email */
   async function handleEmailChange(e) {
     e.preventDefault();
     if (!newEmail || !newEmail.includes('@')) {
-      setEmailMsg({ type: 'error', text: 'Enter a valid email address.' });
+      setEmailMsg({ type: 'error', text: 'Introduce un correo electrónico válido.' });
       return;
     }
     setEmailLoading(true);
@@ -198,24 +245,23 @@ export default function AdminProfilePage() {
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
-      setEmailMsg({ type: 'success', text: 'Confirmation sent — check your new inbox to confirm the change.' });
+      setEmailMsg({ type: 'success', text: 'Confirmación enviada: revisa tu nueva bandeja de entrada para confirmar el cambio.' });
       setNewEmail('');
     } catch (err) {
-      setEmailMsg({ type: 'error', text: err.message || 'Could not update email.' });
+      setEmailMsg({ type: 'error', text: err.message || 'No se pudo actualizar el correo.' });
     } finally {
       setEmailLoading(false);
     }
   }
 
-  /* change password */
   async function handlePasswordChange(e) {
     e.preventDefault();
     if (passwords.newPwd.length < 8) {
-      setPwdMsg({ type: 'error', text: 'Password must be at least 8 characters.' });
+      setPwdMsg({ type: 'error', text: 'La contraseña debe tener al menos 8 caracteres.' });
       return;
     }
     if (passwords.newPwd !== passwords.confirmPwd) {
-      setPwdMsg({ type: 'error', text: 'Passwords do not match.' });
+      setPwdMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
       return;
     }
     setPwdLoading(true);
@@ -223,328 +269,288 @@ export default function AdminProfilePage() {
     try {
       const { error } = await supabase.auth.updateUser({ password: passwords.newPwd });
       if (error) throw error;
-      setPwdMsg({ type: 'success', text: 'Password updated successfully.' });
+      setPwdMsg({ type: 'success', text: 'Contraseña actualizada correctamente.' });
       setPasswords({ newPwd: '', confirmPwd: '' });
     } catch (err) {
-      setPwdMsg({ type: 'error', text: err.message || 'Could not update password.' });
+      setPwdMsg({ type: 'error', text: err.message || 'No se pudo actualizar la contraseña.' });
     } finally {
       setPwdLoading(false);
     }
   }
 
-  /* password strength */
+  /* fortaleza de la contraseña */
   const pwdStrength = (() => {
     const p = passwords.newPwd;
     if (!p) return 0;
     let s = 0;
-    if (p.length >= 8)          s++;
-    if (/[A-Z]/.test(p))        s++;
-    if (/[0-9]/.test(p))        s++;
+    if (p.length >= 8) s++;
+    if (/[A-Z]/.test(p)) s++;
+    if (/[0-9]/.test(p)) s++;
     if (/[^A-Za-z0-9]/.test(p)) s++;
     return s;
   })();
-  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][pwdStrength];
-  const strengthColor = ['', 'bg-rose-400', 'bg-amber-400', 'bg-blue-400', 'bg-emerald-500'][pwdStrength];
+  const strengthLabel = ['', 'Débil', 'Aceptable', 'Buena', 'Fuerte'][pwdStrength];
+  const strengthBar = ['', 'bg-rose-400', 'bg-amber-400', 'bg-sky-400', 'bg-emerald-500'][pwdStrength];
+  const strengthText = ['', 'text-rose-600', 'text-amber-600', 'text-sky-600', 'text-emerald-600'][pwdStrength];
 
-  /* ─────────────────────── UI ─────────────────────── */
+  const personalFields = [
+    { key: 'full_name', label: 'Nombre completo', Icon: User, placeholder: 'Tu nombre completo', autoComplete: 'name' },
+    { key: 'phone', label: 'Teléfono', Icon: Phone, placeholder: '+212 600000000', autoComplete: 'tel', type: 'tel' },
+    { key: 'department', label: 'Departamento', Icon: Building2, placeholder: 'p. ej. Operaciones', autoComplete: 'organization' },
+    { key: 'job_title', label: 'Cargo', Icon: Briefcase, placeholder: 'p. ej. Consultor de viajes', autoComplete: 'organization-title' },
+  ];
+
+  /* ---------- Render ---------- */
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 md:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="min-h-screen bg-stone-50">
+      <style>{`
+        @keyframes rp-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+        .rp-pop { animation: rp-pop .16s ease-out; }
+        @media (prefers-reduced-motion: reduce) { .rp-pop { animation-duration: 1ms; } }
+      `}</style>
 
-        {/* ── Page Header ── */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow">
-            <User className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">{translate('My Profile')}</h1>
-            <p className="text-xs text-slate-500">{translate('Manage your account settings and personal information')}</p>
-          </div>
+      <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Mi perfil')}</h1>
+          <p className="text-sm text-slate-500 mt-1">{translate('Gestiona los ajustes de tu cuenta y tu información personal.')}</p>
         </div>
 
-        {/* ════════════════════════════════════════
-            SECTION 1 — Avatar + Personal Info
-        ════════════════════════════════════════ */}
+        {/* Avatar + información personal */}
         <div className="grid gap-6 md:grid-cols-5">
-
-          {/* ── Avatar Card ── */}
-          <div className="md:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col items-center gap-4">
-            <h2 className="self-start text-xs font-semibold uppercase tracking-widest text-slate-500">{translate('Profile Picture')}</h2>
+          <Card className="md:col-span-2 flex flex-col items-center gap-4">
+            <div className="self-stretch">
+              <SectionTitle icon={Camera}>{translate('Foto de perfil')}</SectionTitle>
+            </div>
 
             <div className="relative">
-              <div className="h-28 w-28 rounded-full overflow-hidden ring-4 ring-amber-100 shadow-md">
+              <div className="h-28 w-28 rounded-full overflow-hidden ring-4 ring-amber-100">
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                  <img src={avatarPreview} alt={`Foto de perfil de ${displayName}`} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-white text-3xl font-bold">
+                  <div className="h-full w-full flex items-center justify-center bg-slate-900 text-amber-100 text-3xl font-semibold">
                     {initials}
                   </div>
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-amber-600 text-white shadow hover:bg-amber-500 transition-colors border-2 border-white"
-                title="Change photo"
+                className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-amber-600 text-white shadow-sm hover:bg-amber-500 transition border-2 border-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                title="Cambiar foto"
+                aria-label="Cambiar foto de perfil"
               >
                 <Camera className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
 
-            <p className="text-[11px] text-slate-400 text-center">{translate('JPG, PNG or WEBP · Max 2 MB')}</p>
+            <p className="text-xs text-slate-400 text-center">{translate('JPG, PNG o WEBP · Máx. 2 MB')}</p>
 
             {avatarFile && (
-              <button
-                onClick={handleAvatarUpload}
-                disabled={avatarLoading}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-60 transition-all shadow-xs"
-              >
-                {avatarLoading
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Upload className="h-3.5 w-3.5" />}
-                {avatarLoading ? 'Uploading…' : 'Save Photo'}
+              <button type="button" onClick={handleAvatarUpload} disabled={avatarLoading} className={btnPrimary}>
+                {avatarLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {avatarLoading ? 'Subiendo…' : 'Guardar foto'}
               </button>
             )}
 
-            {avatarMsg && <Alert type={avatarMsg.type}>{avatarMsg.text}</Alert>}
+            {avatarMsg && <div className="w-full"><Banner type={avatarMsg.type}>{avatarMsg.text}</Banner></div>}
 
-            {/* Role badges */}
-            <div className="w-full pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+            {/* Roles */}
+            <div className="w-full pt-4 border-t border-slate-100 space-y-2">
+              <p className="text-xs font-medium text-slate-600">{translate('Roles asignados')}</p>
               {roles.length > 0 ? roles.map((r) => (
-                <div key={r} className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5">
-                  <Star className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                  <span className="text-[11px] font-semibold text-amber-800 capitalize">{r.replace('_', ' ')}</span>
+                <div key={r} className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                  <Star className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="text-sm font-medium text-amber-900">{roleLabel(r)}</span>
                   {isSuperAdmin && r === 'super_admin' && (
-                    <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-amber-600">{translate('Super')}</span>
+                    <span className="ml-auto text-xs font-semibold text-amber-700">{translate('Acceso total')}</span>
                   )}
                 </div>
               )) : (
-                <p className="text-[11px] text-slate-400 italic">{translate('No roles assigned')}</p>
+                <p className="text-sm text-slate-400">{translate('Sin roles asignados')}</p>
               )}
             </div>
-          </div>
+          </Card>
 
-          {/* ── Personal Info Form ── */}
-          <div className="md:col-span-3 rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">{translate('Personal Information')}</h2>
-            <form onSubmit={handleSaveInfo} className="space-y-4">
+          <Card className="md:col-span-3">
+            <SectionTitle icon={IdCard}>{translate('Información personal')}</SectionTitle>
+            <form onSubmit={handleSaveInfo} className="mt-5 space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  { key: 'full_name',  label: 'Full Name',   Icon: User,      placeholder: 'Your full name' },
-                  { key: 'phone',      label: 'Phone',        Icon: Phone,     placeholder: '+1 234 567 8900' },
-                  { key: 'department', label: 'Department',   Icon: Building2, placeholder: 'e.g. Operations' },
-                  { key: 'job_title',  label: 'Job Title',    Icon: Briefcase, placeholder: 'e.g. Travel Consultant' },
-                ].map(({ key, label, Icon, placeholder }) => (
+                {personalFields.map(({ key, label, Icon, placeholder, autoComplete, type }) => (
                   <div key={key}>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">{label}</label>
-                    <div className="relative">
-                      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <input
-                        value={info[key]}
-                        onChange={(e) => setInfo({ ...info, [key]: e.target.value })}
-                        placeholder={placeholder}
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 transition"
-                      />
-                    </div>
+                    <label htmlFor={`profile-${key}`} className={labelCls}>{label}</label>
+                    <IconInput
+                      id={`profile-${key}`}
+                      icon={Icon}
+                      type={type || 'text'}
+                      autoComplete={autoComplete}
+                      value={info[key]}
+                      onChange={(e) => setInfo({ ...info, [key]: e.target.value })}
+                      placeholder={placeholder}
+                    />
                   </div>
                 ))}
               </div>
 
-              {infoMsg && <Alert type={infoMsg.type}>{infoMsg.text}</Alert>}
+              {infoMsg && <Banner type={infoMsg.type}>{infoMsg.text}</Banner>}
 
-              <button
-                type="submit"
-                disabled={infoLoading}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-60 transition-all shadow-xs"
-              >
-                {infoLoading
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Save className="h-3.5 w-3.5" />}
-                {infoLoading ? 'Saving…' : 'Save Changes'}
-              </button>
+              <div className="flex justify-end pt-5 border-t border-slate-100">
+                <button type="submit" disabled={infoLoading || !infoChanged} className={btnPrimary}>
+                  {infoLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {infoLoading ? 'Guardando…' : 'Guardar cambios'}
+                </button>
+              </div>
             </form>
-          </div>
+          </Card>
         </div>
 
-        {/* ════════════════════════════════════════
-            SECTION 2 — Email + Password
-        ════════════════════════════════════════ */}
+        {/* Correo + contraseña */}
         <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <SectionTitle icon={Mail}>{translate('Cambiar correo electrónico')}</SectionTitle>
 
-          {/* ── Change Email ── */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50">
-                <Mail className="h-3.5 w-3.5 text-blue-600" />
-              </div>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{translate('Change Email')}</h2>
+            <div className="mt-5 rounded-xl border border-slate-200 bg-stone-50/60 px-4 py-3">
+              <p className="text-xs text-slate-500">{translate('Correo actual')}</p>
+              <p className="mt-0.5 text-sm font-medium text-slate-800 break-all">{user?.email || '—'}</p>
             </div>
 
-            <div className="mb-4 rounded-lg border border-slate-100 bg-slate-50 px-3.5 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">{translate('Current Email')}</p>
-              <p className="text-xs font-semibold text-slate-700">{user?.email || '—'}</p>
-            </div>
-
-            <form onSubmit={handleEmailChange} className="space-y-3">
+            <form onSubmit={handleEmailChange} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{translate('New Email Address')}</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="new@email.com"
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 transition"
-                  />
-                </div>
+                <label htmlFor="profile-new-email" className={labelCls}>{translate('Nuevo correo electrónico')}</label>
+                <IconInput
+                  id="profile-new-email"
+                  icon={Mail}
+                  type="email"
+                  autoComplete="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="nuevo@ejemplo.com"
+                />
+                <p className="mt-1.5 text-xs text-slate-400">{translate('Enviaremos un enlace de confirmación a tu nuevo correo.')}</p>
               </div>
 
-              {emailMsg && <Alert type={emailMsg.type}>{emailMsg.text}</Alert>}
+              {emailMsg && <Banner type={emailMsg.type}>{emailMsg.text}</Banner>}
 
-              <button
-                type="submit"
-                disabled={emailLoading || !newEmail}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-60 transition-all shadow-xs"
-              >
-                {emailLoading
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Mail className="h-3.5 w-3.5" />}
-                {emailLoading ? 'Sending…' : 'Update Email'}
-              </button>
-              <p className="text-[10px] text-slate-400">{translate('A confirmation link will be sent to your new email address.')}</p>
+              <div className="flex justify-end pt-5 border-t border-slate-100">
+                <button type="submit" disabled={emailLoading || !newEmail} className={btnPrimary}>
+                  {emailLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  {emailLoading ? 'Enviando…' : 'Actualizar correo'}
+                </button>
+              </div>
             </form>
-          </div>
+          </Card>
 
-          {/* ── Change Password ── */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50">
-                <Lock className="h-3.5 w-3.5 text-violet-600" />
-              </div>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{translate('Change Password')}</h2>
-            </div>
+          <Card>
+            <SectionTitle icon={KeyRound}>{translate('Cambiar contraseña')}</SectionTitle>
 
-            <form onSubmit={handlePasswordChange} className="space-y-3">
+            <form onSubmit={handlePasswordChange} className="mt-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{translate('New Password')}</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={passwords.newPwd}
-                    onChange={(e) => setPasswords({ ...passwords, newPwd: e.target.value })}
-                    placeholder="Min 8 characters"
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-9 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 transition"
-                  />
+                <label htmlFor="profile-new-password" className={labelCls}>{translate('Nueva contraseña')}</label>
+                <IconInput
+                  id="profile-new-password"
+                  icon={Lock}
+                  type={showNew ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={passwords.newPwd}
+                  onChange={(e) => setPasswords({ ...passwords, newPwd: e.target.value })}
+                  placeholder="Mínimo 8 caracteres"
+                >
                   <button
                     type="button"
                     onClick={() => setShowNew(!showNew)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded"
+                    aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    aria-pressed={showNew}
                   >
-                    {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
-                </div>
+                </IconInput>
                 {passwords.newPwd && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-1" aria-live="polite">
                     <div className="flex gap-1">
-                      {[1,2,3,4].map((n) => (
-                        <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= pwdStrength ? strengthColor : 'bg-slate-200'}`} />
+                      {[1, 2, 3, 4].map((n) => (
+                        <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= pwdStrength ? strengthBar : 'bg-slate-200'}`} />
                       ))}
                     </div>
-                    <p className={`text-[10px] font-semibold ${['','text-rose-500','text-amber-500','text-blue-500','text-emerald-600'][pwdStrength]}`}>
-                      {strengthLabel}
-                    </p>
+                    <p className={`text-xs font-medium ${strengthText}`}>Seguridad: {strengthLabel}</p>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{translate('Confirm Password')}</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type={showConfirm ? 'text' : 'password'}
-                    value={passwords.confirmPwd}
-                    onChange={(e) => setPasswords({ ...passwords, confirmPwd: e.target.value })}
-                    placeholder="Repeat new password"
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-9 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 transition"
-                  />
+                <label htmlFor="profile-confirm-password" className={labelCls}>{translate('Confirmar contraseña')}</label>
+                <IconInput
+                  id="profile-confirm-password"
+                  icon={Lock}
+                  type={showConfirm ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={passwords.confirmPwd}
+                  onChange={(e) => setPasswords({ ...passwords, confirmPwd: e.target.value })}
+                  placeholder="Repite la nueva contraseña"
+                >
                   <button
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded"
+                    aria-label={showConfirm ? 'Ocultar confirmación' : 'Mostrar confirmación'}
+                    aria-pressed={showConfirm}
                   >
-                    {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
-                </div>
+                </IconInput>
                 {passwords.confirmPwd && passwords.newPwd !== passwords.confirmPwd && (
-                  <p className="mt-1 text-[10px] font-semibold text-rose-500">{translate('Passwords don\'t match')}</p>
+                  <p className="mt-1.5 text-xs font-medium text-rose-600">{translate('Las contraseñas no coinciden')}</p>
                 )}
               </div>
 
-              {pwdMsg && <Alert type={pwdMsg.type}>{pwdMsg.text}</Alert>}
+              {pwdMsg && <Banner type={pwdMsg.type}>{pwdMsg.text}</Banner>}
 
-              <button
-                type="submit"
-                disabled={pwdLoading || !passwords.newPwd || !passwords.confirmPwd}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-60 transition-all shadow-xs"
-              >
-                {pwdLoading
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Lock className="h-3.5 w-3.5" />}
-                {pwdLoading ? 'Updating…' : 'Update Password'}
-              </button>
+              <div className="flex justify-end pt-5 border-t border-slate-100">
+                <button type="submit" disabled={pwdLoading || !passwords.newPwd || !passwords.confirmPwd} className={btnPrimary}>
+                  {pwdLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                  {pwdLoading ? 'Actualizando…' : 'Actualizar contraseña'}
+                </button>
+              </div>
             </form>
-          </div>
+          </Card>
         </div>
 
-        {/* ════════════════════════════════════════
-            SECTION 3 — Account Information (read-only)
-        ════════════════════════════════════════ */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-          <div className="mb-5 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-              <Shield className="h-3.5 w-3.5 text-slate-600" />
-            </div>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{translate('Account Information')}</h2>
-            <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-100 rounded px-2 py-0.5">{translate('Read-only')}</span>
-          </div>
+        {/* Información de la cuenta (solo lectura) */}
+        <Card>
+          <SectionTitle
+            icon={Shield}
+            aside={
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                {translate('Solo lectura')}
+              </span>
+            }
+          >
+            {translate('Información de la cuenta')}
+          </SectionTitle>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <InfoRow icon={<Hash />}        label="User ID"          value={user?.id ? `${user.id.slice(0,8)}…` : '—'} mono />
-            <InfoRow icon={<Mail />}        label="Auth Provider"    value="Email / Password" />
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <InfoRow icon={Hash} label="ID de usuario" value={user?.id ? `${user.id.slice(0, 8)}…` : '—'} mono />
+            <InfoRow icon={Mail} label="Método de acceso" value="Correo y contraseña" />
             <InfoRow
-              icon={<CheckCircle />}
-              label="Email Confirmed"
-              value={user?.email_confirmed_at ? fmtDate(user.email_confirmed_at) : 'Not confirmed'}
-              valueColor={user?.email_confirmed_at ? 'text-emerald-600' : 'text-rose-500'}
+              icon={CheckCircle2}
+              label="Correo confirmado"
+              value={user?.email_confirmed_at ? fmtDate(user.email_confirmed_at) : 'Sin confirmar'}
+              valueColor={user?.email_confirmed_at ? 'text-emerald-600' : 'text-rose-600'}
             />
-            <InfoRow icon={<Clock />}  label="Last Sign In"    value={fmtDate(user?.last_sign_in_at)} />
-            <InfoRow icon={<Clock />}  label="Account Created" value={fmtDate(user?.created_at)} />
+            <InfoRow icon={Clock} label="Último inicio de sesión" value={fmtDate(user?.last_sign_in_at)} />
+            <InfoRow icon={Clock} label="Cuenta creada" value={fmtDate(user?.created_at)} />
             <InfoRow
-              icon={<Shield />}
-              label="Super Admin"
-              value={isSuperAdmin ? 'Yes' : 'No'}
-              valueColor={isSuperAdmin ? 'text-amber-600 font-bold' : 'text-slate-500'}
+              icon={Shield}
+              label="Superadministrador"
+              value={isSuperAdmin ? 'Sí' : 'No'}
+              valueColor={isSuperAdmin ? 'text-amber-700 font-semibold' : 'text-slate-500'}
             />
           </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-/* ── small info row ── */
-function InfoRow({ icon, label, value, mono = false, valueColor = 'text-slate-800' }) {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3.5 py-3">
-      <div className="mt-0.5 text-slate-400 shrink-0 [&>svg]:h-3.5 [&>svg]:w-3.5">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-        <p className={`mt-0.5 text-xs ${valueColor} ${mono ? 'font-mono' : 'font-medium'} break-all`}>{value}</p>
+        </Card>
       </div>
     </div>
   );

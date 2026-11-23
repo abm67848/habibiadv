@@ -28,15 +28,15 @@ const DEPT_STYLE = {
   IT: 'bg-slate-100 text-slate-700 ring-slate-200',
 };
 const EMPLOYMENT = {
-  active: { label: 'Active', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  probation: { label: 'Probation', dot: 'bg-sky-500', cls: 'bg-sky-50 text-sky-800 ring-sky-200' },
-  on_leave: { label: 'On leave', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  terminated: { label: 'Terminated', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
+  active: { label: 'Activo', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  probation: { label: 'En período de prueba', dot: 'bg-sky-500', cls: 'bg-sky-50 text-sky-800 ring-sky-200' },
+  on_leave: { label: 'De baja', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  terminated: { label: 'Finalizado', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
 };
 const ACCOUNT = {
-  active: { label: 'Active', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  pending: { label: 'Pending Approval', dot: 'bg-amber-500 animate-pulse', cls: 'bg-amber-50 text-amber-900 ring-amber-300 font-semibold' },
-  suspended: { label: 'Suspended', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
+  active: { label: 'Activa', dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  pending: { label: 'Pendiente de aprobación', dot: 'bg-amber-500 animate-pulse', cls: 'bg-amber-50 text-amber-900 ring-amber-300 font-semibold' },
+  suspended: { label: 'Suspendida', dot: 'bg-rose-500', cls: 'bg-rose-50 text-rose-800 ring-rose-200' },
 };
 const toOptions = (map) => Object.entries(map).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
 const EMPLOYMENT_OPTIONS = toOptions(EMPLOYMENT);
@@ -55,7 +55,7 @@ const rolesOf = (e) => (e.user_roles || []).map((r) => r.roles).filter(Boolean);
 
 /* ---------- Styled dropdown (portal menu, keyboard support) ---------- */
 function Select({
-  value, onChange, options, placeholder = 'Select…', searchable = false, prefix, compact = false,
+  value, onChange, options, placeholder = 'Selecciona…', searchable = false, prefix, compact = false,
   disabled = false, ariaLabel, className = '', menuMinWidth = 200, emptyValue = 'all', align = 'left',
 }) {
   const [open, setOpen] = useState(false);
@@ -166,14 +166,14 @@ function Select({
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   ref={searchRef} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }}
-                  placeholder="Filter…" className="w-full rounded-md border border-slate-200 py-1.5 pl-8 pr-2 text-xs text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  placeholder="Filtrar…" className="w-full rounded-md border border-slate-200 py-1.5 pl-8 pr-2 text-xs text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
               </div>
             </div>
           )}
           <ul ref={listRef} role="listbox" tabIndex={-1} className="flex-1 overflow-y-auto p-1 text-sm scrollbar-thin">
             {visible.length === 0 ? (
-              <li className="px-3 py-4 text-center text-xs text-slate-400">{translate('No matches')}</li>
+              <li className="px-3 py-4 text-center text-xs text-slate-400">{translate('Sin coincidencias')}</li>
             ) : visible.map((o, idx) => {
               const isSel = o.value === value;
               const isAct = idx === active;
@@ -302,7 +302,7 @@ export default function TeamDirectory() {
         setPermissionError(null);
       } catch (permissionLoadError) {
         console.error('Error fetching role page permissions:', permissionLoadError);
-        setPermissionError(permissionLoadError.message || 'Could not load saved role page permissions.');
+        setPermissionError(permissionLoadError.message || 'No se pudieron cargar los permisos de página de roles guardados.');
       }
     } catch (e) {
       console.error('Error fetching team data:', e);
@@ -357,11 +357,11 @@ export default function TeamDirectory() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const kpis = useMemo(() => [
-    { label: 'Total team members', value: employees.length, icon: Users, chip: 'bg-slate-100 text-slate-600' },
-    { label: 'Active members', value: employees.filter((e) => e.account_status === 'active').length, icon: UserCheck, chip: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Pending approval', value: pendingEmployees.length, icon: Clock, chip: pendingEmployees.length > 0 ? 'bg-amber-100 text-amber-900 ring-2 ring-amber-400' : 'bg-slate-100 text-slate-600' },
-    { label: 'Managers & Admins', value: employees.filter((e) => rolesOf(e).some((r) => isAdminRole(r.name))).length, icon: ShieldCheck, chip: 'bg-indigo-50 text-indigo-600' },
-    { label: 'Suspended accounts', value: employees.filter((e) => e.account_status === 'suspended').length, icon: ShieldAlert, chip: 'bg-rose-50 text-rose-600' },
+    { label: 'Miembros del equipo', value: employees.length, icon: Users, chip: 'bg-slate-100 text-slate-600' },
+    { label: 'Miembros activos', value: employees.filter((e) => e.account_status === 'active').length, icon: UserCheck, chip: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Pendientes de aprobación', value: pendingEmployees.length, icon: Clock, chip: pendingEmployees.length > 0 ? 'bg-amber-100 text-amber-900 ring-2 ring-amber-400' : 'bg-slate-100 text-slate-600' },
+    { label: 'Managers y administradores', value: employees.filter((e) => rolesOf(e).some((r) => isAdminRole(r.name))).length, icon: ShieldCheck, chip: 'bg-indigo-50 text-indigo-600' },
+    { label: 'Cuentas suspendidas', value: employees.filter((e) => e.account_status === 'suspended').length, icon: ShieldAlert, chip: 'bg-rose-50 text-rose-600' },
   ], [employees, pendingEmployees]);
 
   const hasFilters = search || dept !== 'all' || empStatus !== 'all' || acctStatus !== 'all' || roleFilter !== 'all';
@@ -385,23 +385,23 @@ export default function TeamDirectory() {
       const { error: e } = await supabase.from('profiles').update(patch).in('id', ids);
       if (e) throw e;
       setEmployees((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, ...patch } : p)));
-      notify(okMsg || 'Profile updated.');
-    } catch (e) { notify('Update failed: ' + e.message, 'error'); } finally { setBusy(false); }
+      notify(okMsg || 'Perfil actualizado.');
+    } catch (e) { notify('Error al actualizar: ' + e.message, 'error'); } finally { setBusy(false); }
   };
 
   // 1-Click Approve and Activate Pending Signup
   const approveAndActivate = (emp) => {
-    if (!canApproveAccounts) return notify('Only managers and super admins can approve accounts.', 'error');
+    if (!canApproveAccounts) return notify('Solo los managers y super administradores pueden aprobar cuentas.', 'error');
     if (emp.account_status && emp.account_status !== 'pending') {
-      return notify('Only pending accounts can be approved.', 'error');
+      return notify('Solo las cuentas pendientes pueden aprobarse.', 'error');
     }
     setConfirm({
-      title: `Approve and activate ${emp.full_name}?`,
-      message: `${emp.full_name} will be activated and will immediately have access to log in to the agency portal.`,
-      confirmLabel: 'Approve & Activate',
+      title: `¿Aprobar y activar a ${emp.full_name}?`,
+      message: `${emp.full_name} será activado y podrá iniciar sesión inmediatamente en el portal de la agencia.`,
+      confirmLabel: 'Aprobar y activar',
       tone: 'primary',
       onConfirm: async () => {
-        await patchProfiles([emp.id], { account_status: 'active', employment_status: 'active' }, `Account activated! ${emp.full_name} can now sign in.`);
+        await patchProfiles([emp.id], { account_status: 'active', employment_status: 'active' }, `¡Cuenta activada! ${emp.full_name} ya puede iniciar sesión.`);
         fetchTeam();
       },
     });
@@ -409,50 +409,50 @@ export default function TeamDirectory() {
 
   // Reject / Terminate pending account
   const rejectAccount = (emp) => {
-    if (!canApproveAccounts) return notify('Only managers and super admins can reject accounts.', 'error');
+    if (!canApproveAccounts) return notify('Solo los managers y super administradores pueden rechazar cuentas.', 'error');
     if (emp.account_status && emp.account_status !== 'pending') {
-      return notify('Only pending accounts can be rejected.', 'error');
+      return notify('Solo las cuentas pendientes pueden rechazarse.', 'error');
     }
     setConfirm({
-      title: `Reject account for ${emp.full_name}?`,
-      message: `The pending registration for ${emp.invitation_email || emp.full_name} will be marked as suspended and denied access.`,
-      confirmLabel: 'Reject Account',
+      title: `¿Rechazar la cuenta de ${emp.full_name}?`,
+      message: `El registro pendiente de ${emp.invitation_email || emp.full_name} se marcará como suspendido y se le denegará el acceso.`,
+      confirmLabel: 'Rechazar cuenta',
       tone: 'danger',
       onConfirm: async () => {
-        await patchProfiles([emp.id], { account_status: 'suspended', employment_status: 'terminated' }, `Account rejected for ${emp.full_name}.`);
+        await patchProfiles([emp.id], { account_status: 'suspended', employment_status: 'terminated' }, `Cuenta rechazada para ${emp.full_name}.`);
         fetchTeam();
       },
     });
   };
 
   const toggleSuspend = (emp) => {
-    if (!canManage) return notify('Only managers can change account statuses.', 'error');
-    if (emp.id === user?.id) return notify('You cannot suspend your own account.', 'error');
+    if (!canManage) return notify('Solo los managers pueden cambiar el estado de las cuentas.', 'error');
+    if (emp.id === user?.id) return notify('No puedes suspender tu propia cuenta.', 'error');
     if ((!emp.account_status || emp.account_status === 'pending') && !canApproveAccounts) {
-      return notify('Only managers and super admins can reject pending accounts.', 'error');
+      return notify('Solo los managers y super administradores pueden rechazar cuentas pendientes.', 'error');
     }
     const suspending = emp.account_status !== 'suspended';
     if (!suspending && !canApproveAccounts) {
-      return notify('Only managers and super admins can reactivate accounts.', 'error');
+      return notify('Solo los managers y super administradores pueden reactivar cuentas.', 'error');
     }
     const isLastAdmin = suspending && rolesOf(emp).some((r) => isAdminRole(r.name)) && adminCount <= 1;
-    if (isLastAdmin) return notify('At least one active admin must remain.', 'error');
+    if (isLastAdmin) return notify('Debe permanecer al menos un administrador activo.', 'error');
     setConfirm({
-      title: suspending ? `Suspend ${emp.full_name}?` : `Reactivate ${emp.full_name}?`,
-      message: suspending ? 'They will lose access to the agency portal until reactivated by a manager.' : 'They will regain access according to their role permissions.',
-      confirmLabel: suspending ? 'Suspend account' : 'Activate account', tone: suspending ? 'danger' : 'primary',
-      onConfirm: () => patchProfiles([emp.id], { account_status: suspending ? 'suspended' : 'active' }, suspending ? 'Account suspended.' : 'Account activated.'),
+      title: suspending ? `¿Suspender a ${emp.full_name}?` : `¿Reactivar a ${emp.full_name}?`,
+      message: suspending ? 'Perderá el acceso al portal de la agencia hasta que un manager lo reactive.' : 'Recuperará el acceso según los permisos de su rol.',
+      confirmLabel: suspending ? 'Suspender cuenta' : 'Activar cuenta', tone: suspending ? 'danger' : 'primary',
+      onConfirm: () => patchProfiles([emp.id], { account_status: suspending ? 'suspended' : 'active' }, suspending ? 'Cuenta suspendida.' : 'Cuenta activada.'),
     });
   };
 
   const deleteSuspendedAccount = (emp) => {
-    if (!canManage) return notify('Only managers can delete accounts.', 'error');
-    if (emp.account_status !== 'suspended') return notify('Only suspended accounts can be deleted.', 'error');
-    if (emp.id === user?.id) return notify('You cannot delete your own account.', 'error');
+    if (!canManage) return notify('Solo los managers pueden eliminar cuentas.', 'error');
+    if (emp.account_status !== 'suspended') return notify('Solo las cuentas suspendidas pueden eliminarse.', 'error');
+    if (emp.id === user?.id) return notify('No puedes eliminar tu propia cuenta.', 'error');
     setConfirm({
-      title: `Delete ${emp.full_name || 'this account'}?`,
-      message: 'This will remove the suspended account from the team directory and block sign-in. Its authentication record is retained for audit purposes.',
-      confirmLabel: 'Delete account',
+      title: `¿Eliminar ${emp.full_name || 'esta cuenta'}?`,
+      message: 'Esto eliminará la cuenta suspendida del directorio del equipo y bloqueará el inicio de sesión. Su registro de autenticación se conserva para auditoría.',
+      confirmLabel: 'Eliminar cuenta',
       tone: 'danger',
       onConfirm: async () => {
         setBusy(true);
@@ -466,7 +466,7 @@ export default function TeamDirectory() {
             .select('id')
             .maybeSingle();
           if (deleteError) throw deleteError;
-          if (!data) throw new Error('The account is no longer suspended or has already been deleted.');
+          if (!data) throw new Error('La cuenta ya no está suspendida o ya ha sido eliminada.');
 
           setEmployees((prev) => prev.filter((profile) => profile.id !== emp.id));
           setSelectedIds((prev) => {
@@ -475,9 +475,9 @@ export default function TeamDirectory() {
             return next;
           });
           setSelectedId((prev) => (prev === emp.id ? null : prev));
-          notify('Suspended account deleted from the team directory.');
+          notify('Cuenta suspendida eliminada del directorio del equipo.');
         } catch (deleteError) {
-          notify('Could not delete account: ' + deleteError.message, 'error');
+          notify('No se pudo eliminar la cuenta: ' + deleteError.message, 'error');
         } finally {
           setBusy(false);
         }
@@ -486,57 +486,57 @@ export default function TeamDirectory() {
   };
 
   const bulkSuspend = () => {
-    if (!canManage) return notify('Only managers can perform bulk operations.', 'error');
+    if (!canManage) return notify('Solo los managers pueden realizar operaciones en bloque.', 'error');
     const ids = [...selectedIds].filter((id) => id !== user?.id);
     const pendingSelected = employees.some((emp) => ids.includes(emp.id) && (!emp.account_status || emp.account_status === 'pending'));
     if (pendingSelected && !canApproveAccounts) {
-      return notify('Only managers and super admins can reject pending accounts.', 'error');
+      return notify('Solo los managers y super administradores pueden rechazar cuentas pendientes.', 'error');
     }
     const adminsHit = employees.filter((e) => ids.includes(e.id) && rolesOf(e).some((r) => isAdminRole(r.name))).length;
-    if (adminsHit >= adminCount && adminCount > 0) return notify('This would suspend every admin. Deselect at least one.', 'error');
+    if (adminsHit >= adminCount && adminCount > 0) return notify('Esto suspendería a todos los administradores. Deselecciona al menos uno.', 'error');
     setConfirm({
-      title: `Suspend ${ids.length} account${ids.length === 1 ? '' : 's'}?`, message: 'Your own account is always skipped.',
-      confirmLabel: 'Suspend accounts', tone: 'danger',
-      onConfirm: async () => { await patchProfiles(ids, { account_status: 'suspended' }, 'Accounts suspended.'); setSelectedIds(new Set()); },
+      title: `¿Suspender ${ids.length} cuenta${ids.length === 1 ? '' : 's'}?`, message: 'Tu propia cuenta siempre se omite.',
+      confirmLabel: 'Suspender cuentas', tone: 'danger',
+      onConfirm: async () => { await patchProfiles(ids, { account_status: 'suspended' }, 'Cuentas suspendidas.'); setSelectedIds(new Set()); },
     });
   };
 
   const assignRole = async (emp, roleId) => {
-    if (!canManage || !roleId) return notify('Only managers can assign roles.', 'error');
+    if (!canManage || !roleId) return notify('Solo los managers pueden asignar roles.', 'error');
     setBusy(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
       const { error: e } = await supabase.from('user_roles').insert([{ user_id: emp.id, role_id: roleId, assigned_by: auth?.user?.id }]);
       if (e) throw e;
-      notify('Role assigned successfully.');
+      notify('Rol asignado correctamente.');
       await fetchTeam();
-    } catch (e) { notify('Could not assign role: ' + e.message, 'error'); } finally { setBusy(false); }
+    } catch (e) { notify('No se pudo asignar el rol: ' + e.message, 'error'); } finally { setBusy(false); }
   };
 
   const removeRole = (emp, role) => {
-    if (!canManage) return notify('Only managers can remove roles.', 'error');
+    if (!canManage) return notify('Solo los managers pueden eliminar roles.', 'error');
     if (isAdminRole(role.name)) {
-      if (emp.id === user?.id) return notify('You cannot remove your own admin role.', 'error');
-      if (adminCount <= 1) return notify('At least one active admin must remain.', 'error');
+      if (emp.id === user?.id) return notify('No puedes eliminar tu propio rol de administrador.', 'error');
+      if (adminCount <= 1) return notify('Debe permanecer al menos un administrador activo.', 'error');
     }
     setConfirm({
-      title: `Remove the ${roleLabel(role.name)} role?`, message: `${emp.full_name} will lose the permissions associated with this role.`,
-      confirmLabel: 'Remove role', tone: 'danger',
+      title: `¿Eliminar el rol ${roleLabel(role.name)}?`, message: `${emp.full_name} perderá los permisos asociados a este rol.`,
+      confirmLabel: 'Eliminar rol', tone: 'danger',
       onConfirm: async () => {
         setBusy(true);
         try {
           const { error: e } = await supabase.from('user_roles').delete().match({ user_id: emp.id, role_id: role.id });
           if (e) throw e;
-          notify('Role removed.');
+          notify('Rol eliminado.');
           await fetchTeam();
-        } catch (er) { notify('Could not remove role: ' + er.message, 'error'); } finally { setBusy(false); }
+        } catch (er) { notify('No se pudo eliminar el rol: ' + er.message, 'error'); } finally { setBusy(false); }
       },
     });
   };
 
   const sendInvite = async (e) => {
     e.preventDefault();
-    if (!canManage) return notify('Only managers can invite employees.', 'error');
+    if (!canManage) return notify('Solo los managers pueden invitar empleados.', 'error');
     setBusy(true);
     try {
       const { error: dbErr } = await supabase.from('profiles').insert([{
@@ -544,16 +544,16 @@ export default function TeamDirectory() {
         job_title: invite.job_title.trim() || null, account_status: 'pending', employment_status: 'probation', invitation_status: 'sent',
       }]);
       if (dbErr) throw dbErr;
-      notify('Invitation created with Pending Approval status.');
+      notify('Invitación creada con estado Pendiente de aprobación.');
       setInviteOpen(false);
       setInvite({ email: '', full_name: '', department: 'Sales', job_title: '' });
       fetchTeam();
-    } catch (er) { notify('Could not invite employee: ' + er.message, 'error'); } finally { setBusy(false); }
+    } catch (er) { notify('No se pudo invitar al empleado: ' + er.message, 'error'); } finally { setBusy(false); }
   };
 
   /* ----- Role Page Access Permission Matrix Handlers ----- */
   const handleTogglePageAccess = (roleKey, pagePath) => {
-    if (!canManage) return notify('Only managers can modify page access permissions.', 'error');
+    if (!canManage) return notify('Solo los managers pueden modificar los permisos de acceso a páginas.', 'error');
     if (roleKey === 'super_admin' || roleKey === 'manager') return;
     const currentAllowed = rolePermissions[roleKey] || [];
     const isAllowed = currentAllowed.includes(pagePath);
@@ -570,7 +570,7 @@ export default function TeamDirectory() {
   };
 
   const handleSavePagePermissions = async () => {
-    if (!canManage) return notify('Only managers can save page access permissions.', 'error');
+    if (!canManage) return notify('Solo los managers pueden guardar los permisos de acceso a páginas.', 'error');
     setPermissionSaving(true);
     setPermissionError(null);
     try {
@@ -578,11 +578,11 @@ export default function TeamDirectory() {
       setRolePermissions(savedPermissions);
       setIsPermsSaved(true);
       setTimeout(() => setIsPermsSaved(false), 3500);
-      notify(`Page permissions saved for role: ${roleLabel(selectedRoleForPerms)}. Restricted pages are now hidden and blocked.`);
+      notify(`Permisos de página guardados para el rol: ${roleLabel(selectedRoleForPerms)}. Las páginas restringidas ahora están ocultas y bloqueadas.`);
     } catch (saveError) {
       console.error('Error saving role page permissions:', saveError);
-      setPermissionError(saveError.message || 'Could not save role page permissions.');
-      notify('Could not save role page permissions: ' + (saveError.message || 'Unknown error.'), 'error');
+      setPermissionError(saveError.message || 'No se pudieron guardar los permisos de página de roles.');
+      notify('No se pudieron guardar los permisos de página de roles: ' + (saveError.message || 'Error desconocido.'), 'error');
     } finally {
       setPermissionSaving(false);
     }
@@ -594,24 +594,24 @@ export default function TeamDirectory() {
       setRolePermissions(await fetchRolePagePermissions());
     } catch (loadError) {
       console.error('Error reloading role page permissions:', loadError);
-      setPermissionError(loadError.message || 'Could not load saved role page permissions.');
+      setPermissionError(loadError.message || 'No se pudieron cargar los permisos de página de roles guardados.');
     }
   };
 
   const handleResetRolePermissionsToDefaults = async () => {
     if (!canManage) return;
-    if (window.confirm('Reset all roles to system default page access permissions?')) {
+    if (window.confirm('¿Restablecer todos los roles a los permisos de acceso de página predeterminados del sistema?')) {
       const def = buildDefaultRolePagePermissions();
       setPermissionSaving(true);
       setPermissionError(null);
       try {
         const savedPermissions = await saveRolePagePermissions(def, roles, user?.id);
         setRolePermissions(savedPermissions);
-        notify('Role page access restored to system defaults.');
+        notify('Acceso a páginas por rol restablecido a los valores predeterminados del sistema.');
       } catch (saveError) {
         console.error('Error resetting role page permissions:', saveError);
-        setPermissionError(saveError.message || 'Could not reset role page permissions.');
-        notify('Could not reset role page permissions: ' + (saveError.message || 'Unknown error.'), 'error');
+        setPermissionError(saveError.message || 'No se pudieron restablecer los permisos de página de roles.');
+        notify('No se pudieron restablecer los permisos de página de roles: ' + (saveError.message || 'Error desconocido.'), 'error');
       } finally {
         setPermissionSaving(false);
       }
@@ -636,7 +636,7 @@ export default function TeamDirectory() {
       <div className="flex h-[70vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-sm text-slate-500">
           <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-          <span>{translate('Loading team and role directory…')}</span>
+          <span>{translate('Cargando directorio del equipo y roles…')}</span>
         </div>
       </div>
     );
@@ -666,32 +666,32 @@ export default function TeamDirectory() {
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                TEAM & ACCESS CONTROL
+                EQUIPO Y CONTROL DE ACCESO
               </span>
-              <span className="text-xs text-slate-400">• Manager Security Hub</span>
+              <span className="text-xs text-slate-400">• Centro de seguridad para managers</span>
             </div>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-              {translate('Team Directory & Role Access Control')}
+              {translate('Directorio del equipo y control de acceso por roles')}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {translate('Approve pending staff registrations, assign roles, and restrict page access in real time.')}
+              {translate('Aprueba registros pendientes, asigna roles y restringe el acceso a páginas en tiempo real.')}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={fetchTeam} className={btnGhost} title="Refresh">
-              <RefreshCw className="h-4 w-4" />{translate('Refresh')}
+            <button onClick={fetchTeam} className={btnGhost} title="Actualizar">
+              <RefreshCw className="h-4 w-4" />{translate('Actualizar')}
             </button>
             <button onClick={exportCsv} disabled={!filtered.length} className={btnGhost}>
-              <Download className="h-4 w-4" />{translate('Export CSV')}
+              <Download className="h-4 w-4" />{translate('Exportar CSV')}
             </button>
             <button
               onClick={() => setInviteOpen(true)}
               disabled={!canManage}
               className={btnPrimary}
-              title={canManage ? undefined : 'Only managers can invite employees'}
+              title={canManage ? undefined : 'Solo los managers pueden invitar empleados'}
             >
-              <UserPlus className="h-4 w-4" />{translate('Invite employee')}
+              <UserPlus className="h-4 w-4" />{translate('Invitar empleado')}
             </button>
           </div>
         </div>
@@ -700,7 +700,7 @@ export default function TeamDirectory() {
         {!canManage && (
           <div role="status" className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <Lock className="h-4 w-4 shrink-0 text-amber-600" />
-            <span>{translate('View-only access: Only users with the Manager or Administrator role can assign roles, activate pending accounts, and configure page restrictions.')}</span>
+            <span>{translate('Acceso de solo lectura: solo los usuarios con rol Manager o Administrador pueden asignar roles, activar cuentas pendientes y configurar restricciones de página.')}</span>
           </div>
         )}
 
@@ -715,7 +715,7 @@ export default function TeamDirectory() {
             }`}
           >
             <Users className="h-4 w-4" />
-            <span>Team Members ({employees.length})</span>
+            <span>Miembros del equipo ({employees.length})</span>
           </button>
 
           <button
@@ -727,7 +727,7 @@ export default function TeamDirectory() {
             }`}
           >
             <Clock className="h-4 w-4 text-amber-500" />
-            <span>Pending Approvals</span>
+            <span>Aprobaciones pendientes</span>
             {pendingEmployees.length > 0 && (
               <span className="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-950">
                 {pendingEmployees.length}
@@ -744,7 +744,7 @@ export default function TeamDirectory() {
             }`}
           >
             <Sliders className="h-4 w-4" />
-            <span>Role Page Access Matrix</span>
+            <span>Matriz de acceso a páginas por rol</span>
           </button>
         </div>
 
@@ -754,18 +754,18 @@ export default function TeamDirectory() {
             <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
                 <ShieldAlert className="h-4 w-4 text-amber-600" />
-                <span>Pending Signup Activations ({pendingEmployees.length})</span>
+                <span>Activaciones de registro pendientes ({pendingEmployees.length})</span>
               </div>
               <p className="mt-1 text-xs text-amber-800 leading-relaxed">
-                New signups are restricted from logging in until an authorized manager or super admin verifies their identity, assigns appropriate roles, and activates the account.
+                Los nuevos registros no pueden iniciar sesión hasta que un manager o super administrador autorizado verifique su identidad, asigne los roles adecuados y active la cuenta.
               </p>
             </div>
 
             {pendingEmployees.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
                 <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500 mb-3" />
-                <h3 className="text-base font-bold text-slate-900">All caught up!</h3>
-                <p className="text-sm text-slate-500 mt-1">There are no pending accounts awaiting manager or super admin approval right now.</p>
+                <h3 className="text-base font-bold text-slate-900">¡Todo al día!</h3>
+                <p className="text-sm text-slate-500 mt-1">No hay cuentas pendientes de aprobación por parte de un manager o super administrador en este momento.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -777,18 +777,18 @@ export default function TeamDirectory() {
                         <div className="flex items-center gap-3">
                           <Avatar emp={emp} size="h-11 w-11 text-sm" />
                           <div>
-                            <h4 className="font-bold text-slate-900 text-sm">{emp.full_name || 'Unnamed'}</h4>
-                            <p className="text-xs text-slate-500">{emp.invitation_email || 'No email'}</p>
+                            <h4 className="font-bold text-slate-900 text-sm">{emp.full_name || 'Sin nombre'}</h4>
+                            <p className="text-xs text-slate-500">{emp.invitation_email || 'Sin correo'}</p>
                             <p className="text-[11px] text-amber-700 font-medium mt-0.5">{emp.job_title || emp.department || 'Operations'}</p>
                           </div>
                         </div>
-                        <Badge cls="bg-amber-100 text-amber-900 ring-amber-300 font-bold">Pending</Badge>
+                        <Badge cls="bg-amber-100 text-amber-900 ring-amber-300 font-bold">Pendiente</Badge>
                       </div>
 
                       <div className="border-t border-slate-100 pt-3 text-xs text-slate-600 space-y-1">
-                        <p><span className="text-slate-400">Phone:</span> {emp.phone || 'Not provided'}</p>
-                        <p><span className="text-slate-400">Registered:</span> {fmtDate(emp.created_at)}</p>
-                        <p><span className="text-slate-400">Assigned Role:</span> {rs.length > 0 ? roleLabel(rs[0].name) : 'Pending manager assignment'}</p>
+                        <p><span className="text-slate-400">Teléfono:</span> {emp.phone || 'No proporcionado'}</p>
+                        <p><span className="text-slate-400">Registrado:</span> {fmtDate(emp.created_at)}</p>
+                        <p><span className="text-slate-400">Rol asignado:</span> {rs.length > 0 ? roleLabel(rs[0].name) : 'Pendiente de asignación por el manager'}</p>
                       </div>
 
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
@@ -798,14 +798,14 @@ export default function TeamDirectory() {
                           className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-xs font-semibold shadow-xs transition"
                         >
                           <CheckCircle className="h-3.5 w-3.5" />
-                          <span>Approve & Activate</span>
+                          <span>Aprobar y activar</span>
                         </button>
 
                         <button
                           onClick={() => rejectAccount(emp)}
                           disabled={!canApproveAccounts || busy}
                           className="inline-flex items-center justify-center rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-700 px-3 py-2 text-xs font-semibold transition"
-                          title="Reject and suspend"
+                          title="Rechazar y suspender"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -826,11 +826,11 @@ export default function TeamDirectory() {
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <Sliders className="h-5 w-5 text-amber-600" />
-                    <span>Granular Role Page Access Matrix</span>
+                    <span>Matriz granular de acceso a páginas por rol</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-                    As a Manager, you can grant or restrict access to any admin page for each configurable role. Manager and Super Admin roles always retain full access.
-                    <strong> Restricted pages are automatically hidden from the staff member’s sidebar and direct URL navigation is blocked.</strong>
+                    Como manager, puedes conceder o restringir el acceso a cualquier página de administración para cada rol configurable. Los roles Manager y Super Admin siempre conservan acceso total.
+                    <strong> Las páginas restringidas se ocultan automáticamente en la barra lateral del miembro del equipo y se bloquea la navegación directa por URL.</strong>
                   </p>
                 </div>
 
@@ -842,7 +842,7 @@ export default function TeamDirectory() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
                   >
                     <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Reset Defaults</span>
+                    <span>Restablecer valores</span>
                   </button>
 
                   <button
@@ -852,7 +852,7 @@ export default function TeamDirectory() {
                     className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-amber-500 transition"
                   >
                     <Save className="h-4 w-4" />
-                    <span>{permissionSaving ? 'Saving…' : 'Save Role Permissions'}</span>
+                    <span>{permissionSaving ? 'Guardando…' : 'Guardar permisos de rol'}</span>
                   </button>
                 </div>
               </div>
@@ -860,9 +860,9 @@ export default function TeamDirectory() {
               {permissionError && (
                 <div role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-800">
                   <div className="flex items-center justify-between gap-3">
-                    <span>Could not load or save role permissions: {permissionError}</span>
+                    <span>No se pudieron cargar o guardar los permisos de rol: {permissionError}</span>
                     <button type="button" onClick={handleReloadRolePermissions} className="shrink-0 font-semibold underline">
-                      Retry
+                      Reintentar
                     </button>
                   </div>
                 </div>
@@ -871,14 +871,14 @@ export default function TeamDirectory() {
               {isPermsSaved && (
                 <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>Permissions saved successfully! The sidebar and routes reflect these changes immediately.</span>
+                  <span>¡Permisos guardados correctamente! La barra lateral y las rutas reflejan estos cambios de inmediato.</span>
                 </div>
               )}
 
               {/* Role Selectors */}
               <div className="mt-5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                  Select Role to Configure:
+                  Selecciona el rol a configurar:
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {roles.map((role) => {
@@ -907,10 +907,10 @@ export default function TeamDirectory() {
               <div className="mt-6 space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Accessible Pages for: <span className="text-amber-700 underline">{roleLabel(selectedRoleForPerms)}</span>
+                    Páginas accesibles para: <span className="text-amber-700 underline">{roleLabel(selectedRoleForPerms)}</span>
                   </h3>
                   <span className="text-xs text-slate-400">
-                    Toggle to grant or restrict access
+                    Activa o desactiva para conceder o restringir el acceso
                   </span>
                 </div>
 
@@ -919,7 +919,7 @@ export default function TeamDirectory() {
                   <div className="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
                     <ShieldCheck className="h-5 w-5 shrink-0 text-indigo-600" />
                     <span>
-                      <strong>{roleLabel(selectedRoleForPerms)}</strong> always has unrestricted access to every page. Toggles below are shown for reference only and cannot be changed.
+                      <strong>{roleLabel(selectedRoleForPerms)}</strong> siempre tiene acceso sin restricciones a todas las páginas. Los interruptores de abajo se muestran solo como referencia y no pueden modificarse.
                     </span>
                   </div>
                 )}
@@ -956,7 +956,7 @@ export default function TeamDirectory() {
                           type="button"
                           disabled={!canManage || isImmutableRole}
                           onClick={() => !isImmutableRole && handleTogglePageAccess(selectedRoleForPerms, page.path)}
-                          title={isImmutableRole ? `${roleLabel(selectedRoleForPerms)} always has full access` : (isAllowed ? 'Click to restrict access' : 'Click to grant access')}
+                          title={isImmutableRole ? `${roleLabel(selectedRoleForPerms)} siempre tiene acceso total` : (isAllowed ? 'Haz clic para restringir el acceso' : 'Haz clic para conceder acceso')}
                           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                             isImmutableRole ? 'cursor-not-allowed opacity-70' : ''
                           } ${isAllowed ? 'bg-emerald-600' : 'bg-slate-300'}`}
@@ -1004,22 +1004,22 @@ export default function TeamDirectory() {
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search name, email, employee ID or job title"
+                      placeholder="Buscar por nombre, correo, ID de empleado o puesto"
                       className={`${inputCls} pl-9`}
-                      aria-label="Search employees"
+                      aria-label="Buscar empleados"
                     />
                   </div>
-                  <Select className="xl:w-52" prefix="Dept" ariaLabel="Department filter" value={dept} onChange={setDept} options={[{ value: 'all', label: 'All' }, ...DEPT_OPTIONS]} />
-                  <Select className="xl:w-56" prefix="Role" ariaLabel="Role filter" value={roleFilter} onChange={setRoleFilter} menuMinWidth={220}
-                    options={[{ value: 'all', label: 'All' }, { value: 'none', label: 'No role' }, ...roleOptions]} />
-                  <Select className="xl:w-56" prefix="Status" ariaLabel="Employment status filter" value={empStatus} onChange={setEmpStatus} options={[{ value: 'all', label: 'All' }, ...EMPLOYMENT_OPTIONS]} />
-                  <Select className="xl:w-56" prefix="Account" ariaLabel="Account status filter" value={acctStatus} onChange={setAcctStatus} options={[{ value: 'all', label: 'All' }, ...toOptions(ACCOUNT)]} />
+                  <Select className="xl:w-52" prefix="Depto" ariaLabel="Filtro por departamento" value={dept} onChange={setDept} options={[{ value: 'all', label: 'Todos' }, ...DEPT_OPTIONS]} />
+                  <Select className="xl:w-56" prefix="Rol" ariaLabel="Filtro por rol" value={roleFilter} onChange={setRoleFilter} menuMinWidth={220}
+                    options={[{ value: 'all', label: 'Todos' }, { value: 'none', label: 'Sin rol' }, ...roleOptions]} />
+                  <Select className="xl:w-56" prefix="Estado" ariaLabel="Filtro por estado laboral" value={empStatus} onChange={setEmpStatus} options={[{ value: 'all', label: 'Todos' }, ...EMPLOYMENT_OPTIONS]} />
+                  <Select className="xl:w-56" prefix="Cuenta" ariaLabel="Filtro por estado de cuenta" value={acctStatus} onChange={setAcctStatus} options={[{ value: 'all', label: 'Todas' }, ...toOptions(ACCOUNT)]} />
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>{filtered.length} of {employees.length} employees</span>
+                  <span>{filtered.length} de {employees.length} empleados</span>
                   {hasFilters && (
                     <button onClick={clearFilters} className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800">
-                      {translate('Clear filters')}
+                      {translate('Borrar filtros')}
                     </button>
                   )}
                 </div>
@@ -1028,14 +1028,14 @@ export default function TeamDirectory() {
               {/* Bulk bar */}
               {canManage && selectedIds.size > 0 && (
                 <div className="td-pop flex flex-wrap items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5">
-                  <span className="text-sm font-medium text-amber-900">{selectedIds.size} selected</span>
-                  <Select compact className="w-48" ariaLabel="Bulk change department" placeholder="Set department…" value="" onChange={(v) => patchProfiles([...selectedIds], { department: v }, 'Departments updated.')} options={DEPT_OPTIONS} />
-                  <Select compact className="w-44" ariaLabel="Bulk change status" placeholder="Set status…" value="" onChange={(v) => patchProfiles([...selectedIds], { employment_status: v }, 'Statuses updated.')} options={EMPLOYMENT_OPTIONS} />
+                  <span className="text-sm font-medium text-amber-900">{selectedIds.size} seleccionados</span>
+                  <Select compact className="w-48" ariaLabel="Cambiar departamento en bloque" placeholder="Establecer departamento…" value="" onChange={(v) => patchProfiles([...selectedIds], { department: v }, 'Departamentos actualizados.')} options={DEPT_OPTIONS} />
+                  <Select compact className="w-44" ariaLabel="Cambiar estado en bloque" placeholder="Establecer estado…" value="" onChange={(v) => patchProfiles([...selectedIds], { employment_status: v }, 'Estados actualizados.')} options={EMPLOYMENT_OPTIONS} />
                   <button onClick={bulkSuspend} disabled={busy} className={`${btnDanger} !py-1.5`}>
-                    <ShieldAlert className="h-4 w-4" />{translate('Suspend')}
+                    <ShieldAlert className="h-4 w-4" />{translate('Suspender')}
                   </button>
                   <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs font-medium text-amber-800 underline underline-offset-2">
-                    {translate('Clear selection')}
+                    {translate('Borrar selección')}
                   </button>
                 </div>
               )}
@@ -1046,16 +1046,16 @@ export default function TeamDirectory() {
                     <tr className="border-b border-slate-100 bg-stone-50 text-xs text-slate-500">
                       {canManage && (
                         <th className="w-10 px-4 py-3">
-                          <input type="checkbox" checked={allOnPage} onChange={toggleAll} aria-label="Select all on this page" className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
+                          <input type="checkbox" checked={allOnPage} onChange={toggleAll} aria-label="Seleccionar todos en esta página" className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
                         </th>
                       )}
-                      <SortHead label="Employee" k="name" sort={sort} setSort={setSort} />
-                      <SortHead label="Department" k="dept" sort={sort} setSort={setSort} />
-                      <SortHead label="Role" k="role" sort={sort} setSort={setSort} />
-                      <SortHead label="Employment" k="status" sort={sort} setSort={setSort} />
-                      <SortHead label="Account" k="account" sort={sort} setSort={setSort} />
-                      <SortHead label="Joined" k="joined" sort={sort} setSort={setSort} />
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <SortHead label="Empleado" k="name" sort={sort} setSort={setSort} />
+                      <SortHead label="Departamento" k="dept" sort={sort} setSort={setSort} />
+                      <SortHead label="Rol" k="role" sort={sort} setSort={setSort} />
+                      <SortHead label="Situación laboral" k="status" sort={sort} setSort={setSort} />
+                      <SortHead label="Cuenta" k="account" sort={sort} setSort={setSort} />
+                      <SortHead label="Se unió" k="joined" sort={sort} setSort={setSort} />
+                      <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -1063,8 +1063,8 @@ export default function TeamDirectory() {
                       <tr>
                         <td colSpan={canManage ? 8 : 7} className="py-16 text-center text-slate-500">
                           <Users className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                          <p className="font-medium text-slate-700">{translate('No employees match')}</p>
-                          <p className="mt-1 text-xs">{translate('Try a different search or clear the filters.')}</p>
+                          <p className="font-medium text-slate-700">{translate('No hay empleados coincidentes')}</p>
+                          <p className="mt-1 text-xs">{translate('Prueba con otra búsqueda o borra los filtros.')}</p>
                         </td>
                       </tr>
                     ) : rows.map((e) => {
@@ -1088,7 +1088,7 @@ export default function TeamDirectory() {
                                 type="checkbox"
                                 checked={selectedIds.has(e.id)}
                                 onChange={() => toggleOne(e.id)}
-                                aria-label={`Select ${e.full_name}`}
+                                aria-label={`Seleccionar a ${e.full_name}`}
                                 className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                               />
                             </td>
@@ -1098,18 +1098,18 @@ export default function TeamDirectory() {
                               <Avatar emp={e} />
                               <div className="min-w-0">
                                 <p className="truncate font-medium text-slate-900">
-                                  {e.full_name || 'Unnamed'}
-                                  {isMe && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{translate('You')}</span>}
+                                  {e.full_name || 'Sin nombre'}
+                                  {isMe && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{translate('Tú')}</span>}
                                 </p>
-                                <p className="truncate text-xs text-slate-400">{e.invitation_email || 'No email'}{e.job_title ? ` · ${e.job_title}` : ''}</p>
+                                <p className="truncate text-xs text-slate-400">{e.invitation_email || 'Sin correo'}{e.job_title ? ` · ${e.job_title}` : ''}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            {e.department ? <Badge cls={DEPT_STYLE[e.department] || DEPT_STYLE.IT}>{e.department}</Badge> : <span className="text-slate-400">{translate('Unassigned')}</span>}
+                            {e.department ? <Badge cls={DEPT_STYLE[e.department] || DEPT_STYLE.IT}>{e.department}</Badge> : <span className="text-slate-400">{translate('Sin asignar')}</span>}
                           </td>
                           <td className="px-4 py-3">
-                            {rs.length === 0 ? <span className="text-slate-400">{translate('No role')}</span> : (
+                            {rs.length === 0 ? <span className="text-slate-400">{translate('Sin rol')}</span> : (
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
                                   {isAdminRole(rs[0].name) ? <ShieldCheck className="h-4 w-4 text-amber-600" /> : <Shield className="h-4 w-4 text-slate-400" />}
@@ -1126,7 +1126,7 @@ export default function TeamDirectory() {
                           <td className="px-4 py-3" onClick={(ev) => ev.stopPropagation()}>
                             {canManage ? (
                               <Select
-                                compact className="w-40" ariaLabel={`Employment status for ${e.full_name}`} value={e.employment_status || 'active'} disabled={busy}
+                                compact className="w-40" ariaLabel={`Situación laboral de ${e.full_name}`} value={e.employment_status || 'active'} disabled={busy}
                                 onChange={(v) => patchProfiles([e.id], { employment_status: v })} options={EMPLOYMENT_OPTIONS}
                               />
                             ) : emp ? <Badge cls={emp.cls} dot={emp.dot}>{emp.label}</Badge> : '—'}
@@ -1145,10 +1145,10 @@ export default function TeamDirectory() {
                                   disabled={busy}
                                   onClick={() => approveAndActivate(e)}
                                   className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-500 shadow-xs"
-                                  title="Approve and activate account"
+                                  title="Aprobar y activar cuenta"
                                 >
                                   <Check className="h-3 w-3" />
-                                  <span>Approve</span>
+                                  <span>Aprobar</span>
                                 </button>
                               )}
                               {e.account_status === 'suspended' && canManage && (
@@ -1158,27 +1158,27 @@ export default function TeamDirectory() {
                                       disabled={busy}
                                       onClick={() => toggleSuspend(e)}
                                       className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-500 shadow-xs disabled:opacity-50"
-                                      title="Activate suspended account"
+                                      title="Activar cuenta suspendida"
                                     >
                                       <UserCheck className="h-3 w-3" />
-                                      <span>Activate</span>
+                                      <span>Activar</span>
                                     </button>
                                   )}
                                   <button
                                     disabled={busy}
                                     onClick={() => deleteSuspendedAccount(e)}
                                     className="inline-flex items-center gap-1 rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500 shadow-xs disabled:opacity-50"
-                                    title="Delete suspended account"
+                                    title="Eliminar cuenta suspendida"
                                   >
                                     <Trash2 className="h-3 w-3" />
-                                    <span>Delete</span>
+                                    <span>Eliminar</span>
                                   </button>
                                 </>
                               )}
                               <button
                                 onClick={() => setSelectedId(e.id)}
                                 className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                                title="View details"
+                                title="Ver detalles"
                               >
                                 <ChevronRight className="h-4 w-4" />
                               </button>
@@ -1193,14 +1193,14 @@ export default function TeamDirectory() {
 
               {filtered.length > PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-600">
-                  <span>Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
+                  <span>Mostrando {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} de {filtered.length}</span>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-40">
-                      <ChevronLeft className="h-3.5 w-3.5" />{translate('Prev')}
+                      <ChevronLeft className="h-3.5 w-3.5" />{translate('Anterior')}
                     </button>
-                    <span className="px-2">Page {safePage} / {totalPages}</span>
+                    <span className="px-2">Página {safePage} / {totalPages}</span>
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 hover:bg-slate-50 disabled:opacity-40">
-                      Next <ChevronRight className="h-3.5 w-3.5" />
+                      Siguiente <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1212,12 +1212,12 @@ export default function TeamDirectory() {
 
       {/* ============ DRAWER ============ */}
       {selectedEmp && (
-        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={`Profile of ${selectedEmp.full_name}`}>
+        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={`Perfil de ${selectedEmp.full_name}`}>
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setSelectedId(null)} />
           <div className="td-slide relative flex h-full w-full max-w-md flex-col bg-stone-50 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-              <h2 className="text-base font-semibold text-slate-900">{translate('Employee profile & security')}</h2>
-              <button onClick={() => setSelectedId(null)} aria-label="Close" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+              <h2 className="text-base font-semibold text-slate-900">{translate('Perfil del empleado y seguridad')}</h2>
+              <button onClick={() => setSelectedId(null)} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -1227,15 +1227,15 @@ export default function TeamDirectory() {
                 <Avatar emp={selectedEmp} size="h-16 w-16 text-xl" />
                 <div className="min-w-0">
                   <h3 className="truncate text-lg font-semibold text-slate-900">{selectedEmp.full_name}</h3>
-                  <p className="text-sm text-slate-500">{selectedEmp.job_title || 'No title'}</p>
-                  <p className="mt-1 font-mono text-xs text-amber-700">{selectedEmp.employee_id || 'ID pending'}</p>
+                  <p className="text-sm text-slate-500">{selectedEmp.job_title || 'Sin puesto'}</p>
+                  <p className="mt-1 font-mono text-xs text-amber-700">{selectedEmp.employee_id || 'ID pendiente'}</p>
                 </div>
               </div>
 
               {/* Account Status Card with Approve Action */}
               <section className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 text-sm">
                 <h4 className="text-sm font-semibold text-slate-900 flex items-center justify-between">
-                  <span>Account Activation Status</span>
+                  <span>Estado de activación de la cuenta</span>
                   <Badge cls={ACCOUNT[selectedEmp.account_status || 'pending']?.cls}>
                     {ACCOUNT[selectedEmp.account_status || 'pending']?.label}
                   </Badge>
@@ -1244,7 +1244,7 @@ export default function TeamDirectory() {
                 {(!selectedEmp.account_status || selectedEmp.account_status === 'pending') && canApproveAccounts && (
                   <div className="rounded-lg bg-amber-50 p-3 border border-amber-200 space-y-2">
                     <p className="text-xs text-amber-900 font-medium">
-                      This user signed up and cannot log in until approved.
+                      Este usuario se ha registrado y no puede iniciar sesión hasta que sea aprobado.
                     </p>
                     <button
                       type="button"
@@ -1253,7 +1253,7 @@ export default function TeamDirectory() {
                       className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-500 transition"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      <span>Approve & Activate Account</span>
+                      <span>Aprobar y activar cuenta</span>
                     </button>
                   </div>
                 )}
@@ -1261,42 +1261,42 @@ export default function TeamDirectory() {
                 <div className="flex items-center justify-between gap-4 pt-1">
                   <span className="flex items-center gap-2 text-slate-500">
                     <ShieldAlert className="h-4 w-4" />
-                    <span>Change Status</span>
+                    <span>Cambiar estado</span>
                   </span>
                   <Select
-                    compact align="right" className="w-44" ariaLabel="Account status"
+                    compact align="right" className="w-44" ariaLabel="Estado de la cuenta"
                     value={selectedEmp.account_status || 'pending'}
                     disabled={!canManage || busy || !selectedEmp.account_status || selectedEmp.account_status === 'pending'}
-                    onChange={(v) => patchProfiles([selectedEmp.id], { account_status: v }, `Account status updated to ${v}.`)}
+                    onChange={(v) => patchProfiles([selectedEmp.id], { account_status: v }, `Estado de la cuenta actualizado a ${v}.`)}
                     options={toOptions(ACCOUNT).filter((option) => option.value !== 'active' || selectedEmp.account_status === 'active' || canApproveAccounts)}
                   />
                 </div>
               </section>
 
               <section className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 text-sm">
-                <h4 className="text-sm font-semibold text-slate-900">{translate('Contact')}</h4>
-                {[[Mail, 'Email', selectedEmp.invitation_email], [Phone, 'Phone', selectedEmp.phone], [Globe, 'Timezone', selectedEmp.timezone || 'Africa/Casablanca']].map(([Icon, l, v]) => (
+                <h4 className="text-sm font-semibold text-slate-900">{translate('Contacto')}</h4>
+                {[[Mail, 'Correo', selectedEmp.invitation_email], [Phone, 'Teléfono', selectedEmp.phone], [Globe, 'Zona horaria', selectedEmp.timezone || 'Africa/Casablanca']].map(([Icon, l, v]) => (
                   <div key={l} className="flex items-center justify-between gap-4">
                     <span className="flex items-center gap-2 text-slate-500"><Icon className="h-4 w-4" />{l}</span>
-                    <span className="truncate font-medium text-slate-900">{v || 'N/A'}</span>
+                    <span className="truncate font-medium text-slate-900">{v || 'N/D'}</span>
                   </div>
                 ))}
               </section>
 
               <section className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 text-sm">
-                <h4 className="text-sm font-semibold text-slate-900">{translate('Employment')}</h4>
+                <h4 className="text-sm font-semibold text-slate-900">{translate('Empleo')}</h4>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-2 text-slate-500"><Building className="h-4 w-4" />{translate('Department')}</span>
-                  <Select compact align="right" className="w-44" ariaLabel="Department" placeholder="Unassigned" value={selectedEmp.department || ''} disabled={!canManage || busy}
+                  <span className="flex items-center gap-2 text-slate-500"><Building className="h-4 w-4" />{translate('Departamento')}</span>
+                  <Select compact align="right" className="w-44" ariaLabel="Departamento" placeholder="Sin asignar" value={selectedEmp.department || ''} disabled={!canManage || busy}
                     onChange={(v) => patchProfiles([selectedEmp.id], { department: v })} options={DEPT_OPTIONS} />
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-2 text-slate-500"><Briefcase className="h-4 w-4" />{translate('Status')}</span>
-                  <Select compact align="right" className="w-44" ariaLabel="Employment status" value={selectedEmp.employment_status || 'active'} disabled={!canManage || busy}
+                  <span className="flex items-center gap-2 text-slate-500"><Briefcase className="h-4 w-4" />{translate('Situación')}</span>
+                  <Select compact align="right" className="w-44" ariaLabel="Situación laboral" value={selectedEmp.employment_status || 'active'} disabled={!canManage || busy}
                     onChange={(v) => patchProfiles([selectedEmp.id], { employment_status: v })} options={EMPLOYMENT_OPTIONS} />
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-2 text-slate-500"><Calendar className="h-4 w-4" />{translate('Joined')}</span>
+                  <span className="flex items-center gap-2 text-slate-500"><Calendar className="h-4 w-4" />{translate('Se unió')}</span>
                   <span className="font-medium text-slate-900">{fmtDate(selectedEmp.created_at)}</span>
                 </div>
               </section>
@@ -1304,10 +1304,10 @@ export default function TeamDirectory() {
               {/* Roles Section - ONLY managers can assign / remove */}
               <section className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-900">{translate('Assigned Roles')}</h4>
-                  <span className="text-xs text-slate-400">{canManage ? 'Manager Control' : 'Read-only'}</span>
+                  <h4 className="text-sm font-semibold text-slate-900">{translate('Roles asignados')}</h4>
+                  <span className="text-xs text-slate-400">{canManage ? 'Control del manager' : 'Solo lectura'}</span>
                 </div>
-                {rolesOf(selectedEmp).length === 0 ? <p className="text-sm text-slate-500">{translate('No roles assigned.')}</p> : (
+                {rolesOf(selectedEmp).length === 0 ? <p className="text-sm text-slate-500">{translate('Sin roles asignados.')}</p> : (
                   <ul className="space-y-2">
                     {rolesOf(selectedEmp).map((r) => (
                       <li key={r.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
@@ -1321,7 +1321,7 @@ export default function TeamDirectory() {
                           </div>
                         </div>
                         {canManage && (
-                          <button onClick={() => removeRole(selectedEmp, r)} disabled={busy} className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" title="Remove role">
+                          <button onClick={() => removeRole(selectedEmp, r)} disabled={busy} className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" title="Eliminar rol">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         )}
@@ -1331,7 +1331,7 @@ export default function TeamDirectory() {
                 )}
                 {canManage && availableRoles.length > 0 && (
                   <div className="pt-2">
-                    <Select placeholder="Assign another role…" value="" onChange={(v) => assignRole(selectedEmp, v)} options={availableRoles} disabled={busy} />
+                    <Select placeholder="Asignar otro rol…" value="" onChange={(v) => assignRole(selectedEmp, v)} options={availableRoles} disabled={busy} />
                   </div>
                 )}
               </section>
@@ -1342,7 +1342,7 @@ export default function TeamDirectory() {
                 {selectedEmp.account_status === 'suspended' && (
                   <button onClick={() => deleteSuspendedAccount(selectedEmp)} disabled={busy} className={btnDanger}>
                     <Trash2 className="h-4 w-4" />
-                    {translate('Delete account')}
+                    {translate('Eliminar cuenta')}
                   </button>
                 )}
                 <button
@@ -1351,7 +1351,7 @@ export default function TeamDirectory() {
                   className={`flex-1 ${selectedEmp.account_status === 'suspended' ? btnPrimary : btnDanger}`}
                 >
                   {selectedEmp.account_status === 'suspended' ? <UserCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-                  {selectedEmp.account_status === 'suspended' ? translate('Reactivate account') : translate('Suspend account')}
+                  {selectedEmp.account_status === 'suspended' ? translate('Reactivar cuenta') : translate('Suspender cuenta')}
                 </button>
               </div>
             )}
@@ -1367,36 +1367,36 @@ export default function TeamDirectory() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus className="h-4 w-4 text-amber-600" />
-                <span>Invite New Employee</span>
+                <span>Invitar a un nuevo empleado</span>
               </h3>
               <button type="button" onClick={() => setInviteOpen(false)} className="rounded p-1 text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-              <input required value={invite.full_name} onChange={(e) => setInvite({ ...invite, full_name: e.target.value })} className={inputCls} placeholder="e.g. Fatima Zahra" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre completo</label>
+              <input required value={invite.full_name} onChange={(e) => setInvite({ ...invite, full_name: e.target.value })} className={inputCls} placeholder="p. ej. Fatima Zahra" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Correo electrónico</label>
               <input required type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} className={inputCls} placeholder="fatima@habibi-adventure.com" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Departamento</label>
                 <select value={invite.department} onChange={(e) => setInvite({ ...invite, department: e.target.value })} className={inputCls}>
                   {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Job Title</label>
-                <input value={invite.job_title} onChange={(e) => setInvite({ ...invite, job_title: e.target.value })} className={inputCls} placeholder="e.g. Sales Agent" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Puesto</label>
+                <input value={invite.job_title} onChange={(e) => setInvite({ ...invite, job_title: e.target.value })} className={inputCls} placeholder="p. ej. Agente comercial" />
               </div>
             </div>
             <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-              New accounts start in <strong>Pending</strong> status until a manager or super admin verifies and activates them.
+              Las nuevas cuentas comienzan en estado <strong>Pendiente</strong> hasta que un manager o super administrador las verifique y las active.
             </p>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setInviteOpen(false)} className={btnGhost}>Cancel</button>
-              <button type="submit" disabled={busy} className={btnPrimary}>Send Invitation</button>
+              <button type="button" onClick={() => setInviteOpen(false)} className={btnGhost}>Cancelar</button>
+              <button type="submit" disabled={busy} className={btnPrimary}>Enviar invitación</button>
             </div>
           </form>
         </div>
@@ -1410,13 +1410,13 @@ export default function TeamDirectory() {
             <h3 className="text-base font-bold text-slate-900">{confirm.title}</h3>
             <p className="text-xs text-slate-600 leading-relaxed">{confirm.message}</p>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setConfirm(null)} className={btnGhost}>Cancel</button>
+              <button type="button" onClick={() => setConfirm(null)} className={btnGhost}>Cancelar</button>
               <button
                 type="button"
                 onClick={() => { const fn = confirm.onConfirm; setConfirm(null); fn?.(); }}
                 className={confirm.tone === 'danger' ? btnDanger : btnPrimary}
               >
-                {confirm.confirmLabel || 'Confirm'}
+                {confirm.confirmLabel || 'Confirmar'}
               </button>
             </div>
           </div>
@@ -1425,4 +1425,3 @@ export default function TeamDirectory() {
     </div>
   );
 }
-

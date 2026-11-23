@@ -18,3 +18,4 @@ export { default as Support } from './support/page.jsx';
 export { default as Suppliers } from './Suppliers/page.jsx';
 export { default as SupplierDetails } from './Suppliers/[id]/page.jsx';
 export { default as NewSupplier } from './Suppliers/new/page.jsx';
+export { default as Blog } from './blog/page.jsx';

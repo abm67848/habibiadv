@@ -10,25 +10,32 @@ import { supabase } from '../../../lib/supabase/client.jsx';
 import { canUserAccessPath } from '../../../services/roleAccessService.js';
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                          */
+/*  Constantes                                                         */
 /* ------------------------------------------------------------------ */
 const supplierTypes = [
   ['hotel', 'Hotel', Building2],
   ['riad', 'Riad', Bed],
   ['resort', 'Resort', Star],
-  ['restaurant', 'Restaurant', Utensils],
-  ['airline', 'Airline', Plane],
-  ['car_rental', 'Car rental', Car],
-  ['transport_company', 'Transport company', Bus],
-  ['local_guide', 'Local guide', Flag],
-  ['activity_provider', 'Activity provider', Compass],
-  ['manufacturer', 'Manufacturer', Building2],
-  ['wholesaler', 'Wholesaler', Building2],
-  ['distributor', 'Distributor', Bus],
+  ['restaurant', 'Restaurante', Utensils],
+  ['airline', 'Aerolínea', Plane],
+  ['car_rental', 'Alquiler de coches', Car],
+  ['transport_company', 'Empresa de transporte', Bus],
+  ['local_guide', 'Guía local', Flag],
+  ['activity_provider', 'Proveedor de actividades', Compass],
+  ['manufacturer', 'Fabricante', Building2],
+  ['wholesaler', 'Mayorista', Building2],
+  ['distributor', 'Distribuidor', Bus],
 ];
 const typeMeta = (value) => supplierTypes.find(([v]) => v === value);
 
 const supplierStatuses = ['pending', 'active', 'inactive', 'blacklisted'];
+// Etiquetas en español (los valores internos permanecen en inglés)
+const statusLabels = {
+  pending: 'Pendiente',
+  active: 'Activo',
+  inactive: 'Inactivo',
+  blacklisted: 'En lista negra',
+};
 const statusStyles = {
   pending: { dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-800 ring-amber-200' },
   active: { dot: 'bg-emerald-500', pill: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
@@ -36,16 +43,27 @@ const statusStyles = {
   blacklisted: { dot: 'bg-red-500', pill: 'bg-red-50 text-red-800 ring-red-200' },
 };
 
+const fieldLabels = {
+  email: 'Correo electrónico',
+  phone: 'Teléfono',
+  website: 'Sitio web',
+  address: 'Dirección',
+  city: 'Ciudad',
+  country: 'País',
+};
+
+const plural = (n) => (n === 1 ? 'proveedor' : 'proveedores');
+
 const emptyFilters = { supplier_type: '', status: '', city: '', created_from: '', created_to: '' };
 
 const inputCls =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/15';
 
-// FIX: single source of truth for header normalization (strips BOM, trims, lowercases, underscores)
+// Fuente única de normalización de encabezados (quita BOM, recorta, minúsculas, guiones bajos)
 function normalizeHeader(header) {
   return String(header ?? '')
-    .replace(/^\ufeff/, '') // strip UTF-8 BOM (common in Excel-saved CSVs)
-    .replace(/[\u200B-\u200D\uFEFF]/g, '') // strip zero-width chars
+    .replace(/^\ufeff/, '') // quita BOM UTF-8 (común en CSV guardados desde Excel)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // quita caracteres de ancho cero
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
@@ -63,7 +81,7 @@ function getCsvDelimiter(csvText) {
   }, { delimiter: ',', count: -1 }).delimiter;
 }
 
-// FIX: normalize a raw row into our canonical shape, resolving common aliases
+// Normaliza una fila en bruto a nuestra forma canónica, resolviendo alias comunes
 function normalizeRow(row) {
   const normalized = {};
   Object.entries(row).forEach(([header, value]) => {
@@ -79,7 +97,7 @@ function normalizeRow(row) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  API (unchanged contract, used by other pages)                      */
+/*  API (contrato sin cambios, usado por otras páginas)                */
 /* ------------------------------------------------------------------ */
 export const suppliersApi = {
   async getSuppliers({ search = '', filters = emptyFilters } = {}) {
@@ -161,23 +179,22 @@ export const suppliersApi = {
     if (error) throw error;
   },
 
-  // FIX: collect ALL validation problems instead of throwing on the first bad row,
-  // and normalize headers per-row (handles BOM regardless of how the caller built rows).
+  // Recopila TODOS los problemas de validación en lugar de lanzar error en la primera fila incorrecta
   async importSuppliers(rows) {
     const problems = [];
     const records = rows.map((rawRow, index) => {
       const row = normalizeRow(rawRow);
-      const rowNumber = index + 2; // header is row 1
+      const rowNumber = index + 2; // el encabezado es la fila 1
       const name = String(row.name || '').trim();
       const type = String(row.supplier_type || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
       const status = String(row.status || 'pending').trim().toLowerCase();
 
-      if (!name) problems.push(`Row ${rowNumber}: supplier name is required.`);
+      if (!name) problems.push(`Fila ${rowNumber}: el nombre del proveedor es obligatorio.`);
       if (!supplierTypes.some(([value]) => value === type)) {
-        problems.push(`Row ${rowNumber}: invalid supplier_type "${row.supplier_type ?? ''}".`);
+        problems.push(`Fila ${rowNumber}: supplier_type no válido "${row.supplier_type ?? ''}".`);
       }
       if (!supplierStatuses.includes(status)) {
-        problems.push(`Row ${rowNumber}: invalid status "${row.status ?? ''}".`);
+        problems.push(`Fila ${rowNumber}: status no válido "${row.status ?? ''}".`);
       }
 
       return {
@@ -221,14 +238,14 @@ function useDebounced(value, delay = 300) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Small components                                                   */
+/*  Componentes pequeños                                               */
 /* ------------------------------------------------------------------ */
 function StatusPill({ status }) {
   const s = statusStyles[status] || statusStyles.inactive;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${s.pill}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${s.pill}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-      {status || 'unknown'}
+      {statusLabels[status] || 'Desconocido'}
     </span>
   );
 }
@@ -279,19 +296,19 @@ function ModalHeader({ id, title, subtitle, onClose }) {
         <h2 id={id} className="text-lg font-semibold text-slate-900">{title}</h2>
         {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
       </div>
-      <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+      <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
         <X aria-hidden="true" className="h-4 w-4" />
       </button>
     </div>
   );
 }
 
-/* Empty-state illustration: a stack of supplier cards with a dashed "add" slot */
+/* Ilustración de estado vacío: una pila de tarjetas de proveedores con un espacio punteado para "añadir" */
 function EmptyIllustration() {
   return (
-    <svg viewBox="0 0 320 200" className="mx-auto h-44 w-auto" role="img" aria-label="Illustration of supplier cards">
+    <svg viewBox="0 0 320 200" className="mx-auto h-44 w-auto" role="img" aria-label="Ilustración de tarjetas de proveedores">
       <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
-      {/* back card */}
+      {/* tarjeta trasera */}
       <g transform="rotate(-6 100 100)">
         <rect x="38" y="50" width="120" height="78" rx="12" className="fill-white stroke-slate-200" strokeWidth="2" />
         <circle cx="62" cy="76" r="12" className="fill-slate-100" />
@@ -299,7 +316,7 @@ function EmptyIllustration() {
         <rect x="82" y="80" width="34" height="5" rx="2.5" className="fill-slate-100" />
         <rect x="52" y="104" width="80" height="5" rx="2.5" className="fill-slate-100" />
       </g>
-      {/* front card */}
+      {/* tarjeta frontal */}
       <g transform="rotate(4 200 100)">
         <rect x="140" y="62" width="130" height="86" rx="12" className="fill-white stroke-amber-300" strokeWidth="2" />
         <rect x="156" y="78" width="26" height="26" rx="8" className="fill-amber-100" />
@@ -310,7 +327,7 @@ function EmptyIllustration() {
         <circle cx="166" cy="123" r="3" className="fill-emerald-500" />
         <rect x="206" y="121" width="40" height="5" rx="2.5" className="fill-slate-100" />
       </g>
-      {/* add badge */}
+      {/* insignia de añadir */}
       <circle cx="262" cy="52" r="20" className="fill-amber-500" />
       <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
       <circle cx="40" cy="40" r="4" className="fill-amber-200" />
@@ -322,27 +339,27 @@ function EmptyIllustration() {
 
 function EmptyState({ onImport, onTemplate }) {
   const steps = [
-    ['Add a supplier', 'Create hotels, riads, restaurants, guides and more.'],
-    ['Or import in bulk', 'Upload a CSV or Excel file with your whole network.'],
-    ['Track and manage', 'Filter by category, status, city and date added.'],
+    ['Añade un proveedor', 'Crea hoteles, riads, restaurantes, guías y más.'],
+    ['O importa en bloque', 'Sube un archivo CSV o Excel con toda tu red.'],
+    ['Haz seguimiento y gestiona', 'Filtra por categoría, estado, ciudad y fecha de alta.'],
   ];
   return (
     <div className="px-6 py-12 text-center">
       <EmptyIllustration />
-      <h2 className="mt-4 text-xl font-semibold text-slate-900">{translate('No suppliers yet')}</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">{translate('Your supplier network starts here. Add your first vendor or bring in an existing list.')}</p>
+      <h2 className="mt-4 text-xl font-semibold text-slate-900">{translate('Aún no hay proveedores')}</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">{translate('Tu red de proveedores empieza aquí. Añade tu primer proveedor o importa una lista existente.')}</p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Link
           to="/admin/suppliers/new"
           className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600"
         >
-          <Plus aria-hidden="true" className="h-4 w-4" />{translate('Add your first supplier')}</Link>
+          <Plus aria-hidden="true" className="h-4 w-4" />{translate('Añade tu primer proveedor')}</Link>
         <button type="button" onClick={onImport}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-          <Upload aria-hidden="true" className="h-4 w-4" />{translate('Import from CSV')}</button>
+          <Upload aria-hidden="true" className="h-4 w-4" />{translate('Importar desde CSV')}</button>
         <button type="button" onClick={onTemplate}
           className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-50">
-          <Download aria-hidden="true" className="h-4 w-4" />{translate('Get the template')}</button>
+          <Download aria-hidden="true" className="h-4 w-4" />{translate('Obtener la plantilla')}</button>
       </div>
       <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
         {steps.map(([title, text], i) => (
@@ -363,17 +380,17 @@ function NoResults({ onClear }) {
       <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
         <Search aria-hidden="true" className="h-6 w-6" />
       </span>
-      <h2 className="mt-4 text-base font-semibold text-slate-900">{translate('No suppliers match these filters')}</h2>
-      <p className="mt-1 text-sm text-slate-500">{translate('Try a different search or remove some filters.')}</p>
+      <h2 className="mt-4 text-base font-semibold text-slate-900">{translate('Ningún proveedor coincide con estos filtros')}</h2>
+      <p className="mt-1 text-sm text-slate-500">{translate('Prueba con otra búsqueda o quita algunos filtros.')}</p>
       <button type="button" onClick={onClear}
-        className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">{translate('Clear all filters')}</button>
+        className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">{translate('Borrar todos los filtros')}</button>
     </div>
   );
 }
 
 function Skeleton() {
   return (
-    <div className="divide-y divide-slate-100" role="status" aria-label="Loading suppliers">
+    <div className="divide-y divide-slate-100" role="status" aria-label="Cargando proveedores">
       {[0, 1, 2, 3, 4].map((i) => (
         <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-4">
           <div className="h-10 w-10 rounded-xl bg-slate-100" />
@@ -390,7 +407,7 @@ function Skeleton() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/*  Página                                                             */
 /* ------------------------------------------------------------------ */
 export default function SuppliersPage() {
   const { user, roles, rolePagePermissions, isManager, loading: authLoading } = useAuth();
@@ -449,7 +466,7 @@ export default function SuppliersPage() {
         const data = await suppliersApi.getSuppliers({ search: debouncedSearch, filters: appliedFilters });
         if (!cancelled) setSuppliers(data);
       } catch (loadError) {
-        if (!cancelled) setError(getErrorMessage(loadError, 'Unable to load suppliers.'));
+        if (!cancelled) setError(getErrorMessage(loadError, 'No se pudieron cargar los proveedores.'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -473,7 +490,7 @@ export default function SuppliersPage() {
     return () => clearTimeout(t);
   }, [notice]);
 
-  /* ---------- import ---------- */
+  /* ---------- importación ---------- */
   function chooseImportFormat(format) {
     setImportFormat(format);
     setImportMenuOpen(false);
@@ -496,7 +513,7 @@ export default function SuppliersPage() {
     const extension = file.name.split('.').pop()?.toLowerCase();
     const accepted = format === 'csv' ? ['csv'] : ['xlsx', 'xls'];
     if (!accepted.includes(extension)) {
-      setImportError(`Choose a ${format.toUpperCase()} file.`);
+      setImportError(`Elige un archivo ${format.toUpperCase()}.`);
       return;
     }
 
@@ -511,19 +528,19 @@ export default function SuppliersPage() {
         workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
       }
       const sheetName = workbook.SheetNames[0];
-      if (!sheetName) throw new Error('The selected file has no worksheets.');
+      if (!sheetName) throw new Error('El archivo seleccionado no tiene hojas de cálculo.');
 
       const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
-      if (!rawRows.length) throw new Error('The selected file has no data rows.');
+      if (!rawRows.length) throw new Error('El archivo seleccionado no tiene filas de datos.');
 
-      // FIX: normalize headers per row (BOM-safe) via shared helper
+      // Normaliza los encabezados por fila (a prueba de BOM) con el helper compartido
       const rows = rawRows.map((row) => normalizeRow(row));
 
       setImportRows(rows);
       setImportFileName(file.name);
       setImportFormat(format);
     } catch (parseError) {
-      setImportError(getErrorMessage(parseError, 'Unable to read the selected file.'));
+      setImportError(getErrorMessage(parseError, 'No se pudo leer el archivo seleccionado.'));
     }
   }
 
@@ -541,10 +558,11 @@ export default function SuppliersPage() {
   }
 
   async function downloadImportTemplate() {
+    // Los encabezados deben permanecer en inglés: el importador los espera con estos nombres
     const headers = ['name', 'supplier_type', 'supplier_code', 'status', 'email', 'phone', 'website', 'address', 'city', 'country', 'notes'];
     const example = [
-      'Example Supplier', 'hotel', 'SUP-100123', 'active', 'contact@example.com',
-      '+212600000000', 'https://example.com', '12 Rue Medina', 'Marrakech', 'Morocco', 'Preferred partner',
+      'Proveedor de ejemplo', 'hotel', 'SUP-100123', 'active', 'contacto@ejemplo.com',
+      '+212600000000', 'https://ejemplo.com', '12 Rue Medina', 'Marrakech', 'Marruecos', 'Socio preferido',
     ];
 
     try {
@@ -552,7 +570,7 @@ export default function SuppliersPage() {
         const csv = [headers, example]
           .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(','))
           .join('\r\n');
-        // FIX: prepend UTF-8 BOM so Excel opens it without mangling accents
+        // Antepone BOM UTF-8 para que Excel abra el archivo sin estropear los acentos
         const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
         const link = document.createElement('a');
         link.href = url;
@@ -567,10 +585,10 @@ export default function SuppliersPage() {
       const XLSX = await import('xlsx');
       const worksheet = XLSX.utils.aoa_to_sheet([headers, example]);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Suppliers');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Proveedores');
       XLSX.writeFile(workbook, 'supplier-import-template.xlsx');
     } catch (downloadError) {
-      setImportError(getErrorMessage(downloadError, 'Unable to download the template.'));
+      setImportError(getErrorMessage(downloadError, 'No se pudo descargar la plantilla.'));
     }
   }
 
@@ -583,17 +601,17 @@ export default function SuppliersPage() {
       setSuppliers((current) => [...imported, ...current]);
       setImportRows([]);
       setImportFileName('');
-      setNotice(`Imported ${imported.length} supplier${imported.length === 1 ? '' : 's'}.`);
+      setNotice(imported.length === 1 ? 'Se importó 1 proveedor.' : `Se importaron ${imported.length} proveedores.`);
       setImportModalOpen(false);
       setRefreshKey((key) => key + 1);
     } catch (importErr) {
-      setImportError(getErrorMessage(importErr, 'Unable to import suppliers.'));
+      setImportError(getErrorMessage(importErr, 'No se pudieron importar los proveedores.'));
     } finally {
       setImporting(false);
     }
   }
 
-  /* ---------- filters ---------- */
+  /* ---------- filtros ---------- */
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   const openFilterModal = () => {
     setFilterDraft({ ...filters });
@@ -614,10 +632,10 @@ export default function SuppliersPage() {
 
   const activeChips = [
     filters.supplier_type && { key: 'supplier_type', label: typeMeta(filters.supplier_type)?.[1] },
-    filters.status && { key: 'status', label: filters.status },
+    filters.status && { key: 'status', label: statusLabels[filters.status] || filters.status },
     filters.city && { key: 'city', label: filters.city },
-    filters.created_from && { key: 'created_from', label: `From ${filters.created_from}` },
-    filters.created_to && { key: 'created_to', label: `To ${filters.created_to}` },
+    filters.created_from && { key: 'created_from', label: `Desde ${filters.created_from}` },
+    filters.created_to && { key: 'created_to', label: `Hasta ${filters.created_to}` },
   ].filter(Boolean);
   const hasActiveQuery = activeChips.length > 0 || Boolean(search.trim());
 
@@ -626,7 +644,7 @@ export default function SuppliersPage() {
     [suppliers],
   );
 
-  /* ---------- edit / delete ---------- */
+  /* ---------- editar / eliminar ---------- */
   function startEditing(supplier) {
     setError('');
     setEditingSupplier(supplier);
@@ -654,7 +672,7 @@ export default function SuppliersPage() {
     event.preventDefault();
     if (!editingSupplier || !editForm || savingEdit) return;
     if (!editForm.name.trim()) {
-      setError('Supplier name is required.');
+      setError('El nombre del proveedor es obligatorio.');
       return;
     }
 
@@ -676,24 +694,24 @@ export default function SuppliersPage() {
       setEditingSupplier(null);
       setEditForm(null);
     } catch (saveError) {
-      setError(getErrorMessage(saveError, 'Unable to update supplier.'));
+      setError(getErrorMessage(saveError, 'No se pudo actualizar el proveedor.'));
     } finally {
       setSavingEdit(false);
     }
   }
 
   async function deleteSupplier(supplier) {
-    if (!window.confirm(`Delete ${supplier.name}? It will be hidden from the suppliers list.`)) return;
+    if (!window.confirm(`¿Eliminar ${supplier.name}? Se ocultará de la lista de proveedores.`)) return;
     setError('');
     try {
       await suppliersApi.softDeleteSupplier(supplier.id);
       setSuppliers((current) => current.filter((item) => item.id !== supplier.id));
     } catch (deleteError) {
-      setError(getErrorMessage(deleteError, 'Unable to delete supplier.'));
+      setError(getErrorMessage(deleteError, 'No se pudo eliminar el proveedor.'));
     }
   }
 
-  /* ---------- derived ---------- */
+  /* ---------- derivados ---------- */
   const stats = useMemo(() => ({
     total: suppliers.length,
     active: suppliers.filter((s) => s.status === 'active').length,
@@ -706,15 +724,15 @@ export default function SuppliersPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
-      {/* Header */}
+      {/* Encabezado */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-start gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 ring-1 ring-inset ring-amber-200">
             <Building2 aria-hidden="true" className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{translate('Suppliers')}</h1>
-            <p className="mt-0.5 text-sm text-slate-500">{translate('Manage your supplier and vendor network.')}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{translate('Proveedores')}</h1>
+            <p className="mt-0.5 text-sm text-slate-500">{translate('Gestiona tu red de proveedores y vendedores.')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -722,21 +740,21 @@ export default function SuppliersPage() {
             type="button"
             onClick={() => setRefreshKey((key) => key + 1)}
             disabled={loading || blocked}
-            aria-label="Refresh suppliers"
+            aria-label="Actualizar proveedores"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-50"
           >
             <RefreshCw aria-hidden="true" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{translate('Refresh')}</span>
+            <span className="hidden sm:inline">{translate('Actualizar')}</span>
           </button>
           {canManageSuppliers && <div className="relative flex" ref={importMenuRef}>
             <Link
               to="/admin/suppliers/new"
               className="inline-flex items-center gap-2 rounded-l-lg bg-amber-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
             >
-              <Plus aria-hidden="true" className="h-4 w-4" />{translate('Add supplier')}</Link>
+              <Plus aria-hidden="true" className="h-4 w-4" />{translate('Añadir proveedor')}</Link>
             <button
               type="button"
-              aria-label="Choose supplier import format"
+              aria-label="Elegir formato de importación de proveedores"
               aria-haspopup="menu"
               aria-expanded={importMenuOpen}
               onClick={() => setImportMenuOpen((open) => !open)}
@@ -748,10 +766,10 @@ export default function SuppliersPage() {
               <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
                 <button type="button" role="menuitem" onClick={() => chooseImportFormat('csv')}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                  <Upload aria-hidden="true" className="h-4 w-4 text-slate-400" />{translate('Import from CSV')}</button>
+                  <Upload aria-hidden="true" className="h-4 w-4 text-slate-400" />{translate('Importar desde CSV')}</button>
                 <button type="button" role="menuitem" onClick={() => chooseImportFormat('xlsx')}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                  <FileSpreadsheet aria-hidden="true" className="h-4 w-4 text-slate-400" />{translate('Import from Excel (.xlsx)')}</button>
+                  <FileSpreadsheet aria-hidden="true" className="h-4 w-4 text-slate-400" />{translate('Importar desde Excel (.xlsx)')}</button>
               </div>
             )}
           </div>}
@@ -761,19 +779,19 @@ export default function SuppliersPage() {
       {notice && (
         <p role="status" className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
           {notice}
-          <button type="button" onClick={() => setNotice('')} aria-label="Dismiss" className="rounded p-0.5 hover:bg-emerald-100">
+          <button type="button" onClick={() => setNotice('')} aria-label="Descartar" className="rounded p-0.5 hover:bg-emerald-100">
             <X aria-hidden="true" className="h-4 w-4" />
           </button>
         </p>
       )}
 
-      {/* Stats (only once there is data) */}
+      {/* Estadísticas (solo cuando hay datos) */}
       {!blocked && !error && (suppliers.length > 0 || hasActiveQuery) && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label={hasActiveQuery ? 'Matching suppliers' : 'Total suppliers'} value={stats.total} bar="bg-amber-500" />
-          <StatCard label="Active" value={stats.active} tone="text-emerald-700" bar="bg-emerald-500" />
-          <StatCard label="Pending review" value={stats.pending} tone="text-amber-700" bar="bg-amber-400" />
-          <StatCard label="Cities" value={stats.cities} bar="bg-slate-300" />
+          <StatCard label={hasActiveQuery ? 'Proveedores coincidentes' : 'Total de proveedores'} value={stats.total} bar="bg-amber-500" />
+          <StatCard label="Activos" value={stats.active} tone="text-emerald-700" bar="bg-emerald-500" />
+          <StatCard label="Pendientes de revisión" value={stats.pending} tone="text-amber-700" bar="bg-amber-400" />
+          <StatCard label="Ciudades" value={stats.cities} bar="bg-slate-300" />
         </div>
       )}
 
@@ -782,15 +800,15 @@ export default function SuppliersPage() {
           <div className="space-y-3 border-b border-slate-200 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <label className="relative block min-w-0 flex-1">
-                <span className="sr-only">{translate('Search suppliers')}</span>
+                <span className="sr-only">{translate('Buscar proveedores')}</span>
                 <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search name, code, or email..." className={`${inputCls} pl-9`} />
+                  placeholder="Buscar por nombre, código o correo..." className={`${inputCls} pl-9`} />
               </label>
               <button type="button" onClick={openFilterModal} aria-haspopup="dialog" aria-expanded={filterModalOpen}
                 className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
                 <Filter aria-hidden="true" className="h-4 w-4" />
-                Filters
+                Filtros
                 {activeChips.length > 0 && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{activeChips.length}</span>
                 )}
@@ -801,28 +819,28 @@ export default function SuppliersPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {activeChips.map((chip) => (
                   <button key={chip.key} type="button" onClick={() => setFilter(chip.key, '')}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium capitalize text-amber-800 ring-1 ring-inset ring-amber-200 hover:bg-amber-100">
+                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 hover:bg-amber-100">
                     {chip.label}
                     <X aria-hidden="true" className="h-3 w-3" />
-                    <span className="sr-only">{translate('Remove filter')}</span>
+                    <span className="sr-only">{translate('Quitar filtro')}</span>
                   </button>
                 ))}
-                <button type="button" onClick={clearFilters} className="px-1 text-xs font-medium text-slate-500 hover:text-slate-800">{translate('Clear all')}</button>
+                <button type="button" onClick={clearFilters} className="px-1 text-xs font-medium text-slate-500 hover:text-slate-800">{translate('Borrar todo')}</button>
               </div>
             )}
           </div>
         )}
 
-        {/* Body */}
+        {/* Cuerpo */}
         {authLoading ? (
-          <p role="status" className="p-6 text-sm text-slate-500">{translate('Checking your sign-in...')}</p>
+          <p role="status" className="p-6 text-sm text-slate-500">{translate('Comprobando tu sesión...')}</p>
         ) : !user ? (
           <p className="p-6 text-sm text-slate-600">
-            Sign in with an admin account to view suppliers.{' '}
-            <Link to="/auth/admin-login" className="font-medium text-amber-700 hover:underline">{translate('Sign in')}</Link>
+            Inicia sesión con una cuenta de administrador para ver los proveedores.{' '}
+            <Link to="/auth/admin-login" className="font-medium text-amber-700 hover:underline">{translate('Iniciar sesión')}</Link>
           </p>
         ) : !canViewSuppliers ? (
-          <p role="alert" className="p-6 text-sm text-red-700">{translate('Your role does not have access to the suppliers page.')}</p>
+          <p role="alert" className="p-6 text-sm text-red-700">{translate('Tu rol no tiene acceso a la página de proveedores.')}</p>
         ) : error && !editingSupplier ? (
           <p role="alert" className="m-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">{error}</p>
         ) : loading ? (
@@ -833,19 +851,19 @@ export default function SuppliersPage() {
           ) : canManageSuppliers ? (
             <EmptyState onImport={() => chooseImportFormat('csv')} onTemplate={() => { chooseImportFormat('csv'); }} />
           ) : (
-            <p className="p-6 text-sm text-slate-500">{translate('No suppliers are available to your account.')}</p>
+            <p className="p-6 text-sm text-slate-500">{translate('No hay proveedores disponibles para tu cuenta.')}</p>
           )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 font-medium">{translate('Supplier')}</th>
-                  <th className="px-4 py-3 font-medium">{translate('Category')}</th>
-                  <th className="px-4 py-3 font-medium">{translate('Location')}</th>
-                  <th className="px-4 py-3 font-medium">{translate('Contact')}</th>
-                  <th className="px-4 py-3 font-medium">{translate('Status')}</th>
-                  <th className="px-4 py-3 text-right font-medium">{translate('Actions')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Proveedor')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Categoría')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Ubicación')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Contacto')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Estado')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{translate('Acciones')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -883,15 +901,15 @@ export default function SuppliersPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <Link to={`/admin/suppliers/${supplier.id}`}
-                          className="rounded-md px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">{translate('View')}</Link>
+                          className="rounded-md px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">{translate('Ver')}</Link>
                         {canManageSuppliers && (
                           <>
                             <button type="button" onClick={() => startEditing(supplier)}
                               className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50">
-                              <Pencil aria-hidden="true" className="h-3.5 w-3.5" />{translate('Edit')}</button>
+                              <Pencil aria-hidden="true" className="h-3.5 w-3.5" />{translate('Editar')}</button>
                             <button type="button" onClick={() => deleteSupplier(supplier)}
                               className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                              <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{translate('Delete')}</button>
+                              <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{translate('Eliminar')}</button>
                           </>
                         )}
                       </div>
@@ -904,52 +922,52 @@ export default function SuppliersPage() {
         )}
       </section>
 
-      {/* Supplier filters modal */}
+      {/* Modal de filtros de proveedores */}
       {filterModalOpen && (
         <Modal onClose={() => setFilterModalOpen(false)} labelledBy="supplier-filters-title">
           <ModalHeader
             id="supplier-filters-title"
-            title="Filter suppliers"
-            subtitle="Choose any combination of category, status, city and date added."
+            title="Filtrar proveedores"
+            subtitle="Elige cualquier combinación de categoría, estado, ciudad y fecha de alta."
             onClose={() => setFilterModalOpen(false)}
           />
           <div className="space-y-4 p-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm font-medium text-slate-700">
-                Category
+                Categoría
                 <select value={filterDraft.supplier_type}
                   onChange={(e) => setFilterDraft((draft) => ({ ...draft, supplier_type: e.target.value }))}
                   className={`${inputCls} mt-1.5`}>
-                  <option value="">{translate('All categories')}</option>
+                  <option value="">{translate('Todas las categorías')}</option>
                   {supplierTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
               <label className="text-sm font-medium text-slate-700">
-                Status
+                Estado
                 <select value={filterDraft.status}
                   onChange={(e) => setFilterDraft((draft) => ({ ...draft, status: e.target.value }))}
-                  className={`${inputCls} mt-1.5 capitalize`}>
-                  <option value="">{translate('All statuses')}</option>
-                  {supplierStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+                  className={`${inputCls} mt-1.5`}>
+                  <option value="">{translate('Todos los estados')}</option>
+                  {supplierStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}
                 </select>
               </label>
               <label className="text-sm font-medium text-slate-700 sm:col-span-2">
-                City
+                Ciudad
                 <input list="supplier-cities" value={filterDraft.city}
                   onChange={(e) => setFilterDraft((draft) => ({ ...draft, city: e.target.value }))}
-                  placeholder="Any city" className={`${inputCls} mt-1.5`} />
+                  placeholder="Cualquier ciudad" className={`${inputCls} mt-1.5`} />
                 <datalist id="supplier-cities">
                   {cityOptions.map((city) => <option key={city} value={city} />)}
                 </datalist>
               </label>
               <label className="text-sm font-medium text-slate-700">
-                Added from
+                Añadido desde
                 <input type="date" value={filterDraft.created_from}
                   onChange={(e) => setFilterDraft((draft) => ({ ...draft, created_from: e.target.value }))}
                   className={`${inputCls} mt-1.5`} />
               </label>
               <label className="text-sm font-medium text-slate-700">
-                Added to
+                Añadido hasta
                 <input type="date" value={filterDraft.created_to}
                   min={filterDraft.created_from || undefined}
                   onChange={(e) => setFilterDraft((draft) => ({ ...draft, created_to: e.target.value }))}
@@ -957,31 +975,31 @@ export default function SuppliersPage() {
               </label>
             </div>
             {filterDraftDateRangeInvalid && (
-              <p role="alert" className="text-sm text-red-700">{translate('The start date must be on or before the end date.')}</p>
+              <p role="alert" className="text-sm text-red-700">{translate('La fecha de inicio debe ser anterior o igual a la fecha de fin.')}</p>
             )}
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
               <button type="button" onClick={clearFilterDraft}
-                className="mr-auto rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">{translate('Clear filters')}</button>
+                className="mr-auto rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">{translate('Borrar filtros')}</button>
               <button type="button" onClick={() => setFilterModalOpen(false)}
-                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{translate('Cancel')}</button>
+                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{translate('Cancelar')}</button>
               <button type="button" onClick={applyFilterDraft} disabled={filterDraftDateRangeInvalid}
-                className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50">{translate('Apply filters')}</button>
+                className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50">{translate('Aplicar filtros')}</button>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Import modal */}
+      {/* Modal de importación */}
       {importModalOpen && (
         <Modal onClose={closeImport} labelledBy="supplier-import-title" wide>
-          <ModalHeader id="supplier-import-title" title={`Import suppliers from ${importFormat.toUpperCase()}`}
-            subtitle="Required columns: name and supplier_type." onClose={closeImport} />
+          <ModalHeader id="supplier-import-title" title={`Importar proveedores desde ${importFormat.toUpperCase()}`}
+            subtitle="Columnas obligatorias: name y supplier_type." onClose={closeImport} />
           <div className="p-5">
-            <p className="text-sm text-slate-500">{translate('Optional columns: supplier_code, status, email, phone, website, address, city, country, notes.')}</p>
+            <p className="text-sm text-slate-500">{translate('Columnas opcionales: supplier_code, status, email, phone, website, address, city, country, notes.')}</p>
             <button type="button" onClick={downloadImportTemplate}
               className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
               <Download aria-hidden="true" className="h-4 w-4" />
-              Download {importFormat.toUpperCase()} template
+              Descargar plantilla {importFormat.toUpperCase()}
             </button>
 
             <div
@@ -995,31 +1013,31 @@ export default function SuppliersPage() {
               <input ref={importFileRef} type="file" accept={importFormat === 'csv' ? '.csv,text/csv' : '.xlsx,.xls'}
                 onChange={handleImportFile} className="sr-only" />
               <Upload aria-hidden="true" className="mx-auto h-8 w-8 text-amber-600" />
-              <p className="mt-2 text-sm font-medium text-slate-800">Drag and drop your {importFormat.toUpperCase()} file here</p>
+              <p className="mt-2 text-sm font-medium text-slate-800">Arrastra y suelta aquí tu archivo {importFormat.toUpperCase()}</p>
               <button type="button" onClick={() => importFileRef.current?.click()}
-                className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">{translate('Browse files')}</button>
+                className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">{translate('Examinar archivos')}</button>
             </div>
 
             {importFileName && (
               <p className="mt-3 text-sm text-slate-600">
-                {importFileName}: {importRows.length} supplier{importRows.length === 1 ? '' : 's'} ready
+                {importFileName}: {importRows.length} {plural(importRows.length)} {importRows.length === 1 ? 'listo' : 'listos'}
               </p>
             )}
 
-            {/* FIX: show every imported column so you can confirm parsing worked */}
+            {/* Muestra todas las columnas importadas para confirmar que el análisis funcionó */}
             {importRows.length > 0 && (
               <div className="mt-3 max-h-56 overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full min-w-[720px] text-left text-xs">
                   <thead className="sticky top-0 bg-slate-50 text-slate-500">
                     <tr>
-                      <th className="px-3 py-2">{translate('Name')}</th>
-                      <th className="px-3 py-2">{translate('Type')}</th>
-                      <th className="px-3 py-2">{translate('Code')}</th>
-                      <th className="px-3 py-2">{translate('Status')}</th>
-                      <th className="px-3 py-2">{translate('Email')}</th>
-                      <th className="px-3 py-2">{translate('Phone')}</th>
-                      <th className="px-3 py-2">{translate('City')}</th>
-                      <th className="px-3 py-2">{translate('Country')}</th>
+                      <th className="px-3 py-2">{translate('Nombre')}</th>
+                      <th className="px-3 py-2">{translate('Tipo')}</th>
+                      <th className="px-3 py-2">{translate('Código')}</th>
+                      <th className="px-3 py-2">{translate('Estado')}</th>
+                      <th className="px-3 py-2">{translate('Correo')}</th>
+                      <th className="px-3 py-2">{translate('Teléfono')}</th>
+                      <th className="px-3 py-2">{translate('Ciudad')}</th>
+                      <th className="px-3 py-2">{translate('País')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1028,7 +1046,7 @@ export default function SuppliersPage() {
                         <td className="px-3 py-2 font-medium text-slate-800">{row.name || '—'}</td>
                         <td className="px-3 py-2">{row.supplier_type || '—'}</td>
                         <td className="px-3 py-2">{row.supplier_code || '—'}</td>
-                        <td className="px-3 py-2 capitalize">{row.status || '—'}</td>
+                        <td className="px-3 py-2">{row.status || '—'}</td>
                         <td className="px-3 py-2">{row.email || '—'}</td>
                         <td className="px-3 py-2">{row.phone || '—'}</td>
                         <td className="px-3 py-2">{row.city || '—'}</td>
@@ -1039,7 +1057,7 @@ export default function SuppliersPage() {
                 </table>
                 {importRows.length > 10 && (
                   <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
-                    And {importRows.length - 10} more...
+                    Y {importRows.length - 10} más...
                   </p>
                 )}
               </div>
@@ -1053,51 +1071,51 @@ export default function SuppliersPage() {
 
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={closeImport} disabled={importing}
-                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancel')}</button>
+                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancelar')}</button>
               <button type="button" onClick={importSuppliers} disabled={importing || !importRows.length}
                 className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50">
-                {importing ? 'Importing...' : importRows.length ? `Import ${importRows.length} supplier${importRows.length === 1 ? '' : 's'}` : 'Import suppliers'}
+                {importing ? 'Importando...' : importRows.length ? `Importar ${importRows.length} ${plural(importRows.length)}` : 'Importar proveedores'}
               </button>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Edit modal */}
+      {/* Modal de edición */}
       {editingSupplier && editForm && (
         <Modal onClose={closeEditor} labelledBy="edit-supplier-title" wide>
           <form onSubmit={saveSupplier}>
-            <ModalHeader id="edit-supplier-title" title="Edit supplier" subtitle={editingSupplier.name} onClose={closeEditor} />
+            <ModalHeader id="edit-supplier-title" title="Editar proveedor" subtitle={editingSupplier.name} onClose={closeEditor} />
             <div className="p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">
-                  Name
+                  Nombre
                   <input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     className={`${inputCls} mt-1.5 font-normal`} />
                 </label>
                 <label className="text-sm font-medium text-slate-700">
-                  Supplier code
+                  Código de proveedor
                   <input value={editForm.supplier_code} onChange={(e) => setEditForm({ ...editForm, supplier_code: e.target.value })}
                     className={`${inputCls} mt-1.5 font-normal`} />
                 </label>
                 <label className="text-sm font-medium text-slate-700">
-                  Category
+                  Categoría
                   <select value={editForm.supplier_type} onChange={(e) => setEditForm({ ...editForm, supplier_type: e.target.value })}
                     className={`${inputCls} mt-1.5 font-normal`}>
-                    <option value="">{translate('Select category')}</option>
+                    <option value="">{translate('Seleccionar categoría')}</option>
                     {supplierTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-slate-700">
-                  Status
+                  Estado
                   <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className={`${inputCls} mt-1.5 font-normal capitalize`}>
-                    {supplierStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+                    className={`${inputCls} mt-1.5 font-normal`}>
+                    {supplierStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}
                   </select>
                 </label>
                 {['email', 'phone', 'website', 'address', 'city', 'country'].map((field) => (
-                  <label key={field} className="text-sm font-medium capitalize text-slate-700">
-                    {field}
+                  <label key={field} className="text-sm font-medium text-slate-700">
+                    {fieldLabels[field]}
                     <input type={field === 'email' ? 'email' : field === 'website' ? 'url' : 'text'}
                       value={editForm[field]} onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
                       className={`${inputCls} mt-1.5 font-normal`} />
@@ -1107,10 +1125,10 @@ export default function SuppliersPage() {
               {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
               <div className="mt-5 flex justify-end gap-2">
                 <button type="button" onClick={closeEditor} disabled={savingEdit}
-                  className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancel')}</button>
+                  className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancelar')}</button>
                 <button type="submit" disabled={savingEdit}
                   className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50">
-                  {savingEdit ? 'Saving...' : 'Save changes'}
+                  {savingEdit ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
             </div>

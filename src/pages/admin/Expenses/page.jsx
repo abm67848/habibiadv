@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, ArrowUpRight, Bed, Building2, Bus, Calendar as CalendarIcon, Car, Check, CheckCircle2,
-  ChevronDown, ChevronRight, Clock, Compass, CreditCard, Download, ExternalLink, Flag, Pencil, Plane,
+  ChevronDown, ChevronRight, Clock, Compass, CreditCard, Download, ExternalLink, Filter, Flag, Pencil, Plane,
   Plus, Receipt, RefreshCw, Repeat, Search, Star, Trash2, Utensils, Wallet, X,
 } from 'lucide-react';
 import { useAuth } from '../../../context/index.jsx';
@@ -70,21 +70,19 @@ const FREQUENCY_OPTIONS = [
 /*  Style tokens + helpers                                             */
 /* ------------------------------------------------------------------ */
 const inputCls =
-  'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 ' +
-  'focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/15';
 const labelCls = 'block text-xs font-medium text-slate-600 mb-1.5';
 const btnGhost =
-  'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50';
+  'inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition disabled:opacity-50';
 const btnPrimary =
-  'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-500 shadow-sm transition disabled:opacity-50';
+  'inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold text-white bg-amber-500 rounded-lg shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600 transition disabled:opacity-50';
 const btnDanger =
-  'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-500 shadow-sm transition disabled:opacity-50';
+  'inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-500 transition disabled:opacity-50';
 
 const todayISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-// DATE columns come back as "YYYY-MM-DD": parse as local so the day never shifts
 const fmtDate = (d) =>
   d ? new Date(`${String(d).slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const fmtMoney = (n) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -108,24 +106,26 @@ const EMPTY_FORM = () => ({
   notes: '', is_cancelled: false,
 });
 
+const EMPTY_FILTERS = { status: 'ALL', type: 'ALL', category: 'ALL', supplier: 'ALL', from: '', to: '' };
+
 /* ------------------------------------------------------------------ */
 /*  Small components                                                   */
 /* ------------------------------------------------------------------ */
 function StatusBadge({ status }) {
   const s = PAY_STATUS[status] || PAY_STATUS.unpaid;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset ${s.cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${s.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
       {s.label}
     </span>
   );
 }
 
-function SupplierAvatar({ type, name, size = 'w-9 h-9' }) {
+function SupplierAvatar({ type, name, size = 'h-10 w-10' }) {
   const Icon = SUPPLIER_TYPE_META[type]?.icon;
   return (
     <span className={`${size} shrink-0 rounded-xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200 flex items-center justify-center text-xs font-semibold`}>
-      {Icon ? <Icon className="w-4 h-4" aria-hidden="true" /> : initials(name)}
+      {Icon ? <Icon className="h-[18px] w-[18px]" aria-hidden="true" /> : initials(name)}
     </span>
   );
 }
@@ -147,10 +147,26 @@ function SectionTitle({ icon: Icon, children }) {
   );
 }
 
-function Modal({ children, onClose, maxW = 'max-w-2xl' }) {
+function StatCard({ label, value, sub, tone = 'text-slate-900', bar = 'bg-slate-300' }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" className={`bg-white border-slate-200 rounded-2xl w-full ${maxW} border shadow-2xl my-8 overflow-hidden rp-pop`}>
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <span className={`absolute inset-y-0 left-0 w-1 ${bar}`} />
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold tabular-nums ${tone}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-slate-400 truncate">{sub}</p>}
+    </div>
+  );
+}
+
+function Modal({ children, onClose, maxW = 'max-w-2xl' }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+      <div role="dialog" aria-modal="true" className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl bg-white shadow-2xl ${maxW}`}>
         {children}
       </div>
     </div>
@@ -159,13 +175,18 @@ function Modal({ children, onClose, maxW = 'max-w-2xl' }) {
 
 function ModalHeader({ title, subtitle, onClose }) {
   return (
-    <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100">
+    <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
       <div>
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
       </div>
-      <button type="button" onClick={onClose} className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition" aria-label="Close">
-        <X className="w-5 h-5" />
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+      >
+        <X aria-hidden="true" className="h-4 w-4" />
       </button>
     </div>
   );
@@ -199,6 +220,135 @@ function BarList({ title, icon, rows, currency, empty }) {
         </ul>
       )}
     </section>
+  );
+}
+
+/* Ilustración: recibos apilados + billetera (estado vacío) */
+function EmptyExpensesIllustration() {
+  return (
+    <svg viewBox="0 0 320 200" className="mx-auto h-44 w-auto" role="img" aria-label="Ilustración de recibos y billetera">
+      <ellipse cx="160" cy="184" rx="110" ry="8" className="fill-slate-100" />
+      {/* recibo trasero */}
+      <g transform="rotate(-5 110 100)">
+        <rect x="46" y="46" width="104" height="100" rx="10" className="fill-white stroke-slate-200" strokeWidth="2" />
+        <rect x="60" y="62" width="52" height="6" rx="3" className="fill-slate-200" />
+        <rect x="60" y="76" width="76" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="60" y="88" width="64" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="60" y="100" width="70" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="60" y="120" width="34" height="6" rx="3" className="fill-slate-300" />
+      </g>
+      {/* recibo frontal con acento ámbar */}
+      <g transform="rotate(6 200 100)">
+        <rect x="150" y="54" width="118" height="112" rx="10" className="fill-white stroke-amber-300" strokeWidth="2" />
+        <rect x="164" y="70" width="46" height="7" rx="3.5" className="fill-slate-300" />
+        <rect x="164" y="84" width="84" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="164" y="96" width="72" height="5" rx="2.5" className="fill-slate-100" />
+        <rect x="164" y="108" width="80" height="5" rx="2.5" className="fill-slate-100" />
+        <path d="M160 128h98" strokeDasharray="4 4" className="stroke-slate-200" strokeWidth="2" />
+        <rect x="164" y="138" width="42" height="14" rx="7" className="fill-emerald-100" />
+        <circle cx="174" cy="145" r="3" className="fill-emerald-500" />
+        <rect x="214" y="143" width="42" height="5" rx="2.5" className="fill-slate-100" />
+      </g>
+      {/* billetera */}
+      <g transform="translate(238 130)">
+        <rect x="0" y="0" width="54" height="36" rx="8" className="fill-amber-100 stroke-amber-400" strokeWidth="2" />
+        <rect x="34" y="8" width="20" height="20" rx="5" className="fill-white stroke-amber-400" strokeWidth="2" />
+        <circle cx="44" cy="18" r="2.5" className="fill-amber-500" />
+      </g>
+      {/* insignia + */}
+      <circle cx="262" cy="52" r="20" className="fill-amber-500" />
+      <path d="M262 43v18M253 52h18" stroke="white" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="40" cy="40" r="4" className="fill-amber-200" />
+      <circle cx="288" cy="118" r="3" className="fill-amber-300" />
+      <circle cx="30" cy="150" r="3" className="fill-slate-200" />
+    </svg>
+  );
+}
+
+/* Ilustración: lupa sobre una lista (sin resultados) */
+function NoResultsIllustration() {
+  return (
+    <svg viewBox="0 0 200 140" className="mx-auto h-32 w-auto" role="img" aria-label="Sin resultados">
+      <rect x="24" y="20" width="120" height="100" rx="10" className="fill-white stroke-slate-200" strokeWidth="2" />
+      <rect x="40" y="38" width="60" height="6" rx="3" className="fill-slate-200" />
+      <rect x="40" y="54" width="88" height="5" rx="2.5" className="fill-slate-100" />
+      <rect x="40" y="68" width="76" height="5" rx="2.5" className="fill-slate-100" />
+      <rect x="40" y="82" width="84" height="5" rx="2.5" className="fill-slate-100" />
+      <rect x="40" y="96" width="52" height="5" rx="2.5" className="fill-slate-100" />
+      <circle cx="146" cy="92" r="26" className="fill-amber-50 stroke-amber-500" strokeWidth="3" />
+      <path d="M164 110l14 14" className="stroke-amber-500" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EmptyState({ onCreate }) {
+  const steps = [
+    ['Registra tu primer gasto', 'Vincula el gasto a un proveedor y a una reserva.'],
+    ['Controla los pagos', 'Registra pagos parciales o totales con su método.'],
+    ['Analiza y exporta', 'Consulta por categoría, estado y exporta a CSV.'],
+  ];
+  return (
+    <div className="px-6 py-12 text-center">
+      <EmptyExpensesIllustration />
+      <h2 className="mt-4 text-xl font-semibold text-slate-900">{translate('Aún no hay gastos')}</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+        {translate('Empieza a controlar lo que gasta la agencia vinculándolo a tus proveedores y reservas.')}
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-600/20 hover:bg-amber-600"
+        >
+          <Plus aria-hidden="true" className="h-4 w-4" />
+          {translate('Registrar primer gasto')}
+        </button>
+      </div>
+      <ol className="mx-auto mt-10 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+        {steps.map(([title, text], i) => (
+          <li key={title} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-bold text-white">{i + 1}</span>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function NoResults({ onClear }) {
+  return (
+    <div className="px-6 py-14 text-center">
+      <NoResultsIllustration />
+      <h2 className="mt-4 text-base font-semibold text-slate-900">{translate('Ningún gasto coincide con estos filtros')}</h2>
+      <p className="mt-1 text-sm text-slate-500">{translate('Prueba con otra búsqueda o quita algunos filtros.')}</p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+      >
+        {translate('Borrar todos los filtros')}
+      </button>
+    </div>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="divide-y divide-slate-100" role="status" aria-label="Cargando gastos">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-4">
+          <div className="h-10 w-10 rounded-xl bg-slate-100" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-40 rounded bg-slate-100" />
+            <div className="h-2.5 w-24 rounded bg-slate-100" />
+          </div>
+          <div className="hidden h-3 w-24 rounded bg-slate-100 sm:block" />
+          <div className="h-5 w-16 rounded-full bg-slate-100" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -295,7 +445,7 @@ function Select({
       case 'End': if (!searchable) { e.preventDefault(); setActive(visible.length - 1); } break;
       case 'Enter': e.preventDefault(); choose(visible[active]); break;
       case ' ': if (!searchable) { e.preventDefault(); choose(visible[active]); } break;
-      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break; // don't also close the modal behind
+      case 'Escape': e.preventDefault(); e.stopPropagation(); close(); break;
       case 'Tab': setOpen(false); break;
       default: break;
     }
@@ -409,6 +559,10 @@ export default function ExpensesPage() {
   const [dateTo, setDateTo] = useState('');
   const [viewCurrency, setViewCurrency] = useState(null);
 
+  // Filter modal
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState(EMPTY_FILTERS);
+
   // Layers
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -456,7 +610,6 @@ export default function ExpensesPage() {
   const supplierByCode = useMemo(() => new Map(suppliers.filter((s) => s.supplier_code).map((s) => [s.supplier_code, s])), [suppliers]);
   const supplierByName = useMemo(() => new Map(suppliers.map((s) => [s.name.trim().toLowerCase(), s])), [suppliers]);
 
-  // expenses store supplier_name + supplier_reference (the supplier code), so match on those
   const matchSupplier = useCallback((e) => {
     if (e.supplier_reference && supplierByCode.has(e.supplier_reference)) return supplierByCode.get(e.supplier_reference);
     if (e.supplier_name) return supplierByName.get(e.supplier_name.trim().toLowerCase()) || null;
@@ -549,8 +702,9 @@ export default function ExpensesPage() {
     setSupplierFilter('ALL'); setDateFrom(''); setDateTo('');
   };
   const dateRangeInvalid = Boolean(dateFrom && dateTo && dateFrom > dateTo);
+  const filterDraftDateInvalid = Boolean(filterDraft.from && filterDraft.to && filterDraft.from > filterDraft.to);
 
-  /* ----- Stats (one currency at a time so sums are never mixed) ----- */
+  /* ----- Stats ----- */
   const currencies = useMemo(() => {
     const counts = new Map();
     expenses.forEach((e) => counts.set(e.currency, (counts.get(e.currency) || 0) + 1));
@@ -597,6 +751,45 @@ export default function ExpensesPage() {
     return [...map].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([key, value]) => ({ key, label: titleCase(key), value }));
   }, [enriched, activeCurrency]);
 
+  /* ----- Chips for active filters ----- */
+  const activeChips = [
+    statusFilter !== 'ALL' && {
+      key: 'status', label: PAY_STATUS[statusFilter]?.label || statusFilter,
+      clear: () => setStatusFilter('ALL'),
+    },
+    typeFilter !== 'ALL' && {
+      key: 'type', label: TYPE_OPTIONS.find((t) => t.value === typeFilter)?.label || typeFilter,
+      clear: () => setTypeFilter('ALL'),
+    },
+    categoryFilter !== 'ALL' && {
+      key: 'category', label: titleCase(categoryFilter),
+      clear: () => setCategoryFilter('ALL'),
+    },
+    supplierFilter !== 'ALL' && {
+      key: 'supplier', label: supplierFilter === '__none' ? 'No supplier' : (supplierById.get(supplierFilter)?.name || supplierFilter),
+      clear: () => setSupplierFilter('ALL'),
+    },
+    dateFrom && { key: 'from', label: `Desde ${dateFrom}`, clear: () => setDateFrom('') },
+    dateTo && { key: 'to', label: `Hasta ${dateTo}`, clear: () => setDateTo('') },
+  ].filter(Boolean);
+
+  /* ----- Filter modal ----- */
+  const openFilterModal = () => {
+    setFilterDraft({ status: statusFilter, type: typeFilter, category: categoryFilter, supplier: supplierFilter, from: dateFrom, to: dateTo });
+    setFilterModalOpen(true);
+  };
+  const applyFilterDraft = () => {
+    if (filterDraftDateInvalid) return;
+    setStatusFilter(filterDraft.status);
+    setTypeFilter(filterDraft.type);
+    setCategoryFilter(filterDraft.category);
+    setSupplierFilter(filterDraft.supplier);
+    setDateFrom(filterDraft.from);
+    setDateTo(filterDraft.to);
+    setFilterModalOpen(false);
+  };
+  const clearFilterDraft = () => setFilterDraft(EMPTY_FILTERS);
+
   /* ----- Layers: detail / escape / scroll lock ----- */
   const openDetail = (e) => { setDetailId(e.id); setDetailClosing(false); };
   const closeDetail = useCallback(() => {
@@ -610,11 +803,12 @@ export default function ExpensesPage() {
       if (deleteTarget) setDeleteTarget(null);
       else if (payTarget) setPayTarget(null);
       else if (formOpen) setFormOpen(false);
+      else if (filterModalOpen) setFilterModalOpen(false);
       else if (detailId) closeDetail();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [deleteTarget, payTarget, formOpen, detailId, closeDetail]);
+  }, [deleteTarget, payTarget, formOpen, filterModalOpen, detailId, closeDetail]);
 
   useEffect(() => {
     document.body.style.overflow = detailId ? 'hidden' : '';
@@ -662,7 +856,6 @@ export default function ExpensesPage() {
     setFormOpen(true);
   };
 
-  // Picking a supplier suggests a category when the category is still the default
   const pickSupplier = (id) => {
     setForm((f) => {
       const s = supplierById.get(id);
@@ -723,7 +916,7 @@ export default function ExpensesPage() {
           const { error: insErr } = await supabase.from('expenses').insert([{ ...payload, expense_number: newExpenseNumber(), created_by: user?.id || null }]);
           if (!insErr) { lastError = null; break; }
           lastError = insErr;
-          if (insErr.code !== '23505') break; // only retry on a duplicate expense number
+          if (insErr.code !== '23505') break;
         }
         if (lastError) throw lastError;
       }
@@ -794,7 +987,7 @@ export default function ExpensesPage() {
     }
   };
 
-  /* ----- CSV export (respects the current filters) ----- */
+  /* ----- CSV export ----- */
   const exportCsv = () => {
     const header = ['expense_number', 'title', 'category', 'type', 'supplier', 'supplier_code', 'amount', 'tax', 'currency', 'paid', 'balance', 'status', 'expense_date', 'due_date', 'invoice_number'];
     const rows = filtered.map((e) => [
@@ -813,523 +1006,598 @@ export default function ExpensesPage() {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
-  const statCards = [
-    { label: 'Total expenses', value: `${fmtMoney(stats.total)} ${activeCurrency}`, sub: `${stats.count} expense${stats.count === 1 ? '' : 's'}`, icon: Receipt, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
-    { label: 'Paid', value: `${fmtMoney(stats.paid)} ${activeCurrency}`, sub: stats.total ? `${Math.round((stats.paid / stats.total) * 100)}% of total` : 'Nothing yet', icon: CheckCircle2, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Outstanding', value: `${fmtMoney(stats.outstanding)} ${activeCurrency}`, sub: 'Still to be paid', icon: Wallet, tone: 'text-amber-600', chip: 'bg-amber-50 text-amber-600' },
-    { label: 'Overdue', value: stats.overdueCount, sub: stats.overdueCount ? `${fmtMoney(stats.overdueAmount)} ${activeCurrency} past due` : 'Nothing past due', icon: Clock, tone: stats.overdueCount ? 'text-rose-600' : 'text-slate-900', chip: 'bg-rose-50 text-rose-600' },
-  ];
-
   /* ---------- Render ---------- */
   return (
-    <div className="min-h-screen bg-stone-50">
+    <main className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
       <style>{`
         @keyframes rp-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
-        @keyframes rp-fade { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes rp-fade-out { from { opacity: 1; } to { opacity: 0; } }
-        @keyframes rp-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes rp-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
         .rp-pop { animation: rp-pop .16s ease-out; }
-        .rp-backdrop-in { animation: rp-fade .22s ease-out forwards; }
-        .rp-backdrop-out { animation: rp-fade-out .26s ease-in forwards; }
-        .rp-sheet-in { animation: rp-up .3s cubic-bezier(.22,1,.36,1) forwards; }
-        .rp-sheet-out { animation: rp-down .26s cubic-bezier(.4,0,1,1) forwards; }
-        @media (prefers-reduced-motion: reduce) {
-          .rp-pop, .rp-backdrop-in, .rp-backdrop-out, .rp-sheet-in, .rp-sheet-out { animation-duration: 1ms; }
-        }
+        @media (prefers-reduced-motion: reduce) { .rp-pop { animation-duration: 1ms; } }
       `}</style>
 
-      <div className="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      {/* Encabezado */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 ring-1 ring-inset ring-amber-200">
+            <Receipt aria-hidden="true" className="h-6 w-6" />
+          </span>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{translate('Expenses')}</h1>
-            <p className="text-sm text-slate-500 mt-1">{translate('Track what the agency spends, linked to your suppliers and bookings.')}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={exportCsv} disabled={!filtered.length} className={btnGhost}>
-              <Download className="w-4 h-4 text-slate-500" />{translate('Export CSV')}</button>
-            <button onClick={fetchData} className={btnGhost} title="Refresh records">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{translate('Refresh')}</button>
-            <button onClick={openCreate} className={btnPrimary}>
-              <Plus className="w-4 h-4" />{translate('New expense')}</button>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{translate('Gastos')}</h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {translate('Controla lo que gasta la agencia, vinculado a tus proveedores y reservas.')}
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={exportCsv} disabled={!filtered.length} className={btnGhost} title="Exportar CSV">
+            <Download aria-hidden="true" className="h-4 w-4 text-slate-500" />
+            <span className="hidden sm:inline">{translate('Exportar CSV')}</span>
+          </button>
+          <button type="button" onClick={fetchData} disabled={loading} className={btnGhost} title="Actualizar">
+            <RefreshCw aria-hidden="true" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{translate('Actualizar')}</span>
+          </button>
+          <button type="button" onClick={openCreate} className={btnPrimary}>
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            {translate('Nuevo gasto')}
+          </button>
+        </div>
+      </header>
 
-        {/* Banners */}
-        {notice && (
-          <div role="status" className="px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 text-sm rp-pop">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> {notice}
-          </div>
-        )}
-        {error && (
-          <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm rp-pop">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span className="flex-1">{error}</span>
-            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded" aria-label="Dismiss"><X className="w-4 h-4" /></button>
-          </div>
-        )}
+      {notice && (
+        <p role="status" className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
+          {notice}
+          <button type="button" onClick={() => setNotice(null)} aria-label="Descartar" className="rounded p-0.5 hover:bg-emerald-100">
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </p>
+      )}
 
-        {/* Stats */}
+      {error && (
+        <p role="alert" className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+          <span className="flex items-center gap-2"><AlertTriangle aria-hidden="true" className="h-4 w-4" />{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Descartar" className="rounded p-0.5 hover:bg-red-100">
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </p>
+      )}
+
+      {/* Estadísticas */}
+      {!loading && enriched.length > 0 && (
         <div className="space-y-3">
           {currencies.length > 1 && (
             <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
-              Totals shown in
-              <Select compact className="w-28" value={activeCurrency} onChange={setViewCurrency} ariaLabel="Currency for totals" menuMinWidth={120}
+              {translate('Totales en')}
+              <Select compact className="w-28" value={activeCurrency} onChange={setViewCurrency} ariaLabel="Moneda para los totales" menuMinWidth={120}
                 options={currencies.map((c) => ({ value: c, label: c }))} />
             </div>
           )}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {statCards.map(({ label, value, sub, icon: Icon, tone, chip }) => (
-              <div key={label} className="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm text-slate-500">{label}</p>
-                  <p className={`text-2xl font-semibold mt-1 truncate ${tone}`}>{value}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>
-                </div>
-                <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${chip}`}><Icon className="w-5 h-5" /></span>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard label={translate('Total de gastos')} value={`${fmtMoney(stats.total)} ${activeCurrency}`}
+              sub={`${stats.count} ${stats.count === 1 ? 'gasto' : 'gastos'}`} bar="bg-amber-500" />
+            <StatCard label={translate('Pagado')} value={`${fmtMoney(stats.paid)} ${activeCurrency}`}
+              sub={stats.total ? `${Math.round((stats.paid / stats.total) * 100)}% del total` : '—'}
+              tone="text-emerald-700" bar="bg-emerald-500" />
+            <StatCard label={translate('Pendiente')} value={`${fmtMoney(stats.outstanding)} ${activeCurrency}`}
+              sub={translate('Aún por pagar')} tone="text-amber-700" bar="bg-amber-400" />
+            <StatCard label={translate('Vencido')} value={stats.overdueCount}
+              sub={stats.overdueCount ? `${fmtMoney(stats.overdueAmount)} ${activeCurrency}` : translate('Nada vencido')}
+              tone={stats.overdueCount ? 'text-red-700' : 'text-slate-900'} bar={stats.overdueCount ? 'bg-red-500' : 'bg-slate-300'} />
+          </div>
+        </div>
+      )}
+
+      {/* Breakdowns */}
+      {!loading && enriched.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <BarList title="Top suppliers by spend" icon={Building2} rows={topSuppliers} currency={activeCurrency} empty="No expenses are linked to a supplier yet." />
+          <BarList title="Spend by category" icon={Receipt} rows={topCategories} currency={activeCurrency} empty="No expenses yet." />
+        </div>
+      )}
+
+      {/* Tabla + toolbar */}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="space-y-3 border-b border-slate-200 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="relative block min-w-0 flex-1">
+              <span className="sr-only">{translate('Buscar gastos')}</span>
+              <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                placeholder={translate('Buscar por título, número, proveedor o factura…')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`${inputCls} pl-9`}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={openFilterModal}
+              aria-haspopup="dialog"
+              aria-expanded={filterModalOpen}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <Filter aria-hidden="true" className="h-4 w-4" />
+              {translate('Filtros')}
+              {activeChips.length > 0 && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{activeChips.length}</span>
+              )}
+            </button>
+          </div>
+
+          {hasFilters && (
+            <div className="flex flex-wrap items-center gap-2">
+              {activeChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.clear}
+                  className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 hover:bg-amber-100"
+                >
+                  {chip.label}
+                  <X aria-hidden="true" className="h-3 w-3" />
+                  <span className="sr-only">{translate('Quitar filtro')}</span>
+                </button>
+              ))}
+              <button type="button" onClick={clearFilters} className="px-1 text-xs font-medium text-slate-500 hover:text-slate-800">
+                {translate('Borrar todo')}
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>{filtered.length} de {enriched.length} {enriched.length === 1 ? 'gasto' : 'gastos'}</span>
+            <span className="text-slate-300">|</span>
+            <label className="inline-flex items-center gap-1.5">{translate('Desde')}
+              <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} className={`${inputCls} !w-auto !py-1`} />
+            </label>
+            <label className="inline-flex items-center gap-1.5">{translate('hasta')}
+              <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} className={`${inputCls} !w-auto !py-1`} />
+            </label>
+            {dateRangeInvalid && <span role="alert" className="text-red-600">{translate('La fecha de inicio es posterior a la de fin.')}</span>}
           </div>
         </div>
 
-        {/* Breakdowns */}
-        {!loading && enriched.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <BarList title="Top suppliers by spend" icon={Building2} rows={topSuppliers} currency={activeCurrency} empty="No expenses are linked to a supplier yet." />
-            <BarList title="Spend by category" icon={Receipt} rows={topCategories} currency={activeCurrency} empty="No expenses yet." />
-          </div>
-        )}
-
-        {/* Table card with toolbar */}
-        <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
-          <div className="p-4 border-b border-slate-100 space-y-3">
-            <div className="flex flex-col lg:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type="search" placeholder="Search title, number, supplier or invoice" value={search}
-                  onChange={(e) => setSearch(e.target.value)} className={`${inputCls} pl-9`} />
-              </div>
-              <Select className="lg:w-48" prefix="Status" ariaLabel="Payment status filter" value={statusFilter} onChange={setStatusFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...PAY_STATUS_OPTIONS]} />
-              <Select className="lg:w-48" prefix="Type" ariaLabel="Expense type filter" value={typeFilter} onChange={setTypeFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...TYPE_OPTIONS]} />
-              <Select className="lg:w-52" prefix="Category" ariaLabel="Category filter" value={categoryFilter} onChange={setCategoryFilter}
-                options={[{ value: 'ALL', label: 'All' }, ...categoryOptions]} searchable />
-              <Select className="lg:w-56" prefix="Supplier" ariaLabel="Supplier filter" value={supplierFilter} onChange={setSupplierFilter}
-                options={supplierFilterOptions} searchable menuMinWidth={280} />
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-              <div className="flex flex-wrap items-center gap-2">
-                <span>{filtered.length} of {enriched.length} expenses</span>
-                <span className="text-slate-300">{translate('|')}</span>
-                <label className="inline-flex items-center gap-1.5">From
-                  <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} className={`${inputCls} !w-auto !py-1`} />
-                </label>
-                <label className="inline-flex items-center gap-1.5">to
-                  <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} className={`${inputCls} !w-auto !py-1`} />
-                </label>
-                {dateRangeInvalid && <span role="alert" className="text-rose-600">{translate('Start date is after the end date.')}</span>}
-              </div>
-              {hasFilters && (
-                <button onClick={clearFilters} className="font-medium text-amber-700 hover:text-amber-800 underline underline-offset-2">{translate('Clear filters')}</button>
-              )}
-            </div>
-          </div>
-
+        {/* Cuerpo */}
+        {loading ? (
+          <Skeleton />
+        ) : enriched.length === 0 ? (
+          <EmptyState onCreate={openCreate} />
+        ) : filtered.length === 0 ? (
+          <NoResults onClear={clearFilters} />
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
-              <thead>
-                <tr className="bg-stone-50 border-b border-slate-100 text-xs font-medium text-slate-500">
-                  <th className="py-3 px-4">{translate('Expense')}</th>
-                  <th className="py-3 px-4">{translate('Supplier')}</th>
-                  <th className="py-3 px-4">{translate('Category')}</th>
-                  <th className="py-3 px-4 text-right">{translate('Amount')}</th>
-                  <th className="py-3 px-4 w-44">{translate('Paid')}</th>
-                  <th className="py-3 px-4">{translate('Status')}</th>
-                  <th className="py-3 px-4">{translate('Due')}</th>
-                  <th className="py-3 px-4 w-28" />
+            <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
+              <thead className="bg-slate-50 text-xs text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{translate('Gasto')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Proveedor')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Categoría')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{translate('Importe')}</th>
+                  <th className="w-44 px-4 py-3 font-medium">{translate('Pagado')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Estado')}</th>
+                  <th className="px-4 py-3 font-medium">{translate('Vence')}</th>
+                  <th className="w-28 px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {loading ? (
-                  <tr><td colSpan="8" className="py-16 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />{translate('Loading expenses…')}</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan="8" className="py-16 text-center text-slate-500">
-                    <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="font-medium text-slate-700">{enriched.length === 0 ? 'No expenses yet' : 'No expenses match'}</p>
-                    <p className="text-xs mt-1">{enriched.length === 0 ? 'Record your first expense to start tracking spend.' : 'Try a different search or clear the filters.'}</p>
-                    {enriched.length === 0 && (
-                      <button onClick={openCreate} className={`${btnPrimary} mt-4`}><Plus className="w-4 h-4" />{translate('New expense')}</button>
-                    )}
-                  </td></tr>
-                ) : (
-                  filtered.map((e) => {
-                    const cancelled = e.payment_status === 'cancelled';
-                    return (
-                      <tr key={e.id} tabIndex={0} onClick={() => openDetail(e)} onKeyDown={(ev) => { if (ev.key === 'Enter') openDetail(e); }}
-                        className={`group cursor-pointer hover:bg-amber-50/40 focus:outline-none focus-visible:bg-amber-50/60 transition-colors ${cancelled ? 'opacity-60' : ''}`}>
-                        <td className="py-3.5 px-4">
-                          <p className="font-medium text-slate-900">{e.title}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            <span className="font-mono text-amber-700">{e.expense_number || '—'}</span> · {fmtDate(e.expense_date)}
-                            {e.is_recurring && <Repeat className="inline w-3 h-3 ml-1.5 -mt-0.5 text-slate-400" aria-label="Recurring" />}
-                          </p>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {e.supplier_name ? (
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <SupplierAvatar type={e.supplier?.supplier_type} name={e.supplier_name} />
-                              <div className="min-w-0">
-                                {e.supplier ? (
-                                  <Link to={`/admin/suppliers/${e.supplier.id}`} onClick={(ev) => ev.stopPropagation()}
-                                    className="block truncate font-medium text-slate-900 hover:text-amber-700">{e.supplier.name}</Link>
-                                ) : (
-                                  <p className="truncate font-medium text-slate-900">{e.supplier_name}</p>
-                                )}
-                                <p className="text-xs text-slate-400 truncate">{e.supplier ? e.supplier.supplier_code : 'Other payee'}</p>
-                              </div>
-                            </div>
-                          ) : <span className="text-slate-400">{translate('—')}</span>}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <p>{titleCase(e.category)}</p>
-                          <p className="text-xs text-slate-400">{titleCase(e.expense_type)}</p>
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <p className="font-semibold text-slate-900">{fmtMoney(e.amount)} {e.currency}</p>
-                          {Number(e.tax_amount) > 0 && <p className="text-xs text-slate-400">incl. {fmtMoney(e.tax_amount)} tax</p>}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center justify-between gap-2 text-xs mb-1.5">
-                            <span className="font-medium text-emerald-700">{fmtMoney(e.paid_amount)}</span>
-                            <span className={e.balance > 0 ? 'text-rose-600' : 'text-slate-400'}>{e.balance > 0 ? `${fmtMoney(e.balance)} left` : 'Settled'}</span>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((e) => {
+                  const cancelled = e.payment_status === 'cancelled';
+                  return (
+                    <tr
+                      key={e.id}
+                      tabIndex={0}
+                      onClick={() => openDetail(e)}
+                      onKeyDown={(ev) => { if (ev.key === 'Enter') openDetail(e); }}
+                      className={`group cursor-pointer transition-colors hover:bg-amber-50/30 focus:outline-none focus-visible:bg-amber-50/60 ${cancelled ? 'opacity-60' : ''}`}
+                    >
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <SupplierAvatar type={e.supplier?.supplier_type} name={e.supplier_name || e.title} />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-900">{e.title}</p>
+                            <p className="mt-0.5 text-xs text-slate-400">
+                              <span className="font-mono text-amber-700">{e.expense_number || '—'}</span> · {fmtDate(e.expense_date)}
+                              {e.is_recurring && <Repeat className="ml-1.5 -mt-0.5 inline h-3 w-3 text-slate-400" aria-label="Recurrente" />}
+                            </p>
                           </div>
-                          <PaidBar paid={Number(e.paid_amount || 0)} total={Number(e.amount || 0)} />
-                        </td>
-                        <td className="py-3.5 px-4"><StatusBadge status={e.payment_status} /></td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          {e.due_date ? (
-                            <>
-                              <p className={e.overdue ? 'font-medium text-rose-600' : 'text-slate-600'}>{fmtDate(e.due_date)}</p>
-                              {e.overdue && <p className="text-xs text-rose-500">{translate('Overdue')}</p>}
-                            </>
-                          ) : <span className="text-slate-400">{translate('—')}</span>}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center justify-end gap-1">
-                            {e.balance > 0 && (
-                              <button onClick={(ev) => { ev.stopPropagation(); openPay(e); }} onKeyDown={(ev) => ev.stopPropagation()}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition" title="Record a payment">
-                                <CreditCard className="w-3.5 h-3.5" />{translate('Pay')}</button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {e.supplier_name ? (
+                          <div className="min-w-0">
+                            {e.supplier ? (
+                              <Link to={`/admin/suppliers/${e.supplier.id}`} onClick={(ev) => ev.stopPropagation()}
+                                className="block truncate font-medium text-slate-900 hover:text-amber-700">{e.supplier.name}</Link>
+                            ) : (
+                              <p className="truncate font-medium text-slate-900">{e.supplier_name}</p>
                             )}
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition" />
+                            <p className="truncate text-xs text-slate-400">{e.supplier ? e.supplier.supplier_code : 'Otro beneficiario'}</p>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                        ) : <span className="text-slate-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="text-slate-700">{titleCase(e.category)}</p>
+                        <p className="text-xs text-slate-400">{titleCase(e.expense_type)}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                        <p className="font-semibold text-slate-900">{fmtMoney(e.amount)} {e.currency}</p>
+                        {Number(e.tax_amount) > 0 && <p className="text-xs text-slate-400">incl. {fmtMoney(e.tax_amount)} imp.</p>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-medium text-emerald-700">{fmtMoney(e.paid_amount)}</span>
+                          <span className={e.balance > 0 ? 'text-red-600' : 'text-slate-400'}>
+                            {e.balance > 0 ? `${fmtMoney(e.balance)} rest.` : 'Pagado'}
+                          </span>
+                        </div>
+                        <PaidBar paid={Number(e.paid_amount || 0)} total={Number(e.amount || 0)} />
+                      </td>
+                      <td className="px-4 py-3.5"><StatusBadge status={e.payment_status} /></td>
+                      <td className="px-4 py-3.5 text-slate-600">{e.due_date ? fmtDate(e.due_date) : '—'}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex justify-end gap-1">
+                          <button type="button" onClick={(ev) => { ev.stopPropagation(); openEdit(e); }}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50">
+                            <Pencil aria-hidden="true" className="h-3.5 w-3.5" />{translate('Editar')}
+                          </button>
+                          {e.balance > 0 && e.payment_status !== 'cancelled' && (
+                            <button type="button" onClick={(ev) => { ev.stopPropagation(); openPay(e); }}
+                              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50">
+                              <Wallet aria-hidden="true" className="h-3.5 w-3.5" />{translate('Pagar')}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+        )}
+      </section>
 
-      {/* ================= DETAIL SLIDE-UP SHEET (100% width, 70% height) ================= */}
-      {detail && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Expense ${detail.expense_number || detail.title}`}>
-          <div className={`absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] ${detailClosing ? 'rp-backdrop-out' : 'rp-backdrop-in'}`} onClick={closeDetail} />
-          <div className={`absolute bottom-0 left-0 w-full h-[70vh] bg-stone-50 rounded-t-3xl shadow-[0_-20px_60px_-15px_rgba(15,23,42,0.35)] flex flex-col ${detailClosing ? 'rp-sheet-out' : 'rp-sheet-in'}`}>
-            <div className="flex justify-center pt-3 pb-1">
-              <button onClick={closeDetail} className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition" aria-label="Close panel" />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-4 px-6 lg:px-10 py-3 border-b border-slate-200">
-              <div className="min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h3 className="text-lg font-semibold text-slate-900 truncate">{detail.title}</h3>
-                  <span className="font-mono text-xs font-semibold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 px-2 py-0.5 rounded">{detail.expense_number || 'No number'}</span>
-                  <StatusBadge status={detail.payment_status} />
-                  {detail.overdue && <span className="text-xs font-medium text-rose-700 bg-rose-50 ring-1 ring-inset ring-rose-200 px-2 py-0.5 rounded-full">{translate('Overdue')}</span>}
+      {/* Modal de filtros */}
+      {filterModalOpen && (
+        <Modal onClose={() => setFilterModalOpen(false)}>
+          <ModalHeader
+            title={translate('Filtrar gastos')}
+            subtitle={translate('Combina estado, tipo, categoría, proveedor y fechas.')}
+            onClose={() => setFilterModalOpen(false)}
+          />
+          <div className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Estado')}
+                <div className="mt-1.5">
+                  <Select value={filterDraft.status} onChange={(v) => setFilterDraft((d) => ({ ...d, status: v }))}
+                    options={[{ value: 'ALL', label: 'Todos' }, ...PAY_STATUS_OPTIONS]} />
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">Dated {fmtDate(detail.expense_date)} · Created {fmtDate(detail.created_at)}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {detail.balance > 0 && <button onClick={() => openPay(detail)} className={btnPrimary}><CreditCard className="w-4 h-4" />{translate('Record payment')}</button>}
-                <button onClick={() => { closeDetail(); openEdit(detail); }} className={btnGhost}><Pencil className="w-4 h-4 text-slate-500" />{translate('Edit')}</button>
-                <button onClick={() => setDeleteTarget(detail)} className={`${btnGhost} !text-rose-700 hover:!bg-rose-50`}><Trash2 className="w-4 h-4" />{translate('Delete')}</button>
-                <button onClick={closeDetail} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition" aria-label="Close"><X className="w-5 h-5" /></button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 lg:px-10 py-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-[1500px] mx-auto">
-                <div className="space-y-4">
-                  <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-3">
-                    <SectionTitle icon={Building2}>{translate('Supplier')}</SectionTitle>
-                    {detail.supplier_name ? (
-                      <div className="flex items-center gap-3">
-                        <SupplierAvatar type={detail.supplier?.supplier_type} name={detail.supplier_name} size="w-11 h-11" />
-                        <div className="min-w-0 text-sm">
-                          <p className="font-medium text-slate-900 truncate">{detail.supplier?.name || detail.supplier_name}</p>
-                          <p className="text-xs text-slate-500">
-                            {detail.supplier
-                              ? [detail.supplier.supplier_code, SUPPLIER_TYPE_META[detail.supplier.supplier_type]?.label].filter(Boolean).join(' · ')
-                              : 'Other payee (not in your suppliers)'}
-                          </p>
-                          {detail.supplier && (
-                            <Link to={`/admin/suppliers/${detail.supplier.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:underline mt-1">
-                              Open supplier <ArrowUpRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    ) : <p className="text-sm text-slate-500">{translate('No supplier on this expense.')}</p>}
-                  </section>
-
-                  <section className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-2.5 text-sm">
-                    <SectionTitle icon={Receipt}>{translate('Details')}</SectionTitle>
-                    <p><span className="text-slate-400">{translate('Category')}</span> &nbsp;{titleCase(detail.category)}</p>
-                    <p><span className="text-slate-400">{translate('Type')}</span> &nbsp;{titleCase(detail.expense_type)}</p>
-                    <p><span className="text-slate-400">{translate('Invoice no.')}</span> &nbsp;{detail.invoice_number || '—'}</p>
-                    {detail.booking_id && (
-                      <p><span className="text-slate-400">{translate('Booking')}</span> &nbsp;<span className="font-mono text-xs font-semibold">{bookingById.get(detail.booking_id)?.booking_reference || detail.booking_id.slice(0, 8)}</span></p>
-                    )}
-                    {detail.is_recurring && (
-                      <p className="flex items-center gap-1.5"><Repeat className="w-3.5 h-3.5 text-slate-400" /> Repeats {detail.recurrence_frequency}</p>
-                    )}
-                    {detail.receipt_url && (
-                      <a href={detail.receipt_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:underline">
-                        View receipt <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </section>
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Tipo')}
+                <div className="mt-1.5">
+                  <Select value={filterDraft.type} onChange={(v) => setFilterDraft((d) => ({ ...d, type: v }))}
+                    options={[{ value: 'ALL', label: 'Todos' }, ...TYPE_OPTIONS]} />
                 </div>
-
-                <section className="lg:col-span-2 bg-white rounded-xl border border-slate-200/80 p-5 space-y-5">
-                  <SectionTitle icon={Wallet}>{translate('Payment')}</SectionTitle>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { l: 'Total', v: detail.amount, c: 'text-slate-900' },
-                      { l: 'Paid', v: detail.paid_amount, c: 'text-emerald-600' },
-                      { l: 'Balance', v: detail.balance, c: detail.balance > 0 ? 'text-rose-600' : 'text-slate-700' },
-                    ].map((x) => (
-                      <div key={x.l} className="bg-stone-50 rounded-lg px-4 py-3">
-                        <p className="text-xs text-slate-500">{x.l}</p>
-                        <p className={`text-lg font-semibold mt-0.5 ${x.c}`}>{fmtMoney(x.v)} <span className="text-xs font-medium text-slate-400">{detail.currency}</span></p>
-                      </div>
-                    ))}
-                  </div>
-                  <PaidBar paid={Number(detail.paid_amount || 0)} total={Number(detail.amount || 0)} />
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                    <div><p className="text-xs text-slate-400">{translate('Tax included')}</p><p className="mt-0.5">{fmtMoney(detail.tax_amount)} {detail.currency}</p></div>
-                    <div><p className="text-xs text-slate-400">{translate('Method')}</p><p className="mt-0.5">{detail.payment_method ? titleCase(detail.payment_method) : '—'}</p></div>
-                    <div><p className="text-xs text-slate-400">{translate('Due date')}</p><p className={`mt-0.5 ${detail.overdue ? 'text-rose-600 font-medium' : ''}`}>{fmtDate(detail.due_date)}</p></div>
-                    <div><p className="text-xs text-slate-400">{translate('Paid on')}</p><p className="mt-0.5">{detail.paid_at ? fmtDate(detail.paid_at) : '—'}</p></div>
-                  </div>
-                </section>
-
-                <section className="bg-white rounded-xl border border-slate-200/80 p-5 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <SectionTitle icon={CalendarIcon}>{translate('Description')}</SectionTitle>
-                    <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{detail.description || 'None provided.'}</p>
-                  </div>
-                  <div>
-                    <SectionTitle icon={Pencil}>{translate('Internal notes')}</SectionTitle>
-                    <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{detail.notes || 'None provided.'}</p>
-                  </div>
-                </section>
-              </div>
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Categoría')}
+                <div className="mt-1.5">
+                  <Select value={filterDraft.category} onChange={(v) => setFilterDraft((d) => ({ ...d, category: v }))} searchable
+                    options={[{ value: 'ALL', label: 'Todas' }, ...categoryOptions]} />
+                </div>
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Proveedor')}
+                <div className="mt-1.5">
+                  <Select value={filterDraft.supplier} onChange={(v) => setFilterDraft((d) => ({ ...d, supplier: v }))} searchable
+                    options={supplierFilterOptions} menuMinWidth={280} />
+                </div>
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Desde')}
+                <input type="date" value={filterDraft.from} max={filterDraft.to || undefined}
+                  onChange={(e) => setFilterDraft((d) => ({ ...d, from: e.target.value }))}
+                  className={`${inputCls} mt-1.5`} />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {translate('Hasta')}
+                <input type="date" value={filterDraft.to} min={filterDraft.from || undefined}
+                  onChange={(e) => setFilterDraft((d) => ({ ...d, to: e.target.value }))}
+                  className={`${inputCls} mt-1.5`} />
+              </label>
+            </div>
+            {filterDraftDateInvalid && (
+              <p role="alert" className="text-sm text-red-700">{translate('La fecha de inicio debe ser anterior o igual a la fecha de fin.')}</p>
+            )}
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={clearFilterDraft}
+                className="mr-auto rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">{translate('Borrar filtros')}</button>
+              <button type="button" onClick={() => setFilterModalOpen(false)}
+                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{translate('Cancelar')}</button>
+              <button type="button" onClick={applyFilterDraft} disabled={filterDraftDateInvalid}
+                className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50">{translate('Aplicar filtros')}</button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ================= CREATE / EDIT ================= */}
-      {formOpen && (
-        <Modal onClose={() => setFormOpen(false)} maxW="max-w-3xl">
-          <ModalHeader title={editingId ? 'Edit expense' : 'New expense'}
-            subtitle="Pick a supplier from your network and the details are filled in for you." onClose={() => setFormOpen(false)} />
-          <form onSubmit={handleSave} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-            {formError && (
-              <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" /> {formError}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <SectionTitle icon={Receipt}>{translate('What was it for?')}</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Title *')}</label>
-                  <input required value={form.title} onChange={setField('title')} placeholder="e.g. Riad Atlas, 3 nights for booking BK-2026-000012" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Type')}</label>
-                  <Select value={form.expense_type} onChange={setSel('expense_type')} options={TYPE_OPTIONS} ariaLabel="Expense type" menuMinWidth={240} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Category')}</label>
-                  <Select value={form.category} onChange={setSel('category')} options={categoryOptions} searchable ariaLabel="Category" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Description')}</label>
-                  <textarea rows="2" value={form.description} onChange={setField('description')} className={inputCls} placeholder="Optional details" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={Building2}>{translate('Supplier')}</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>{translate('Supplier')}</label>
-                  <Select value={form.supplier_id} onChange={pickSupplier} options={supplierFormOptions} searchable ariaLabel="Supplier" menuMinWidth={340} placeholder="Select a supplier" />
-                </div>
-                {form.supplier_id ? (
-                  <div className="text-sm text-slate-500 self-end pb-2">
-                    Saved with code <span className="font-mono font-semibold text-amber-700">{supplierById.get(form.supplier_id)?.supplier_code || '—'}</span>
-                  </div>
-                ) : (
-                  <div>
-                    <label className={labelCls}>{translate('Payee name')}</label>
-                    <input value={form.payee_name} onChange={setField('payee_name')} placeholder="e.g. Landlord, Meta Ads" className={inputCls} />
-                  </div>
-                )}
-                {(form.expense_type === 'booking' || form.booking_id) && (
-                  <div className="md:col-span-2">
-                    <label className={labelCls}>{translate('Linked booking')}</label>
-                    <Select value={form.booking_id} onChange={setSel('booking_id')} options={bookingOptions} searchable ariaLabel="Linked booking" menuMinWidth={300} />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={Wallet}>{translate('Amount and payment')}</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className={labelCls}>{translate('Total amount *')}</label>
-                  <input type="number" step="0.01" min="0.01" required value={form.amount} onChange={setField('amount')} placeholder="0.00" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Of which tax')}</label>
-                  <input type="number" step="0.01" min="0" value={form.tax_amount} onChange={setField('tax_amount')} placeholder="0.00" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Currency')}</label>
-                  <Select value={form.currency} onChange={setSel('currency')} options={CURRENCY_OPTIONS} ariaLabel="Currency" menuMinWidth={120} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Already paid')}</label>
-                  <input type="number" step="0.01" min="0" value={form.paid_amount} onChange={setField('paid_amount')} placeholder="0.00" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Payment method')}</label>
-                  <Select value={form.payment_method} onChange={setSel('payment_method')} options={METHOD_OPTIONS} ariaLabel="Payment method" />
-                </div>
-                {Number(form.paid_amount) > 0 && Number(form.paid_amount) >= Number(form.amount || 0) ? (
-                  <div>
-                    <label className={labelCls}>{translate('Paid on')}</label>
-                    <input type="date" value={form.paid_date} onChange={setField('paid_date')} className={inputCls} />
-                  </div>
-                ) : <div className="hidden md:block" />}
-                <div>
-                  <label className={labelCls}>{translate('Expense date *')}</label>
-                  <input type="date" required value={form.expense_date} onChange={setField('expense_date')} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Due date')}</label>
-                  <input type="date" min={form.expense_date || undefined} value={form.due_date} onChange={setField('due_date')} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>{translate('Invoice number')}</label>
-                  <input value={form.invoice_number} onChange={setField('invoice_number')} className={inputCls} />
-                </div>
-                <div className="md:col-span-3">
-                  <label className={labelCls}>{translate('Receipt link')}</label>
-                  <input type="url" value={form.receipt_url} onChange={setField('receipt_url')} placeholder="https://…" className={inputCls} />
-                </div>
-              </div>
-              <p className="text-xs text-slate-500">{translate('The status is worked out from the amount paid: nothing paid is unpaid, part paid is partially paid, all paid is paid.')}</p>
-            </div>
-
-            <div className="space-y-3 pt-5 border-t border-slate-100">
-              <SectionTitle icon={Repeat}>{translate('More')}</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={form.is_recurring} onChange={(e) => setForm((f) => ({ ...f, is_recurring: e.target.checked }))} className="accent-amber-600" />{translate('Recurring expense')}</label>
-                {form.is_recurring ? (
-                  <Select value={form.recurrence_frequency} onChange={setSel('recurrence_frequency')} options={FREQUENCY_OPTIONS} prefix="Repeats" ariaLabel="Recurrence" />
-                ) : <div className="hidden md:block" />}
-                <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 cursor-pointer md:col-span-2">
-                  <input type="checkbox" checked={form.is_cancelled} onChange={(e) => setForm((f) => ({ ...f, is_cancelled: e.target.checked }))} className="accent-amber-600" />{translate('This expense is cancelled (left out of all totals)')}</label>
-                <div className="md:col-span-2">
-                  <label className={labelCls}>{translate('Internal notes')}</label>
-                  <textarea rows="2" value={form.notes} onChange={setField('notes')} className={inputCls} placeholder="Visible to staff only" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
-              <button type="button" onClick={() => setFormOpen(false)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={saving} className={btnPrimary}>{saving ? 'Saving…' : editingId ? 'Save changes' : 'Save expense'}</button>
-            </div>
-          </form>
         </Modal>
       )}
 
-      {/* ================= RECORD PAYMENT ================= */}
+      {/* Modal de detalle */}
+      {detail && (
+        <Modal onClose={closeDetail} maxW="max-w-3xl">
+          <ModalHeader
+            title={detail.title}
+            subtitle={`${detail.expense_number || '—'} · ${fmtDate(detail.expense_date)}`}
+            onClose={closeDetail}
+          />
+          <div className="space-y-5 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-medium text-slate-500">{translate('Importe')}</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">{fmtMoney(detail.amount)} <span className="text-base font-medium text-slate-400">{detail.currency}</span></p>
+                {Number(detail.tax_amount) > 0 && <p className="text-xs text-slate-400 mt-0.5">incl. {fmtMoney(detail.tax_amount)} imp.</p>}
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-slate-500">{translate('Estado')}</p>
+                  <StatusBadge status={detail.payment_status} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="font-medium text-emerald-700">{fmtMoney(detail.paid_amount)} pagado</span>
+                  <span className={detail.balance > 0 ? 'text-red-600' : 'text-slate-400'}>
+                    {detail.balance > 0 ? `${fmtMoney(detail.balance)} rest.` : 'Pagado'}
+                  </span>
+                </div>
+                <div className="mt-2"><PaidBar paid={Number(detail.paid_amount || 0)} total={Number(detail.amount || 0)} /></div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium text-slate-500">{translate('Proveedor')}</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">{detail.supplier?.name || detail.supplier_name || '—'}</p>
+                {detail.supplier_reference && <p className="text-xs text-slate-400">{detail.supplier_reference}</p>}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">{translate('Categoría')}</p>
+                <p className="mt-1 text-sm text-slate-900">{titleCase(detail.category)} · {titleCase(detail.expense_type)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">{translate('Vence')}</p>
+                <p className={`mt-1 text-sm ${detail.overdue ? 'font-medium text-red-600' : 'text-slate-900'}`}>{detail.due_date ? fmtDate(detail.due_date) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">{translate('Factura')}</p>
+                <p className="mt-1 text-sm text-slate-900">{detail.invoice_number || '—'}</p>
+              </div>
+            </div>
+
+            {detail.notes && (
+              <div>
+                <p className="text-xs font-medium text-slate-500">{translate('Notas')}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{detail.notes}</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={() => { closeDetail(); setDeleteTarget(detail); }} className={btnDanger}>
+                <Trash2 aria-hidden="true" className="h-4 w-4" />{translate('Eliminar')}
+              </button>
+              <button type="button" onClick={() => { closeDetail(); openEdit(detail); }} className={btnGhost}>
+                <Pencil aria-hidden="true" className="h-4 w-4" />{translate('Editar')}
+              </button>
+              {detail.balance > 0 && detail.payment_status !== 'cancelled' && (
+                <button type="button" onClick={() => { closeDetail(); openPay(detail); }} className={btnPrimary}>
+                  <Wallet aria-hidden="true" className="h-4 w-4" />{translate('Registrar pago')}
+                </button>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de pago */}
       {payTarget && (
         <Modal onClose={() => setPayTarget(null)} maxW="max-w-md">
-          <ModalHeader title="Record payment" subtitle={`${payTarget.title}${payTarget.expense_number ? ` · ${payTarget.expense_number}` : ''}`} onClose={() => setPayTarget(null)} />
-          <form onSubmit={handlePay} className="p-6 space-y-4">
-            {payError && (
-              <div role="alert" className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm">{payError}</div>
-            )}
-            <div className="bg-amber-50 px-4 py-3 rounded-lg border border-amber-200 text-sm text-amber-900 flex justify-between">
-              <span>{translate('Still owed')}</span>
-              <span className="font-semibold">{fmtMoney(payTarget.balance)} {payTarget.currency}</span>
-            </div>
-            <div>
-              <label className={labelCls}>Amount ({payTarget.currency}) *</label>
-              <input type="number" step="0.01" min="0.01" max={payTarget.balance} required value={payForm.amount}
-                onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))} className={inputCls} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>{translate('Method')}</label>
-                <Select value={payForm.method} onChange={(v) => setPayForm((p) => ({ ...p, method: v }))} options={PAY_METHOD_OPTIONS} ariaLabel="Payment method" />
+          <form onSubmit={handlePay}>
+            <ModalHeader
+              title={translate('Registrar pago')}
+              subtitle={`${payTarget.title} · ${fmtMoney(payTarget.balance)} ${payTarget.currency} ${translate('pendiente')}`}
+              onClose={() => setPayTarget(null)}
+            />
+            <div className="space-y-4 p-5">
+              <label className="block text-sm font-medium text-slate-700">
+                {translate('Importe')}
+                <input type="number" min="0" step="0.01" value={payForm.amount}
+                  onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))}
+                  className={`${inputCls} mt-1.5`} required />
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                {translate('Método')}
+                <div className="mt-1.5">
+                  <Select value={payForm.method} onChange={(v) => setPayForm((f) => ({ ...f, method: v }))} options={PAY_METHOD_OPTIONS} />
+                </div>
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                {translate('Fecha')}
+                <input type="date" value={payForm.date}
+                  onChange={(e) => setPayForm((f) => ({ ...f, date: e.target.value }))}
+                  className={`${inputCls} mt-1.5`} />
+              </label>
+              {payError && <p role="alert" className="text-sm text-red-700">{payError}</p>}
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <button type="button" onClick={() => setPayTarget(null)} disabled={saving}
+                  className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancelar')}</button>
+                <button type="submit" disabled={saving}
+                  className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50">
+                  {saving ? translate('Guardando…') : translate('Registrar pago')}
+                </button>
               </div>
-              <div>
-                <label className={labelCls}>{translate('Date')}</label>
-                <input type="date" value={payForm.date} max={todayISO()} onChange={(e) => setPayForm((p) => ({ ...p, date: e.target.value }))} className={inputCls} />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button type="button" onClick={() => setPayTarget(null)} className={btnGhost}>{translate('Cancel')}</button>
-              <button type="submit" disabled={saving} className={btnPrimary}>{saving ? 'Saving…' : 'Record payment'}</button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ================= DELETE CONFIRM ================= */}
+      {/* Modal de eliminación */}
       {deleteTarget && (
         <Modal onClose={() => setDeleteTarget(null)} maxW="max-w-md">
-          <ModalHeader title="Delete this expense?" subtitle={deleteTarget.title} onClose={() => setDeleteTarget(null)} />
-          <div className="p-6 space-y-4">
-            <p className="text-sm text-slate-600">
-              This permanently removes <span className="font-semibold">{deleteTarget.expense_number || 'the expense'}</span>{translate('and cannot be undone. If you only want to leave it out of totals, edit it and mark it as cancelled instead.')}</p>
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className={btnGhost}>{translate('Keep it')}</button>
-              <button onClick={handleDelete} disabled={saving} className={btnDanger}>{saving ? 'Deleting…' : 'Delete expense'}</button>
+          <ModalHeader title={translate('Eliminar gasto')} subtitle={deleteTarget.title} onClose={() => setDeleteTarget(null)} />
+          <div className="space-y-4 p-5">
+            <p className="text-sm text-slate-600">{translate('Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este gasto?')}</p>
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={saving}
+                className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancelar')}</button>
+              <button type="button" onClick={handleDelete} disabled={saving} className={btnDanger}>
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+                {saving ? translate('Eliminando…') : translate('Eliminar')}
+              </button>
             </div>
           </div>
         </Modal>
       )}
-    </div>
+
+      {/* Modal de crear/editar */}
+      {formOpen && (
+        <Modal onClose={() => !saving && setFormOpen(false)}>
+          <form onSubmit={handleSave}>
+            <ModalHeader
+              title={editingId ? translate('Editar gasto') : translate('Nuevo gasto')}
+              subtitle={editingId ? form.title : translate('Registra un gasto y vincúlalo a proveedor y reserva.')}
+              onClose={() => !saving && setFormOpen(false)}
+            />
+            <div className="space-y-4 p-5">
+              <label className="block text-sm font-medium text-slate-700">
+                {translate('Título')}
+                <input value={form.title} onChange={setField('title')} className={`${inputCls} mt-1.5`} required />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Categoría')}
+                  <div className="mt-1.5">
+                    <Select value={form.category} onChange={setSel('category')} searchable options={categoryOptions} />
+                  </div>
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Tipo')}
+                  <div className="mt-1.5">
+                    <Select value={form.expense_type} onChange={setSel('expense_type')} options={TYPE_OPTIONS} />
+                  </div>
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Importe')}
+                  <input type="number" min="0" step="0.01" value={form.amount} onChange={setField('amount')} className={`${inputCls} mt-1.5`} required />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Impuesto')}
+                  <input type="number" min="0" step="0.01" value={form.tax_amount} onChange={setField('tax_amount')} className={`${inputCls} mt-1.5`} />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Moneda')}
+                  <div className="mt-1.5">
+                    <Select value={form.currency} onChange={setSel('currency')} options={CURRENCY_OPTIONS} />
+                  </div>
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Proveedor')}
+                  <div className="mt-1.5">
+                    <Select value={form.supplier_id} onChange={pickSupplier} options={supplierFormOptions} searchable menuMinWidth={280} />
+                  </div>
+                </label>
+                {!form.supplier_id && (
+                  <label className="block text-sm font-medium text-slate-700">
+                    {translate('Beneficiario')}
+                    <input value={form.payee_name} onChange={setField('payee_name')} className={`${inputCls} mt-1.5`} placeholder={translate('Otro beneficiario')} />
+                  </label>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Reserva')}
+                  <div className="mt-1.5">
+                    <Select value={form.booking_id} onChange={setSel('booking_id')} options={bookingOptions} searchable />
+                  </div>
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Nº factura')}
+                  <input value={form.invoice_number} onChange={setField('invoice_number')} className={`${inputCls} mt-1.5`} />
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Fecha del gasto')}
+                  <input type="date" value={form.expense_date} onChange={setField('expense_date')} className={`${inputCls} mt-1.5`} />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Vencimiento')}
+                  <input type="date" value={form.due_date} onChange={setField('due_date')} className={`${inputCls} mt-1.5`} />
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Pagado')}
+                  <input type="number" min="0" step="0.01" value={form.paid_amount} onChange={setField('paid_amount')} className={`${inputCls} mt-1.5`} />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Método')}
+                  <div className="mt-1.5">
+                    <Select value={form.payment_method} onChange={setSel('payment_method')} options={METHOD_OPTIONS} />
+                  </div>
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Fecha de pago')}
+                  <input type="date" value={form.paid_date} onChange={setField('paid_date')} className={`${inputCls} mt-1.5`} />
+                </label>
+              </div>
+
+              <label className="block text-sm font-medium text-slate-700">
+                {translate('Notas')}
+                <textarea value={form.notes} onChange={setField('notes')} rows={3} className={`${inputCls} mt-1.5`} />
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={form.is_recurring} onChange={(e) => setForm((f) => ({ ...f, is_recurring: e.target.checked }))} />
+                {translate('Gasto recurrente')}
+              </label>
+              {form.is_recurring && (
+                <label className="block text-sm font-medium text-slate-700">
+                  {translate('Frecuencia')}
+                  <div className="mt-1.5">
+                    <Select value={form.recurrence_frequency} onChange={setSel('recurrence_frequency')} options={FREQUENCY_OPTIONS} />
+                  </div>
+                </label>
+              )}
+
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={form.is_cancelled} onChange={(e) => setForm((f) => ({ ...f, is_cancelled: e.target.checked }))} />
+                {translate('Marcar como cancelado')}
+              </label>
+
+              {formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}
+
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <button type="button" onClick={() => !saving && setFormOpen(false)} disabled={saving}
+                  className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">{translate('Cancelar')}</button>
+                <button type="submit" disabled={saving}
+                  className="rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50">
+                  {saving ? translate('Guardando…') : editingId ? translate('Guardar cambios') : translate('Crear gasto')}
+                </button>
+              </div>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </main>
   );
 }

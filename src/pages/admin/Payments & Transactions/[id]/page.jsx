@@ -34,11 +34,11 @@ async function loadInvoiceBuilder() {
 /*  Constants                                                          */
 /* ================================================================== */
 const STATUS_META = {
-  completed: { label: 'Completed', tone: 'emerald', icon: CheckCircle2 },
-  pending:   { label: 'Pending',   tone: 'amber',   icon: Clock },
-  failed:    { label: 'Failed',    tone: 'rose',    icon: AlertTriangle },
-  voided:    { label: 'Voided',    tone: 'slate',   icon: X },
-  cancelled: { label: 'Cancelled', tone: 'rose',    icon: X },
+  completed: { label: 'Completado', tone: 'emerald', icon: CheckCircle2 },
+  pending:   { label: 'Pendiente',   tone: 'amber',   icon: Clock },
+  failed:    { label: 'Fallido',    tone: 'rose',    icon: AlertTriangle },
+  voided:    { label: 'Anulado',    tone: 'slate',   icon: X },
+  cancelled: { label: 'Cancelado', tone: 'rose',    icon: X },
 };
 
 const TONE_MAP = {
@@ -49,18 +49,18 @@ const TONE_MAP = {
 };
 
 const METHOD_LABEL = {
-  card: 'Card',
-  cash: 'Cash',
-  bank_transfer: 'Bank transfer',
-  other: 'Other',
+  card: 'Tarjeta',
+  cash: 'Efectivo',
+  bank_transfer: 'Transferencia bancaria',
+  other: 'Otro',
 };
 
 const REFUND_PRESETS = [0.25, 0.5, 1];
 const REASON_PRESETS = [
-  'Customer requested cancellation',
-  'Duplicate charge',
-  'Service not delivered',
-  'Pricing correction',
+  'Cancelación solicitada por el cliente',
+  'Cargo duplicado',
+  'Servicio no prestado',
+  'Corrección de precio',
 ];
 
 /* ================================================================== */
@@ -165,7 +165,7 @@ function ToastStack({ toasts, dismiss }) {
               type="button"
               onClick={() => dismiss(t.id)}
               className="rounded p-0.5 hover:bg-black/5"
-              aria-label="Dismiss"
+              aria-label="Descartar"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -267,7 +267,7 @@ export default function PaymentDetailPage() {
       setProfilesById(profileMap);
     } catch (err) {
       console.error('Error fetching transaction detail:', err);
-      setError(err?.message || 'Failed to load transaction profile.');
+      setError(err?.message || 'No se pudo cargar el perfil de la transacción.');
     } finally {
       setLoading(false);
     }
@@ -330,11 +330,11 @@ export default function PaymentDetailPage() {
   const handleUpdateStatus = async (e) => {
     e.preventDefault();
     if (isImmutable) {
-      push('error', 'Completed payments are immutable. Issue a refund to correct one.');
+      push('error', 'Los pagos completados son inmutables. Emite un reembolso para corregirlo.');
       return;
     }
     if (['failed', 'voided', 'cancelled'].includes(newStatus) && !statusReason.trim()) {
-      push('error', 'A reason is required when moving to a failed, voided or cancelled state.');
+      push('error', 'Se requiere un motivo al pasar a un estado fallido, anulado o cancelado.');
       return;
     }
     try {
@@ -348,13 +348,13 @@ export default function PaymentDetailPage() {
         .eq('id', id);
       if (err) throw err;
 
-      push('success', 'Status updated and recorded in the audit trail.');
+      push('success', 'Estado actualizado y registrado en la auditoría.');
       setIsStatusModalOpen(false);
       setStatusReason('');
       await fetchPaymentDetails();
     } catch (err) {
       console.error('Error updating status:', err);
-      push('error', `Could not update status: ${err.message}`);
+      push('error', `No se pudo actualizar el estado: ${err.message}`);
     } finally {
       setFormSubmitting(false);
     }
@@ -365,11 +365,11 @@ export default function PaymentDetailPage() {
     e.preventDefault();
     const amount = parseFloat(refundData.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      push('error', 'Enter a refund amount greater than zero.');
+      push('error', 'Introduce un importe de reembolso mayor que cero.');
       return;
     }
     if (amount > refundableRemaining + 0.0001) {
-      push('error', `Refund cannot exceed the refundable balance of ${fmtMoney(refundableRemaining, payment.currency)}.`);
+      push('error', `El reembolso no puede superar el saldo reembolsable de ${fmtMoney(refundableRemaining, payment.currency)}.`);
       return;
     }
     try {
@@ -388,13 +388,13 @@ export default function PaymentDetailPage() {
       const { error: err } = await supabase.from('booking_payments').insert([payload]);
       if (err) throw err;
 
-      push('success', `Refund of ${fmtMoney(amount, payment.currency)} issued.`);
+      push('success', `Reembolso de ${fmtMoney(amount, payment.currency)} emitido.`);
       setIsRefundModalOpen(false);
       setRefundData({ amount: '', refund_reason: '', payment_method: 'card' });
       await fetchPaymentDetails();
     } catch (err) {
       console.error('Error issuing refund:', err);
-      push('error', `Refund failed: ${err.message}`);
+      push('error', `Error en el reembolso: ${err.message}`);
     } finally {
       setFormSubmitting(false);
     }
@@ -406,7 +406,7 @@ export default function PaymentDetailPage() {
       setGeneratingPdf(true);
       const invoiceBuilder = await loadInvoiceBuilder();
       if (!invoiceBuilder) {
-        push('error', 'Invoice generator is not available in this build.');
+        push('error', 'El generador de facturas no está disponible en esta versión.');
         return;
       }
       const doc = await invoiceBuilder.buildInvoicePdf({
@@ -418,10 +418,10 @@ export default function PaymentDetailPage() {
         defaultCurrency,
       });
       doc.save(invoiceBuilder.getInvoiceFileName(payment, invoiceConfig));
-      push('success', 'Invoice downloaded.');
+      push('success', 'Factura descargada.');
     } catch (err) {
       console.error('Error generating PDF:', err);
-      push('error', `Could not generate invoice: ${err.message}`);
+      push('error', `No se pudo generar la factura: ${err.message}`);
     } finally {
       setGeneratingPdf(false);
     }
@@ -432,10 +432,10 @@ export default function PaymentDetailPage() {
     try {
       await navigator.clipboard.writeText(getTransactionReference(payment));
       setCopied(true);
-      push('success', 'Reference copied.');
+      push('success', 'Referencia copiada.');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      push('error', 'Could not copy reference.');
+      push('error', 'No se pudo copiar la referencia.');
     }
   };
 
@@ -454,7 +454,7 @@ export default function PaymentDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-slate-500">
-        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />{translate('Loading transaction…')}</div>
+        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />{translate('Cargando transacción…')}</div>
     );
   }
   if (error && !payment) {
@@ -465,19 +465,19 @@ export default function PaymentDetailPage() {
           type="button"
           onClick={() => navigate('/admin/payments-transactions')}
           className="mt-3 font-semibold underline"
-        >{translate('Back to payments')}</button>
+        >{translate('Volver a pagos')}</button>
       </main>
     );
   }
   if (!payment) {
     return (
       <main className="m-6 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
-        <p className="flex items-center gap-2"><AlertCircle className="h-4 w-4" />{translate('Transaction not found.')}</p>
+        <p className="flex items-center gap-2"><AlertCircle className="h-4 w-4" />{translate('Transacción no encontrada.')}</p>
         <button
           type="button"
           onClick={() => navigate('/admin/payments-transactions')}
           className="mt-3 font-semibold underline"
-        >{translate('Back to payments')}</button>
+        >{translate('Volver a pagos')}</button>
       </main>
     );
   }
@@ -497,19 +497,19 @@ export default function PaymentDetailPage() {
               type="button"
               onClick={() => navigate('/admin/payments-transactions')}
               className="mt-0.5 rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
-              aria-label="Back to payments"
+              aria-label="Volver a pagos"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-lg font-bold text-slate-900">
-                  {isRefund ? 'Refund' : 'Payment'} · {refNumber}
+                  {isRefund ? 'Reembolso' : 'Pago'} · {refNumber}
                 </h1>
                 <StatusBadge status={payment.transaction_status} />
                 {isRefund && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-700 ring-1 ring-inset ring-rose-200">
-                    <ArrowUpRight className="h-3 w-3" />{translate('Refund')}</span>
+                    <ArrowUpRight className="h-3 w-3" />{translate('Reembolso')}</span>
                 )}
               </div>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -525,7 +525,7 @@ export default function PaymentDetailPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5" />}
-              {copied ? 'Copied' : 'Copy reference'}
+              {copied ? 'Copiado' : 'Copiar referencia'}
             </button>
             <button
               type="button"
@@ -536,7 +536,7 @@ export default function PaymentDetailPage() {
               {generatingPdf
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <Download className="h-3.5 w-3.5" />}
-              {isRefund ? 'Credit note PDF' : 'Invoice PDF'}
+              {isRefund ? 'Nota de crédito PDF' : 'Factura PDF'}
             </button>
             {!isImmutable && (
               <button
@@ -544,7 +544,7 @@ export default function PaymentDetailPage() {
                 onClick={() => setIsStatusModalOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-500"
               >
-                <RefreshCw className="h-3.5 w-3.5" />{translate('Update status')}</button>
+                <RefreshCw className="h-3.5 w-3.5" />{translate('Actualizar estado')}</button>
             )}
             {canRefund && (
               <button
@@ -552,11 +552,11 @@ export default function PaymentDetailPage() {
                 onClick={() => setIsRefundModalOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500"
               >
-                <ArrowUpRight className="h-3.5 w-3.5" />{translate('Issue refund')}</button>
+                <ArrowUpRight className="h-3.5 w-3.5" />{translate('Emitir reembolso')}</button>
             )}
             {isImmutable && payment.transaction_type === 'payment' && refundableRemaining === 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                <ShieldCheck className="h-3.5 w-3.5" />{translate('Fully refunded')}</span>
+                <ShieldCheck className="h-3.5 w-3.5" />{translate('Totalmente reembolsado')}</span>
             )}
           </div>
         </div>
@@ -583,7 +583,7 @@ export default function PaymentDetailPage() {
                 </div>
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                    {isRefund ? 'Refund amount' : 'Payment amount'}
+                    {isRefund ? 'Importe del reembolso' : 'Importe del pago'}
                   </p>
                   <p
                     className={`mt-1 text-3xl font-extrabold tracking-tight ${
@@ -594,22 +594,22 @@ export default function PaymentDetailPage() {
                   </p>
                   {isImmutable && (
                     <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-700 ring-1 ring-inset ring-slate-200">
-                      <Lock className="h-3 w-3" />{translate('Immutable record')}</p>
+                      <Lock className="h-3 w-3" />{translate('Registro inmutable')}</p>
                   )}
                 </div>
               </div>
 
               <dl className="grid grid-cols-2 gap-3 text-xs sm:text-right">
                 <div>
-                  <dt className="text-slate-500">{translate('Net collected')}</dt>
+                  <dt className="text-slate-500">{translate('Neto cobrado')}</dt>
                   <dd className="font-semibold text-slate-900">{fmtMoney(netCollected, payment.currency)}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">{translate('Refunded')}</dt>
+                  <dt className="text-slate-500">{translate('Reembolsado')}</dt>
                   <dd className="font-semibold text-rose-700">{fmtMoney(totalRefunded, payment.currency)}</dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-slate-500">{translate('Refundable remaining')}</dt>
+                  <dt className="text-slate-500">{translate('Saldo reembolsable')}</dt>
                   <dd className="font-semibold text-slate-900">{fmtMoney(refundableRemaining, payment.currency)}</dd>
                 </div>
               </dl>
@@ -617,7 +617,7 @@ export default function PaymentDetailPage() {
           </section>
 
           <SectionCard
-            title="Booking"
+            title="Reserva"
             icon={FileText}
             action={booking && (
               <button
@@ -625,7 +625,7 @@ export default function PaymentDetailPage() {
                 onClick={() => navigate(`/admin/reservations?bookingId=${booking.id}`)}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:underline"
               >
-                Open booking <ChevronRight className="h-3.5 w-3.5" />
+                Abrir reserva <ChevronRight className="h-3.5 w-3.5" />
               </button>
             )}
           >
@@ -634,7 +634,7 @@ export default function PaymentDetailPage() {
                 <div>
                   <p className="font-mono text-sm font-semibold text-amber-700">{booking.booking_reference || '—'}</p>
                   <p className="text-xs text-slate-500">
-                    {booking.destination || '—'} · {booking.traveler_count || 1} traveler{(booking.traveler_count || 1) === 1 ? '' : 's'}
+                    {booking.destination || '—'} · {booking.traveler_count || 1} viajero{(booking.traveler_count || 1) === 1 ? '' : 's'}
                   </p>
                   {customer && (
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
@@ -645,35 +645,35 @@ export default function PaymentDetailPage() {
                 </div>
                 <dl className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <dt className="text-slate-500">{translate('Booking total')}</dt>
+                    <dt className="text-slate-500">{translate('Total de la reserva')}</dt>
                     <dd className="font-semibold text-slate-900">{fmtMoney(booking.total_amount, booking.currency)}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">{translate('Booking status')}</dt>
+                    <dt className="text-slate-500">{translate('Estado de la reserva')}</dt>
                     <dd className="font-semibold text-slate-900 capitalize">{booking.booking_status || '—'}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">{translate('Departure')}</dt>
+                    <dt className="text-slate-500">{translate('Salida')}</dt>
                     <dd className="font-semibold text-slate-900">{booking.departure_date || '—'}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">{translate('Return')}</dt>
+                    <dt className="text-slate-500">{translate('Regreso')}</dt>
                     <dd className="font-semibold text-slate-900">{booking.return_date || '—'}</dd>
                   </div>
                 </dl>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">{translate('Booking context unavailable.')}</p>
+              <p className="text-xs text-slate-500">{translate('Contexto de la reserva no disponible.')}</p>
             )}
           </SectionCard>
 
           <SectionCard
-            title="Transaction ledger"
+            title="Libro de transacciones"
             icon={History}
-            subtitle={`${ledger.length} transaction${ledger.length === 1 ? '' : 's'} on this booking`}
+            subtitle={`${ledger.length} transacción${ledger.length === 1 ? '' : 'es'} en esta reserva`}
           >
             {ledger.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-400">{translate('No transactions recorded.')}</p>
+              <p className="py-4 text-center text-xs text-slate-400">{translate('No hay transacciones registradas.')}</p>
             ) : (
               <ul className="space-y-2">
                 {ledger.map((row) => {
@@ -699,9 +699,9 @@ export default function PaymentDetailPage() {
                         </span>
                         <div>
                           <p className="font-semibold text-slate-900">
-                            {refund ? 'Refund' : 'Payment'}
+                            {refund ? 'Reembolso' : 'Pago'}
                             {isCurrent && (
-                              <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-800">{translate('current')}</span>
+                              <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-800">{translate('actual')}</span>
                             )}
                           </p>
                           <p className="text-[10px] text-slate-400">{fmtDateTime(row.transaction_date || row.created_at)}</p>
@@ -721,9 +721,9 @@ export default function PaymentDetailPage() {
           </SectionCard>
 
           <SectionCard
-            title="Audit trail"
+            title="Registro de auditoría"
             icon={History}
-            subtitle={`${auditLogs.length} event${auditLogs.length === 1 ? '' : 's'}`}
+            subtitle={`${auditLogs.length} evento${auditLogs.length === 1 ? '' : 's'}`}
             action={
               <div className="relative">
                 <Search className="pointer-events-none absolute inset-y-0 left-2.5 my-auto h-3.5 w-3.5 text-slate-400" />
@@ -731,7 +731,7 @@ export default function PaymentDetailPage() {
                   ref={auditSearchRef}
                   value={auditQuery}
                   onChange={(e) => setAuditQuery(e.target.value)}
-                  placeholder="Filter ( / )"
+                  placeholder="Filtrar ( / )"
                   className="w-44 rounded-lg border border-slate-200 py-1.5 pl-8 pr-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
@@ -739,7 +739,7 @@ export default function PaymentDetailPage() {
           >
             {filteredAudit.length === 0 ? (
               <p className="py-4 text-center text-xs text-slate-400">
-                {auditLogs.length === 0 ? 'No events recorded yet.' : 'No events match the filter.'}
+                {auditLogs.length === 0 ? 'Aún no hay eventos registrados.' : 'Ningún evento coincide con el filtro.'}
               </p>
             ) : (
               <ol className="relative space-y-3 before:absolute before:bottom-2 before:left-[13px] before:top-2 before:w-px before:bg-slate-200">
@@ -753,7 +753,7 @@ export default function PaymentDetailPage() {
                       <div className="flex-1 rounded-lg border border-slate-200 bg-white p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-800">
-                            {log.action || 'event'}
+                            {log.action || 'evento'}
                           </span>
                           <span className="text-xs font-medium text-slate-800">{log.description || '—'}</span>
                         </div>
@@ -773,21 +773,21 @@ export default function PaymentDetailPage() {
 
         {/* RIGHT */}
         <aside className="space-y-6">
-          <SectionCard title="Status" icon={ShieldCheck}>
+          <SectionCard title="Estado" icon={ShieldCheck}>
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">{translate('Current')}</span>
+                <span className="text-slate-500">{translate('Actual')}</span>
                 <StatusBadge status={payment.transaction_status} />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">{translate('Changed at')}</span>
+                <span className="text-slate-500">{translate('Cambiado el')}</span>
                 <span className="font-medium text-slate-800">{fmtDateTime(payment.status_changed_at)}</span>
               </div>
               {isImmutable && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-relaxed text-emerald-800">
                   <p className="flex items-center gap-1.5 font-semibold">
-                    <Lock className="h-3.5 w-3.5" />{translate('Completed transactions are immutable')}</p>
-                  <p className="mt-1">{translate('To correct a completed payment, issue a refund instead of editing it.')}</p>
+                    <Lock className="h-3.5 w-3.5" />{translate('Las transacciones completadas son inmutables')}</p>
+                  <p className="mt-1">{translate('Para corregir un pago completado, emite un reembolso en lugar de editarlo.')}</p>
                 </div>
               )}
               {!isImmutable && (
@@ -796,26 +796,26 @@ export default function PaymentDetailPage() {
                   onClick={() => setIsStatusModalOpen(true)}
                   className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />{translate('Update status')}</button>
+                  <RefreshCw className="h-3.5 w-3.5" />{translate('Actualizar estado')}</button>
               )}
             </div>
           </SectionCard>
 
-          <SectionCard title="Refunds" icon={ArrowUpRight}>
+          <SectionCard title="Reembolsos" icon={ArrowUpRight}>
             <div className="space-y-3 text-xs">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-slate-500">{translate('Refundable remaining')}</p>
+                <p className="text-slate-500">{translate('Saldo reembolsable')}</p>
                 <p className="mt-0.5 text-base font-bold text-slate-900">
                   {fmtMoney(refundableRemaining, payment.currency)}
                 </p>
                 <p className="mt-0.5 text-[10px] text-slate-500">
-                  {fmtMoney(totalRefunded, payment.currency)} already refunded of {fmtMoney(netCollected + totalRefunded, payment.currency)}
+                  {fmtMoney(totalRefunded, payment.currency)} ya reembolsado de {fmtMoney(netCollected + totalRefunded, payment.currency)}
                 </p>
               </div>
 
               {originalPayment && (
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase text-rose-700">{translate('Reverses payment')}</p>
+                  <p className="text-[11px] font-semibold uppercase text-rose-700">{translate('Revierte el pago')}</p>
                   <button
                     type="button"
                     onClick={() => navigate(`/admin/payments-transactions/${originalPayment.id}`)}
@@ -832,31 +832,31 @@ export default function PaymentDetailPage() {
                   onClick={() => setIsRefundModalOpen(true)}
                   className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500"
                 >
-                  <ArrowUpRight className="h-3.5 w-3.5" />{translate('Issue refund')}</button>
+                  <ArrowUpRight className="h-3.5 w-3.5" />{translate('Emitir reembolso')}</button>
               ) : (
                 isImmutable && payment.transaction_type === 'payment' && refundableRemaining === 0 && (
-                  <p className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] text-slate-600">{translate('This payment has been fully refunded.')}</p>
+                  <p className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] text-slate-600">{translate('Este pago ha sido reembolsado en su totalidad.')}</p>
                 )
               )}
             </div>
           </SectionCard>
 
-          <SectionCard title="Metadata" icon={CreditCard}>
+          <SectionCard title="Metadatos" icon={CreditCard}>
             <dl className="grid gap-2 text-xs">
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Transaction ID')}</dt>
+                <dt className="text-slate-500">{translate('ID de transacción')}</dt>
                 <dd className="font-mono text-slate-800" title={payment.id}>{shortHash(payment.id)}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Method')}</dt>
+                <dt className="text-slate-500">{translate('Método')}</dt>
                 <dd className="font-medium text-slate-800">{METHOD_LABEL[payment.payment_method] || payment.payment_method}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Currency')}</dt>
+                <dt className="text-slate-500">{translate('Moneda')}</dt>
                 <dd className="font-medium text-slate-800">{payment.currency}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Recorded by')}</dt>
+                <dt className="text-slate-500">{translate('Registrado por')}</dt>
                 <dd className="font-medium text-slate-800">
                   {profilesById[payment.recorded_by]?.full_name
                     || profilesById[payment.recorded_by]?.email
@@ -864,11 +864,11 @@ export default function PaymentDetailPage() {
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Created')}</dt>
+                <dt className="text-slate-500">{translate('Creado')}</dt>
                 <dd className="font-medium text-slate-800">{fmtDateTime(payment.created_at)}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{translate('Updated')}</dt>
+                <dt className="text-slate-500">{translate('Actualizado')}</dt>
                 <dd className="font-medium text-slate-800">{fmtDateTime(payment.updated_at)}</dd>
               </div>
             </dl>
@@ -880,48 +880,48 @@ export default function PaymentDetailPage() {
       {isStatusModalOpen && (
         <Modal onClose={() => setIsStatusModalOpen(false)}>
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3">
-            <h3 className="text-sm font-semibold text-slate-900">{translate('Update transaction status')}</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{translate('Actualizar estado de la transacción')}</h3>
             <button
               type="button"
               onClick={() => setIsStatusModalOpen(false)}
               className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              aria-label="Close"
+              aria-label="Cerrar"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <form onSubmit={handleUpdateStatus} className="space-y-4 p-5">
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-              <span className="text-slate-500">{translate('Current:')}</span>
+              <span className="text-slate-500">{translate('Actual:')}</span>
               <StatusBadge status={payment.transaction_status} />
               <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-slate-500">{translate('New:')}</span>
+              <span className="text-slate-500">{translate('Nuevo:')}</span>
               <StatusBadge status={newStatus} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('New status')}</label>
+              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('Nuevo estado')}</label>
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               >
-                <option value="pending">{translate('Pending')}</option>
-                <option value="completed">{translate('Completed (becomes immutable)')}</option>
-                <option value="failed">{translate('Failed')}</option>
-                <option value="voided">{translate('Voided')}</option>
-                <option value="cancelled">{translate('Cancelled')}</option>
+                <option value="pending">{translate('Pendiente')}</option>
+                <option value="completed">{translate('Completado (se vuelve inmutable)')}</option>
+                <option value="failed">{translate('Fallido')}</option>
+                <option value="voided">{translate('Anulado')}</option>
+                <option value="cancelled">{translate('Cancelado')}</option>
               </select>
             </div>
             {['failed', 'voided', 'cancelled'].includes(newStatus) && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-700">
-                  Reason <span className="text-rose-500">{translate('*')}</span>
+                  Motivo <span className="text-rose-500">{translate('*')}</span>
                 </label>
                 <textarea
                   rows={3}
                   value={statusReason}
                   onChange={(e) => setStatusReason(e.target.value)}
-                  placeholder="Explain why this status is changing."
+                  placeholder="Explica por qué cambia este estado."
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
@@ -931,14 +931,14 @@ export default function PaymentDetailPage() {
                 type="button"
                 onClick={() => setIsStatusModalOpen(false)}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >{translate('Cancel')}</button>
+              >{translate('Cancelar')}</button>
               <button
                 type="submit"
                 disabled={formSubmitting}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
               >
                 {formSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Save status
+                Guardar estado
               </button>
             </div>
           </form>
@@ -949,12 +949,12 @@ export default function PaymentDetailPage() {
       {isRefundModalOpen && (
         <Modal onClose={() => setIsRefundModalOpen(false)}>
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3">
-            <h3 className="text-sm font-semibold text-slate-900">{translate('Issue refund')}</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{translate('Emitir reembolso')}</h3>
             <button
               type="button"
               onClick={() => setIsRefundModalOpen(false)}
               className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              aria-label="Close"
+              aria-label="Cerrar"
             >
               <X className="h-4 w-4" />
             </button>
@@ -962,14 +962,14 @@ export default function PaymentDetailPage() {
           <form onSubmit={handleIssueRefund} className="space-y-4 p-5">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">{translate('Refundable balance')}</span>
+                <span className="text-slate-500">{translate('Saldo reembolsable')}</span>
                 <span className="font-semibold text-slate-900">{fmtMoney(refundableRemaining, payment.currency)}</span>
               </div>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-700">
-                Refund amount ({payment.currency}) <span className="text-rose-500">{translate('*')}</span>
+                Importe del reembolso ({payment.currency}) <span className="text-rose-500">{translate('*')}</span>
               </label>
               <input
                 type="number"
@@ -979,7 +979,7 @@ export default function PaymentDetailPage() {
                 required
                 value={refundData.amount}
                 onChange={(e) => setRefundData((p) => ({ ...p, amount: e.target.value }))}
-                placeholder="0.00"
+                placeholder="0,00"
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               />
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1001,12 +1001,12 @@ export default function PaymentDetailPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('Reason')}</label>
+              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('Motivo')}</label>
               <textarea
                 rows={3}
                 value={refundData.refund_reason}
                 onChange={(e) => setRefundData((p) => ({ ...p, refund_reason: e.target.value }))}
-                placeholder="Describe the reason for the refund."
+                placeholder="Describe el motivo del reembolso."
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               />
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1024,22 +1024,22 @@ export default function PaymentDetailPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('Refund method')}</label>
+              <label className="mb-1 block text-xs font-medium text-slate-700">{translate('Método de reembolso')}</label>
               <select
                 value={refundData.payment_method}
                 onChange={(e) => setRefundData((p) => ({ ...p, payment_method: e.target.value }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               >
-                <option value="card">{translate('Card')}</option>
-                <option value="cash">{translate('Cash')}</option>
-                <option value="bank_transfer">{translate('Bank transfer')}</option>
-                <option value="other">{translate('Other')}</option>
+                <option value="card">{translate('Tarjeta')}</option>
+                <option value="cash">{translate('Efectivo')}</option>
+                <option value="bank_transfer">{translate('Transferencia bancaria')}</option>
+                <option value="other">{translate('Otro')}</option>
               </select>
             </div>
 
             {refundData.amount && Number(refundData.amount) > 0 && (
               <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[11px] text-rose-800">
-                After this refund, {fmtMoney(Math.max(0, refundableRemaining - Number(refundData.amount)), payment.currency)} will remain refundable on this payment.
+                Tras este reembolso, quedarán {fmtMoney(Math.max(0, refundableRemaining - Number(refundData.amount)), payment.currency)} reembolsables en este pago.
               </div>
             )}
 
@@ -1048,14 +1048,14 @@ export default function PaymentDetailPage() {
                 type="button"
                 onClick={() => setIsRefundModalOpen(false)}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >{translate('Cancel')}</button>
+              >{translate('Cancelar')}</button>
               <button
                 type="submit"
                 disabled={formSubmitting}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
               >
                 {formSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Confirm refund
+                Confirmar reembolso
               </button>
             </div>
           </form>

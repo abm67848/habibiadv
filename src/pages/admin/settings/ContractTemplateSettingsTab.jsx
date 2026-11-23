@@ -1,5 +1,5 @@
 import { useAppSettings, translate } from '@/context/index.jsx';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   FileText, Plus, Trash2, ChevronUp, ChevronDown, Sparkles, Save, RotateCcw,
   Eye, Edit3, Copy, Check, Info, Tag, Search, X, FileCheck, Building,
@@ -17,6 +17,7 @@ import {
   DEFAULT_CONTRACT_HEADER_SETTINGS,
 } from '@/pages/admin/contracts/templateEngine.js';
 import { LOGO_BASE64 } from '@/services/documents/logoBase64.js';
+import { fetchPublicSiteContent, savePublicPageContent } from '@/services/publicSiteContent.js';
 
 export default function ContractTemplateSettingsTab({ onNotification }) {
   const [template, setTemplate] = useState(() => getSavedContractTemplate());
@@ -30,6 +31,27 @@ export default function ContractTemplateSettingsTab({ onNotification }) {
 
   const fileInputRef = useRef(null);
   const textareaRefs = useRef({});
+
+  useEffect(() => {
+    let active = true;
+    fetchPublicSiteContent()
+      .then((content) => {
+        if (!active || !content?.contractTemplate || Object.keys(content.contractTemplate).length === 0) return;
+        const saved = content.contractTemplate;
+        if (saved.headerSettings) {
+          setHeaderSettings({ ...DEFAULT_CONTRACT_HEADER_SETTINGS, ...saved.headerSettings });
+        }
+        if (Array.isArray(saved.template?.sections) && saved.template.sections.length > 0) {
+          setTemplate(saved.template);
+        } else if (Array.isArray(saved.sections) && saved.sections.length > 0) {
+          setTemplate(saved);
+        }
+      })
+      .catch((error) => {
+        console.warn('Could not load contract template from the database:', error);
+      });
+    return () => { active = false; };
+  }, []);
 
   // Sample data to simulate live evaluation in preview mode
   const sampleSimulationContext = useMemo(() => ({
@@ -169,13 +191,25 @@ export default function ContractTemplateSettingsTab({ onNotification }) {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     saveContractHeaderSettings(headerSettings);
     saveContractTemplate(template);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3500);
-    if (onNotification) {
-      onNotification('Configuración de encabezado y 16 cláusulas del contrato guardadas correctamente.');
+    try {
+      await savePublicPageContent('contractTemplate', {
+        headerSettings,
+        template,
+        updated_at: new Date().toISOString(),
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3500);
+      if (onNotification) {
+        onNotification('Configuración de encabezado y 16 cláusulas del contrato guardadas correctamente.');
+      }
+    } catch (error) {
+      console.error('Could not save the contract template to the database:', error);
+      if (onNotification) {
+        onNotification(`No se pudo guardar la plantilla contractual: ${error.message}`);
+      }
     }
   };
 
@@ -185,6 +219,13 @@ export default function ContractTemplateSettingsTab({ onNotification }) {
       setHeaderSettings(DEFAULT_CONTRACT_HEADER_SETTINGS);
       setTemplate(def);
       setActiveSectionIdx(0);
+      savePublicPageContent('contractTemplate', {
+        headerSettings: DEFAULT_CONTRACT_HEADER_SETTINGS,
+        template: def,
+        updated_at: new Date().toISOString(),
+      }).catch((error) => {
+        console.error('Could not reset the contract template in the database:', error);
+      });
       if (onNotification) onNotification('Plantilla oficial de 16 cláusulas restablecida a los valores estándar.');
     }
   };
