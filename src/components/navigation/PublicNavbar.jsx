@@ -15,6 +15,7 @@ const LANGUAGES = [
   { code: 'en', short: 'EN', name: 'English' },
   { code: 'fr', short: 'FR', name: 'Français' },
   { code: 'es', short: 'ES', name: 'Español' },
+  { code: 'pl', short: 'PL', name: 'Polski' },
 ];
 
 const display = { fontFamily: "'Fraunces', Georgia, serif" };

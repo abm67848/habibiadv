@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ShieldCheck,
@@ -54,7 +55,7 @@ const sections = [
           <li>
             <strong>Email:</strong> habibiadventure.26@gmail.com
           </li>
-          <li><strong>Telephone:</strong> +34 631 632 341</li>
+          <li><strong>Telephone:</strong> +48 665 208 846 / +212 661-731123</li>
         </ul>
       </>
     ),
@@ -427,6 +428,281 @@ const sections = [
   },
 ];
 
+const polishSections = [
+  {
+    title: "1. Administrator danych",
+    content: (
+      <>
+        <p>Administratorem danych osobowych zbieranych za pośrednictwem tej strony internetowej jest:</p>
+        <ul>
+          <li><strong>Firma:</strong> HABIBI ADVENTURE HAFA S.L.</li>
+          <li><strong>CIF:</strong> B05593736</li>
+          <li><strong>Adres:</strong> Avenida Rosita Ferrer nº 2, 04740 Roquetas de Mar, Hiszpania</li>
+          <li><strong>Adres email:</strong> habibiadventure.26@gmail.com</li>
+          <li><strong>Telefon:</strong> +48 665 208 846 / +212 661-731123</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    title: "2. Gromadzone przez nas dane osobowe",
+    content: (
+      <>
+        <p>
+          W zależności od sposobu korzystania z naszej strony internetowej
+          i usług turystycznych możemy gromadzić następujące kategorie danych
+          osobowych:
+        </p>
+        <ul>
+          <li><strong>Dane identyfikacyjne:</strong> Imię, nazwisko i inne przekazane przez Ciebie informacje służące do identyfikacji.</li>
+          <li><strong>Dane kontaktowe:</strong> Adres email, numer telefonu i inne dane kontaktowe.</li>
+          <li><strong>Dane rezerwacji:</strong> Daty podróży, miejsca docelowe, liczba podróżnych, preferencje i szczegóły rezerwacji.</li>
+          <li><strong>Dane dotyczące komunikacji:</strong> Wiadomości, zapytania, prośby i korespondencja z naszym zespołem.</li>
+          <li><strong>Dane transakcyjne:</strong> Status płatności, numery referencyjne transakcji oraz, w stosownych przypadkach, odpowiednie informacje rozliczeniowe.</li>
+          <li><strong>Dane techniczne:</strong> Adres IP, rodzaj przeglądarki, informacje o urządzeniu i dane dotyczące korzystania ze strony, jeśli są gromadzone.</li>
+        </ul>
+        <p>
+          Staramy się gromadzić wyłącznie informacje istotne i niezbędne
+          do celów opisanych w niniejszej polityce.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "3. Cele wykorzystywania danych",
+    content: (
+      <>
+        <p>Dane osobowe możemy przetwarzać w następujących celach:</p>
+        <ul>
+          <li>Udzielanie odpowiedzi na zapytania i prośby o informacje.</li>
+          <li>Przygotowywanie spersonalizowanych planów podróży, ofert i wycen.</li>
+          <li>Obsługa rezerwacji, umów dotyczących podróży i organizacji wyjazdów.</li>
+          <li>Przekazywanie ważnych informacji dotyczących podróży.</li>
+          <li>Obsługa płatności, księgowości i obowiązków administracyjnych.</li>
+          <li>Ulepszanie naszej strony internetowej, usług i obsługi klienta.</li>
+          <li>Ochrona strony przed oszustwami, nadużyciami i zagrożeniami dla bezpieczeństwa.</li>
+          <li>Wypełnianie obowiązków prawnych i regulacyjnych.</li>
+          <li>Wysyłanie informacji promocyjnych, gdy zezwala na to prawo i spełniono odpowiednie wymogi.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    title: "4. Podstawa prawna przetwarzania",
+    content: (
+      <>
+        <p>
+          Przetwarzamy dane osobowe na podstawach prawnych przewidzianych
+          przepisami o ochronie danych, w tym:
+        </p>
+        <ul>
+          <li><strong>Niezbędność do wykonania umowy:</strong> Przetwarzanie niezbędne do odpowiedzi na wniosek o rezerwację, podjęcia działań przed zawarciem umowy lub wykonania umowy dotyczącej podróży.</li>
+          <li><strong>Obowiązek prawny:</strong> Przetwarzanie wymagane w celu wypełnienia obowiązków podatkowych, księgowych lub innych obowiązków prawnych.</li>
+          <li><strong>Prawnie uzasadnione interesy:</strong> Przetwarzanie niezbędne do realizacji uzasadnionych interesów firmy, o ile interesy te nie przeważają nad Twoimi prawami i wolnościami.</li>
+          <li><strong>Zgoda:</strong> Przetwarzanie oparte na Twojej zgodzie, gdy jest ona wymagana, w tym w przypadku niektórych komunikatów marketingowych i nieobowiązkowych plików cookie.</li>
+        </ul>
+        <p>
+          Jeżeli przetwarzanie odbywa się na podstawie zgody, możesz ją wycofać
+          w dowolnym momencie. Wycofanie zgody nie wpływa na zgodność z prawem
+          przetwarzania dokonanego przed jej wycofaniem.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "5. Udostępnianie danych osobowych",
+    content: (
+      <>
+        <p>
+          Możemy udostępniać odpowiednie dane osobowe podmiotom zewnętrznym,
+          jeżeli jest to niezbędne do prowadzenia działalności i świadczenia
+          zamówionych usług.
+        </p>
+        <p>Mogą to być między innymi:</p>
+        <ul>
+          <li>Obiekty noclegowe, hotele i riady.</li>
+          <li>Przewoźnicy, kierowcy i przewodnicy.</li>
+          <li>Organizatorzy aktywności i lokalni organizatorzy wycieczek.</li>
+          <li>Operatorzy płatności i instytucje finansowe.</li>
+          <li>Dostawcy hostingu strony, wsparcia technicznego i usług IT.</li>
+          <li>Doradcy profesjonalni i organy, gdy wymaga tego prawo.</li>
+        </ul>
+        <p>
+          Podmioty zewnętrzne otrzymujące dane osobowe mogą je przetwarzać
+          zgodnie z własnymi obowiązkami, ustaleniami umownymi i obowiązującymi
+          przepisami prawa.
+        </p>
+        <p>Nie sprzedajemy danych osobowych podmiotom zewnętrznym.</p>
+      </>
+    ),
+  },
+  {
+    title: "6. Międzynarodowe przekazywanie danych",
+    content: (
+      <>
+        <p>
+          Ponieważ nasze usługi turystyczne mogą obejmować miejsca docelowe
+          i usługodawców spoza Europejskiego Obszaru Gospodarczego, niektóre
+          dane osobowe mogą wymagać międzynarodowego przekazania w celu
+          organizacji podróży.
+        </p>
+        <p>
+          W przypadku przekazywania danych osobowych poza EOG będziemy dążyć
+          do zapewnienia zgodności transferu z obowiązującymi wymogami
+          dotyczącymi ochrony danych oraz do wdrożenia wymaganych
+          odpowiednich zabezpieczeń.
+        </p>
+        <p>
+          Zabezpieczenia te mogą obejmować decyzje stwierdzające odpowiedni
+          stopień ochrony, zabezpieczenia umowne lub inne prawnie uznane
+          mechanizmy przekazywania danych.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "7. Okres przechowywania danych",
+    content: (
+      <>
+        <p>
+          Dane osobowe przechowujemy tylko tak długo, jak jest to niezbędne
+          do realizacji celów, w których zostały zebrane, w tym obsługi
+          rezerwacji, odpowiedzi na zapytania, wypełnienia obowiązków prawnych
+          i rozstrzygania sporów.
+        </p>
+        <p>
+          Dane mogą być przechowywane dłużej, jeżeli wymagają tego
+          obowiązujące przepisy prawa, w szczególności przepisy podatkowe,
+          księgowe lub inne wymogi prawne.
+        </p>
+        <p>
+          Gdy dane przestaną być niezbędne, zostaną usunięte lub
+          zanonimizowane zgodnie z obowiązującym prawem i stosowanymi przez
+          nas zasadami przechowywania danych.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "8. Twoje prawa dotyczące ochrony danych",
+    content: (
+      <>
+        <p>Z zastrzeżeniem obowiązujących przepisów prawa możesz mieć prawo do:</p>
+        <ul>
+          <li><strong>Dostępu:</strong> Uzyskania dostępu do swoich danych osobowych.</li>
+          <li><strong>Sprostowania:</strong> Żądania poprawienia nieprawidłowych lub niekompletnych danych.</li>
+          <li><strong>Usunięcia:</strong> Żądania usunięcia danych, jeżeli jest to prawnie dopuszczalne.</li>
+          <li><strong>Ograniczenia:</strong> Żądania ograniczenia niektórych czynności przetwarzania.</li>
+          <li><strong>Przenoszenia:</strong> Uzyskania kopii określonych danych osobowych w przenośnym formacie.</li>
+          <li><strong>Sprzeciwu:</strong> Wniesienia sprzeciwu wobec niektórych czynności przetwarzania, w tym opartych na uzasadnionym interesie lub marketingu bezpośrednim, gdy ma to zastosowanie.</li>
+          <li><strong>Wycofania zgody:</strong> Wycofania zgody, jeżeli przetwarzanie odbywa się na jej podstawie.</li>
+        </ul>
+        <p>
+          Aby skorzystać ze swoich praw, skontaktuj się z nami pod adresem{" "}
+          <a
+            href="mailto:habibiadventure.26@gmail.com"
+            className="font-medium text-[#0f3d2e] underline underline-offset-4 hover:text-[#9c7a2b]"
+          >
+            habibiadventure.26@gmail.com
+          </a>
+          .
+        </p>
+        <p>
+          Możesz również złożyć skargę do właściwego organu nadzorczego
+          ds. ochrony danych. W Hiszpanii jest nim Agencia Española de
+          Protección de Datos (AEPD), dostępny pod adresem www.aepd.es.
+        </p>
+        <p>
+          Przed rozpatrzeniem wniosku dotyczącego praw możemy poprosić
+          o informacje niezbędne do potwierdzenia Twojej tożsamości.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "9. Pliki cookie i technologie śledzące",
+    content: (
+      <>
+        <p>
+          Nasza strona może używać plików cookie i podobnych technologii
+          w celu zapewnienia funkcjonalności, analizy korzystania ze strony
+          i poprawy komfortu użytkownika.
+        </p>
+        <p>Pliki cookie mogą obejmować:</p>
+        <ul>
+          <li><strong>Niezbędne pliki cookie:</strong> Wymagane do podstawowego działania strony internetowej.</li>
+          <li><strong>Analityczne pliki cookie:</strong> Służące do analizy ruchu i sposobu korzystania ze strony, jeśli są włączone.</li>
+          <li><strong>Marketingowe pliki cookie:</strong> Służące do pomiaru skuteczności kampanii lub zapewnienia funkcji związanych z reklamą, jeśli są włączone.</li>
+        </ul>
+        <p>
+          Nieobowiązkowe pliki cookie i technologie śledzące będą używane
+          z uwzględnieniem wymogów dotyczących zgody wynikających
+          z obowiązujących przepisów.
+        </p>
+        <p>
+          Możesz zarządzać swoimi preferencjami dotyczącymi plików cookie
+          w ustawieniach plików cookie na stronie, jeśli są dostępne.
+        </p>
+        <p>Więcej informacji znajduje się w naszej Polityce plików cookie.</p>
+      </>
+    ),
+  },
+  {
+    title: "10. Bezpieczeństwo danych",
+    content: (
+      <>
+        <p>
+          Staramy się wdrażać odpowiednie środki techniczne i organizacyjne,
+          aby chronić dane osobowe przed nieuprawnionym dostępem, utratą,
+          zmianą, ujawnieniem lub zniszczeniem.
+        </p>
+        <p>
+          Nie można jednak zagwarantować pełnego bezpieczeństwa żadnej
+          transmisji internetowej ani elektronicznego systemu
+          przechowywania danych.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "11. Komunikaty marketingowe",
+    content: (
+      <>
+        <p>
+          Możemy wysyłać komunikaty promocyjne, jeżeli zezwala na to
+          obowiązujące prawo i uzyskano wymaganą zgodę lub ustalono inną
+          właściwą podstawę prawną.
+        </p>
+        <p>
+          W dowolnym momencie możesz zrezygnować z komunikatów marketingowych,
+          korzystając z opcji rezygnacji zawartej w wiadomości lub
+          kontaktując się z nami bezpośrednio.
+        </p>
+        <p>
+          Rezygnacja z komunikatów promocyjnych nie wpływa na wiadomości
+          związane z obsługą, niezbędne do zarządzania rezerwacją.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "12. Zmiany niniejszej polityki prywatności",
+    content: (
+      <>
+        <p>
+          Możemy od czasu do czasu aktualizować niniejszą Politykę prywatności,
+          aby uwzględnić zmiany naszych praktyk, usług, technologii lub
+          wymogów prawnych.
+        </p>
+        <p>
+          Każda zaktualizowana wersja zostanie opublikowana na tej stronie
+          wraz ze zmienioną datą.
+        </p>
+      </>
+    ),
+  },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Accordion item — premium card style (matches Terms page)          */
 /* ------------------------------------------------------------------ */
@@ -468,7 +744,7 @@ function AccordionItem({ section, open, onToggle }) {
               {section.title}
             </span>
             <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.15em] text-slate-400">
-              {open ? "Tap to collapse" : "Tap to read more"}
+              {open ? (section.isPolish ? "Kliknij, aby zwinąć" : "Tap to collapse") : (section.isPolish ? "Kliknij, aby przeczytać więcej" : "Tap to read more")}
             </span>
           </span>
         </div>
@@ -505,6 +781,16 @@ function AccordionItem({ section, open, onToggle }) {
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
 export default function PrivacyPolicyPage() {
+  const { i18n } = useTranslation();
+  const isPolish = i18n.language?.toLowerCase().startsWith("pl");
+  const pageSections = isPolish
+    ? sections.map((section, index) => ({
+        ...section,
+        title: polishSections[index].title,
+        content: polishSections[index].content,
+        isPolish: true,
+      }))
+    : sections;
   const [openSections, setOpenSections] = useState(["controller"]);
 
   const toggleSection = (id) => {
@@ -513,7 +799,7 @@ export default function PrivacyPolicyPage() {
     );
   };
 
-  const openAll = () => setOpenSections(sections.map((s) => s.id));
+  const openAll = () => setOpenSections(pageSections.map((s) => s.id));
   const closeAll = () => setOpenSections([]);
 
   return (
@@ -553,32 +839,32 @@ export default function PrivacyPolicyPage() {
             <svg viewBox="0 0 64 64" className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M32 4l6 14 14-6-6 14 14 6-14 6 6 14-14-6-6 14-6-14-14 6 6-14-14-6 14-6-6-14 14 6z" />
             </svg>
-            <p className="text-sm tracking-[0.2em] uppercase">Privacy & Data Protection</p>
+            <p className="text-sm tracking-[0.2em] uppercase">{isPolish ? "Prywatność i ochrona danych" : "Privacy & Data Protection"}</p>
             <span className="hidden h-px w-14 origin-left bg-[#e6c877]/70 sm:block" style={{ animation: "grow 1.2s ease .4s both" }} />
           </div>
 
           <h1 className="mt-8 max-w-3xl text-4xl leading-[1.05] tracking-tight sm:text-6xl" style={display}>
             <span className="block overflow-hidden pb-2">
               <span className="line" style={{ animationDelay: ".45s" }}>
-                Privacy Policy
+                {isPolish ? "Polityka prywatności" : "Privacy Policy"}
               </span>
             </span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg" style={{ animation: "fadeIn 1.4s ease 1s both" }}>
-            Your privacy matters to us. Learn how we collect, use, protect
-            and manage your personal information when you interact with
-            Habibi Adventure.
+            {isPolish
+              ? "Twoja prywatność jest dla nas ważna. Dowiedz się, jak gromadzimy, wykorzystujemy, chronimy i zarządzamy Twoimi danymi osobowymi podczas korzystania z usług Habibi Adventure."
+              : "Your privacy matters to us. Learn how we collect, use, protect and manage your personal information when you interact with Habibi Adventure."}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-5" style={{ animation: "fadeIn 1.4s ease 1.3s both" }}>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#c9a24b]/40 bg-white/5 px-4 py-2 text-xs font-medium text-[#e6c877] backdrop-blur">
               <LockKeyhole className="h-4 w-4" />
-              Personal data & privacy information
+              {isPolish ? "Dane osobowe i informacje o prywatności" : "Personal data & privacy information"}
             </span>
             <span className="inline-flex items-center gap-2 text-xs text-white/60">
               <FileText className="h-4 w-4 text-[#c9a24b]" />
-              Last updated · {new Date().getFullYear()}
+              {isPolish ? "Ostatnia aktualizacja ·" : "Last updated ·"} {new Date().getFullYear()}
             </span>
           </div>
         </div>
@@ -591,10 +877,10 @@ export default function PrivacyPolicyPage() {
           <div className="flex flex-col justify-between gap-5 border-b border-dashed border-[#0f3d2e]/15 pb-6 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl text-[#0a2a20] sm:text-3xl" style={display}>
-                How we handle your information
+                {isPolish ? "Jak postępujemy z Twoimi danymi" : "How we handle your information"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Information about your privacy and data protection rights.
+                {isPolish ? "Informacje o prywatności i prawach dotyczących ochrony danych." : "Information about your privacy and data protection rights."}
               </p>
             </div>
 
@@ -603,20 +889,20 @@ export default function PrivacyPolicyPage() {
                 onClick={openAll}
                 className={`rounded-full bg-[#0f3d2e] px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-[#0f3d2e]/20 transition hover:bg-[#1f6b4f] ${focus}`}
               >
-                Expand all
+                {isPolish ? "Rozwiń wszystkie" : "Expand all"}
               </button>
               <button
                 onClick={closeAll}
                 className={`rounded-full border border-[#0f3d2e]/15 px-4 py-2.5 text-sm font-medium text-[#0f3d2e] transition hover:bg-[#f3f6f1] ${focus}`}
               >
-                Collapse all
+                {isPolish ? "Zwiń wszystkie" : "Collapse all"}
               </button>
             </div>
           </div>
 
           {/* accordion list */}
           <div className="mt-6 space-y-3">
-            {sections.map((section) => (
+            {pageSections.map((section) => (
               <AccordionItem
                 key={section.id}
                 section={section}
@@ -634,7 +920,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-[#e6c877]">Contact us</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#e6c877]">{isPolish ? "Skontaktuj się z nami" : "Contact us"}</p>
               <h2 className="mt-3 text-2xl sm:text-3xl" style={display}>
                 HABIBI ADVENTURE HAFA S.L.
               </h2>
@@ -645,28 +931,29 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <p className="mt-3 max-w-xl text-sm leading-7 text-white/70">
-            For questions about your personal data, privacy or the exercise
-            of your data protection rights, contact our team.
+            {isPolish
+              ? "W przypadku pytań dotyczących danych osobowych, prywatności lub korzystania z praw związanych z ochroną danych skontaktuj się z naszym zespołem."
+              : "For questions about your personal data, privacy or the exercise of your data protection rights, contact our team."}
           </p>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             {[
               {
                 icon: MapPin,
-                label: "Registered address",
+                label: isPolish ? "Adres siedziby" : "Registered address",
                 body: (
                   <>
                     Avenida Rosita Ferrer nº 2,
                     <br />
                     04740 Roquetas de Mar,
                     <br />
-                    Spain
+                    {isPolish ? "Hiszpania" : "Spain"}
                   </>
                 ),
               },
               {
                 icon: Mail,
-                label: "Email",
+                label: isPolish ? "Adres email" : "Email",
                 body: (
                   <a
                     href="mailto:habibiadventure.26@gmail.com"
@@ -678,19 +965,19 @@ export default function PrivacyPolicyPage() {
               },
               {
                 icon: Phone,
-                label: "Telephone",
+                label: isPolish ? "Telefon" : "Telephone",
                 body: (
                   <a
-                    href="tel:+34631632341"
+                    href="tel:+48665208846"
                     className={`text-white/70 transition hover:text-[#e6c877] ${focus}`}
                   >
-                    +34 631 632 341
+                    +48 665 208 846 / +212 661-731123
                   </a>
                 ),
               },
               {
                 icon: FileText,
-                label: "Company identification",
+                label: isPolish ? "Dane identyfikacyjne firmy" : "Company identification",
                 body: <>CIF: B05593736</>,
               },
             ].map(({ icon: Icon, label, body }) => (
@@ -713,7 +1000,7 @@ export default function PrivacyPolicyPage() {
             href="mailto:habibiadventure.26@gmail.com"
             className={`group mt-8 inline-flex items-center gap-2 rounded-full bg-[#c9a24b] py-3 pl-6 pr-3 text-sm font-semibold text-[#082a1f] transition hover:bg-[#e6c877] ${focus}`}
           >
-            Contact our team
+            {isPolish ? "Skontaktuj się z naszym zespołem" : "Contact our team"}
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#082a1f] text-[#e6c877] transition group-hover:rotate-45">
               <ArrowUpRight className="h-4 w-4" />
             </span>
@@ -726,9 +1013,9 @@ export default function PrivacyPolicyPage() {
             <AlertCircle className="h-4 w-4" />
           </span>
           <p className="text-xs leading-6 text-slate-600">
-            This Privacy Policy should be read together with our Cookie
-            Policy. The actual processing of personal data depends on the
-            services, forms and technologies implemented on this website.
+            {isPolish
+              ? "Niniejszą Politykę prywatności należy czytać łącznie z naszą Polityką plików cookie. Rzeczywiste przetwarzanie danych osobowych zależy od usług, formularzy i technologii wdrożonych na tej stronie internetowej."
+              : "This Privacy Policy should be read together with our Cookie Policy. The actual processing of personal data depends on the services, forms and technologies implemented on this website."}
           </p>
         </div>
       </main>
@@ -737,13 +1024,13 @@ export default function PrivacyPolicyPage() {
       <footer className="border-t border-[#0f3d2e]/10 bg-white px-5 py-10">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} HABIBI ADVENTURE HAFA S.L. All rights reserved.
+            © {new Date().getFullYear()} HABIBI ADVENTURE HAFA S.L. {isPolish ? "Wszelkie prawa zastrzeżone." : "All rights reserved."}
           </p>
           <a
             href="/"
             className={`inline-flex items-center gap-2 rounded-full bg-[#0f3d2e] px-4 py-2 text-xs font-medium text-[#e6c877] transition hover:bg-[#1f6b4f] ${focus}`}
           >
-            Back to home <ArrowRight className="h-3.5 w-3.5" />
+            {isPolish ? "Powrót do strony głównej" : "Back to home"} <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </footer>

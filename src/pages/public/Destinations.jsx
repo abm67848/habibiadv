@@ -46,11 +46,14 @@ export default function Destinations() {
   const [difficulty, setDifficulty] = useState('All');
 
   useEffect(() => {
-    document.title = 'Destinations | Explore Morocco';
     fetchPublicSiteContent()
       .then((d) => { if (d.destinations) setData(d.destinations); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    document.title = t('Destinations | Explore Morocco');
+  }, [t]);
 
   const published = useMemo(
     () => (data.destinations || []).filter((d) => d.published !== false),
@@ -89,7 +92,7 @@ export default function Destinations() {
         <Photo
           src={data.hero?.image}
           tone="from-[#082a1f] to-[#1f6b4f]"
-          alt="Morocco destinations"
+          alt={t('Morocco destinations')}
           className="absolute inset-0 h-full w-full"
         >
           <div className="absolute inset-0 bg-gradient-to-b from-[#082a1f]/60 via-[#082a1f]/30 to-[#082a1f]/80" />
@@ -126,7 +129,7 @@ export default function Destinations() {
                 onChange={(e) => setRegion(e.target.value)}
                 className="h-full rounded-2xl border-0 bg-white py-4 pl-11 pr-8 text-sm text-slate-700 shadow-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#c9a24b]"
               >
-                {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+                {regions.map((r) => <option key={r} value={r}>{t(r)}</option>)}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
@@ -227,7 +230,7 @@ function DestCard({ dest, big, t }) {
   const tone = tones[Math.abs(dest.name.charCodeAt(0) - 65) % tones.length];
   return (
     <article className={`group flex flex-col overflow-hidden rounded-[2rem] bg-white ring-1 ring-[#0f3d2e]/10 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[#0f3d2e]/15 ${big ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
-      <Photo src={dest.image} tone={tone} alt={dest.name} className={big ? 'h-72' : 'h-52'}>
+      <Photo src={dest.image} tone={tone} alt={t(dest.name)} className={big ? 'h-72' : 'h-52'}>
         <span className="absolute inset-0 bg-gradient-to-t from-[#082a1f]/70 via-transparent to-transparent" />
         {dest.featured && (
           <span className="absolute left-3 top-3 rounded-full bg-[#c9a24b] px-3 py-1 text-[11px] font-semibold text-[#082a1f]">
@@ -242,28 +245,28 @@ function DestCard({ dest, big, t }) {
         <div className="absolute inset-x-0 bottom-0 p-5">
           {dest.region && (
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#e6c877]">
-              <MapPin className="h-3 w-3" /> {dest.region}
+              <MapPin className="h-3 w-3" /> {t(dest.region)}
             </p>
           )}
-          <h3 className="mt-1 text-2xl text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>{dest.name}</h3>
-          {dest.tagline && <p className="mt-0.5 text-xs italic text-white/80">{dest.tagline}</p>}
+          <h3 className="mt-1 text-2xl text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>{t(dest.name)}</h3>
+          {dest.tagline && <p className="mt-0.5 text-xs italic text-white/80">{t(dest.tagline)}</p>}
         </div>
       </Photo>
 
       <div className="flex flex-1 flex-col p-5">
         {dest.description && (
-          <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{dest.description}</p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{t(dest.description)}</p>
         )}
 
         <div className="mt-3 flex flex-wrap gap-2">
           {dest.duration && (
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-              <Clock className="h-3 w-3" /> {dest.duration}
+              <Clock className="h-3 w-3" /> {t(dest.duration)}
             </span>
           )}
           {dest.bestSeason && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f6f1] px-2.5 py-1 text-[11px] font-medium text-[#0f3d2e]">
-              <Star className="h-3 w-3 text-[#c9a24b]" /> {dest.bestSeason}
+              <Star className="h-3 w-3 text-[#c9a24b]" /> {t(dest.bestSeason)}
             </span>
           )}
         </div>
@@ -271,11 +274,11 @@ function DestCard({ dest, big, t }) {
         {dest.highlights && dest.highlights.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {dest.highlights.slice(0, 3).map((h) => (
-              <span key={h} className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">{h}</span>
+              <span key={h} className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">{t(h)}</span>
             ))}
             {dest.highlights.length > 3 && (
               <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-400">
-                +{dest.highlights.length - 3} more
+                +{t('{{count}} more', { count: dest.highlights.length - 3 })}
               </span>
             )}
           </div>

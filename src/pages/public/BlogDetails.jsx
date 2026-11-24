@@ -95,19 +95,19 @@ export default function BlogDetailsPage() {
             <span>/</span>
             <Link to="/blog" className="hover:text-slate-700 transition">{t('Blog')}</Link>
             <span>/</span>
-            <span className="text-slate-600 truncate max-w-[14rem] sm:max-w-xs">{post.category}</span>
+            <span className="text-slate-600 truncate max-w-[14rem] sm:max-w-xs">{t(post.category)}</span>
           </nav>
 
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <span className="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-900">
-              {post.category}
+              {t(post.category)}
             </span>
             <span className="flex items-center gap-1 text-slate-500">
               <Calendar className="h-3.5 w-3.5" /> {post.publishedAt}
             </span>
             <span className="text-slate-300">•</span>
             <span className="flex items-center gap-1 text-slate-500">
-              <Clock className="h-3.5 w-3.5" /> {post.readTime}
+              <Clock className="h-3.5 w-3.5" /> {t(post.readTime)}
             </span>
           </div>
 
@@ -127,7 +127,7 @@ export default function BlogDetailsPage() {
               </span>
               <div>
                 <p className="text-sm font-bold text-slate-900">{post.author?.name}</p>
-                <p className="text-xs text-slate-500">{post.author?.role || 'Local Travel Planner'}</p>
+                <p className="text-xs text-slate-500">{t(post.author?.role || 'Local Travel Planner')}</p>
               </div>
             </div>
 
@@ -150,7 +150,7 @@ export default function BlogDetailsPage() {
         <div className="overflow-hidden rounded-3xl shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 aspect-[16/9]">
           <img
             src={post.coverImage}
-            alt={post.title}
+            alt={t(post.title)}
             className="h-full w-full object-cover"
           />
         </div>
@@ -165,14 +165,14 @@ export default function BlogDetailsPage() {
               if (trimmed.startsWith('### ')) {
                 return (
                   <h2 key={idx} className="mt-8 text-2xl sm:text-3xl font-semibold text-[#0a2a20]" style={display}>
-                    {trimmed.replace(/^### /, '')}
+                    {t(trimmed.replace(/^### /, ''))}
                   </h2>
                 );
               }
               if (trimmed.startsWith('## ')) {
                 return (
                   <h2 key={idx} className="mt-8 text-2xl sm:text-3xl font-semibold text-[#0a2a20]" style={display}>
-                    {trimmed.replace(/^## /, '')}
+                    {t(trimmed.replace(/^## /, ''))}
                   </h2>
                 );
               }
@@ -183,7 +183,7 @@ export default function BlogDetailsPage() {
                     {items.map((item, itemIdx) => (
                       <li key={itemIdx} className="flex items-start gap-2.5 text-sm sm:text-base">
                         <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a24b]" />
-                        <span>{item.replace(/^- /, '')}</span>
+                        <span>{t(item.replace(/^- /, ''))}</span>
                       </li>
                     ))}
                   </ul>
@@ -191,7 +191,7 @@ export default function BlogDetailsPage() {
               }
               return (
                 <p key={idx} className="text-slate-700 leading-relaxed">
-                  {trimmed}
+                  {t(trimmed)}
                 </p>
               );
             })

@@ -1,13 +1,13 @@
 import { useAppSettings, translate, useAuth } from '@/context/index.jsx';
 import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Calendar as CalendarIcon, Search, Plus, DollarSign, Users, Compass, CheckCircle2,
   Clock, AlertCircle, XCircle, Phone, Mail, RefreshCw, X, AlertTriangle, Copy, Check,
   FileText, ChevronRight, ChevronDown, ArrowUpRight, StickyNote, MessageSquare, Wallet,
   UserPlus, UserCheck, Upload, Trash2, Edit, Download, File, Image as ImageIcon, Loader2,
-  RotateCcw,
+  Eye, RotateCcw,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
@@ -444,6 +444,7 @@ function EmptyStateReservations({ hasFilters, onClearFilters, onCreate }) {
 export default function ReservationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { customerId } = useParams();
 
   const [reservations, setReservations] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -470,6 +471,7 @@ export default function ReservationsPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [previewDocument, setPreviewDocument] = useState(null);
   const [copiedSql, setCopiedSql] = useState(false);
 
   const [formData, setFormData] = useState(EMPTY_FORM(user?.id));
@@ -499,8 +501,10 @@ export default function ReservationsPage() {
     try {
       setLoading(true);
       setError(null);
+      const bookingsQuery = supabase.from('bookings').select('*').order('created_at', { ascending: false });
+      if (customerId) bookingsQuery.eq('customer_id', customerId);
       const [bookingsRes, customersRes, profilesRes, paymentsRes, financialsRes, docsRes] = await Promise.all([
-        supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+        bookingsQuery,
         supabase.from('customers').select('*').order('full_name', { ascending: true }),
         supabase.from('profiles').select('*'),
         supabase.from('booking_payments').select('*'),
@@ -510,19 +514,68 @@ export default function ReservationsPage() {
       if (bookingsRes.error) throw bookingsRes.error;
       if (customersRes.error) throw customersRes.error;
 
+      const dbDocs = docsRes.data || [];
+      if (docsRes.error) {
+        console.warn('Could not fetch booking document records:', docsRes.error);
+      }
+      let storageDocs = [];
+      try {
+        const bookingsList = bookingsRes.data || [];
+        const nestedStorageDocs = await Promise.all(bookingsList.map(async (booking) => {
+          try {
+            const { data: files, error: storageError } = await supabase.storage
+              .from('booking-documents')
+              .list(booking.id);
+            if (storageError) throw storageError;
+            if (!files?.length) return [];
+
+            return files.map((file) => {
+              const { data: urlData } = supabase.storage
+                .from('booking-documents')
+                .getPublicUrl(`${booking.id}/${file.name}`);
+              const isImage = (file.metadata?.mimetype || '').startsWith('image/') ||
+                /\.(png|jpe?g|webp)$/i.test(file.name);
+              return {
+                id: file.id || `${booking.id}-${file.name}`,
+                booking_id: booking.id,
+                file_name: file.name.replace(/^\d+-[a-z0-9]+\./i, ''),
+                file_url: urlData.publicUrl,
+                file_size: file.metadata?.size || 0,
+                file_type: file.metadata?.mimetype || (isImage ? 'image/png' : 'application/pdf'),
+                created_at: file.created_at || new Date().toISOString(),
+                isStorageItem: true,
+                storagePath: `${booking.id}/${file.name}`,
+              };
+            });
+          } catch (storageError) {
+            console.warn(`Could not list documents for booking ${booking.id}:`, storageError);
+            return [];
+          }
+        }));
+        storageDocs = nestedStorageDocs.flat();
+      } catch (storageError) {
+        console.warn('Could not list booking document storage files:', storageError);
+      }
+
+      const documentsByUrl = new Map();
+      dbDocs.forEach((doc) => documentsByUrl.set(doc.file_url, doc));
+      storageDocs.forEach((doc) => {
+        if (!documentsByUrl.has(doc.file_url)) documentsByUrl.set(doc.file_url, doc);
+      });
+
       setReservations(bookingsRes.data || []);
       setCustomers(customersRes.data || []);
       setProfiles(profilesRes.data || []);
       setPayments(paymentsRes.error ? [] : paymentsRes.data || []);
       setFinancials(financialsRes.error ? [] : financialsRes.data || []);
-      setDocuments(docsRes.error ? [] : docsRes.data || []);
+      setDocuments(Array.from(documentsByUrl.values()));
     } catch (err) {
       console.error('Error fetching reservations data:', err);
       setError('No se pudieron cargar las reservas. Comprueba que las migraciones del esquema de reservas estén aplicadas en Supabase.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [customerId]);
 
   useEffect(() => {
     fetchData();
@@ -660,11 +713,12 @@ export default function ReservationsPage() {
       else if (isEditModalOpen) setIsEditModalOpen(false);
       else if (isDeleteModalOpen) setIsDeleteModalOpen(false);
       else if (isSqlModalOpen) setIsSqlModalOpen(false);
+      else if (previewDocument) setPreviewDocument(null);
       else if (isDetailOpen) closeDetail();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isPaymentModalOpen, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen, isSqlModalOpen, isDetailOpen, closeDetail]);
+  }, [isPaymentModalOpen, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen, isSqlModalOpen, previewDocument, isDetailOpen, closeDetail]);
 
   useEffect(() => {
     document.body.style.overflow = isDetailOpen ? 'hidden' : '';
@@ -859,35 +913,56 @@ export default function ReservationsPage() {
     const file = e.target.files?.[0];
     if (!file || !selectedReservation) return;
 
+    // Validate allowed file types: PDF, PNG, JPEG, JPG, WEBP
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
+    const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+    if (!allowedExtensions.includes(fileExt) && !file.type.match(/^(application\/pdf|image\/(png|jpeg|jpg|webp))$/)) {
+      setError('Formato no compatible. Por favor sube archivos en formato PDF, PNG o JPEG.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     try {
       setIsUploading(true);
       setError(null);
 
-      const fileExt = file.name.split('.').pop();
       const fileName = `${selectedReservation.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      let fileUrl = '';
       const { error: uploadError } = await supabase.storage
         .from('booking-documents')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          contentType: file.type || (fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt}`),
+          upsert: true,
+        });
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('booking-documents')
-        .getPublicUrl(fileName);
+      if (!uploadError) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('booking-documents')
+          .getPublicUrl(fileName);
+        fileUrl = publicUrl;
+      } else {
+        console.warn('Storage bucket upload failed, creating base64 data URL fallback:', uploadError.message);
+        fileUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
 
       const { error: dbError } = await supabase.from('booking_documents').insert([{
         booking_id: selectedReservation.id,
         file_name: file.name,
-        file_url: publicUrl,
+        file_url: fileUrl,
         file_size: file.size,
-        file_type: file.type,
+        file_type: file.type || (fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt}`),
         uploaded_by: user?.id,
       }]);
 
       if (dbError) throw dbError;
 
-      flash('Documento subido correctamente.');
+      flash('Documento guardado correctamente.');
       await fetchData();
     } catch (err) {
       console.error('Upload error:', err);
@@ -1321,7 +1396,7 @@ export default function ReservationsPage() {
                           className="hidden"
                           ref={fileInputRef}
                           onChange={handleFileUpload}
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg"
                         />
                         <button
                           onClick={() => fileInputRef.current?.click()}
@@ -1355,7 +1430,16 @@ export default function ReservationsPage() {
                                   <p className="text-xs text-slate-500">{fmtBytes(doc.file_size)}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDocument(doc)}
+                                  className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded"
+                                  title="Vista previa"
+                                  aria-label={`Vista previa de ${doc.file_name}`}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
                                 <a
                                   href={doc.file_url}
                                   target="_blank"
@@ -1707,6 +1791,44 @@ export default function ReservationsPage() {
           </div>
           <div className="p-6 max-h-[70vh] overflow-y-auto">
             <pre className="text-xs font-mono text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto whitespace-pre">{sqlMigrationCode}</pre>
+          </div>
+        </Modal>
+      )}
+
+      {previewDocument && (
+        <Modal onClose={() => setPreviewDocument(null)} maxW="max-w-5xl">
+          <ModalHeader
+            title={previewDocument.file_name}
+            subtitle="Vista previa del documento"
+            onClose={() => setPreviewDocument(null)}
+          />
+          <div className="p-4 sm:p-6">
+            {previewDocument.file_type?.startsWith('image/') ? (
+              <img
+                src={previewDocument.file_url}
+                alt={previewDocument.file_name}
+                className="mx-auto max-h-[72vh] max-w-full rounded-lg object-contain"
+              />
+            ) : previewDocument.file_type === 'application/pdf' || /\.pdf$/i.test(previewDocument.file_name) ? (
+              <iframe
+                src={previewDocument.file_url}
+                title={previewDocument.file_name}
+                className="h-[72vh] w-full rounded-lg border border-slate-200"
+              />
+            ) : (
+              <div className="py-12 text-center">
+                <FileText className="mx-auto h-10 w-10 text-slate-300" />
+                <p className="mt-3 text-sm text-slate-600">{translate('No hay vista previa disponible para este tipo de archivo.')}</p>
+                <a
+                  href={previewDocument.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${btnGhost} mt-4`}
+                >
+                  <Download className="h-4 w-4" />{translate('Abrir documento')}
+                </a>
+              </div>
+            )}
           </div>
         </Modal>
       )}

@@ -1282,9 +1282,20 @@ export default function PackageDetailPage() {
 
   const persistLanding = async (publish = false) => {
     if (!canUpdate) throw new Error('Falta el permiso packages.update.');
+
+    // Auto-generate a fallback slug from package title or ID if empty
+    const rawSlug = landing.slug?.trim();
+    const fallbackSlug = (overview.public_title || overview.internal_title || offer?.public_title || offer?.internal_title || `package-${id}`)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const cleanSlug = rawSlug || fallbackSlug || `pkg-${id.substring(0, 8)}`;
+
     const payload = {
       ...landing, offer_id: id,
-      slug: landing.slug?.trim() || null,
+      slug: cleanSlug,
       section_visibility: typeof landing.section_visibility === 'string'
         ? JSON.parse(landing.section_visibility || '{}') : landing.section_visibility,
       faqs: typeof landing.faqs === 'string' ? JSON.parse(landing.faqs || '[]') : landing.faqs,

@@ -332,7 +332,7 @@ function SectionHead({ title, text, action, to, light = false }) {
 export default function Home() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : 'en-US';
+  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : i18n.resolvedLanguage === 'pl' ? 'pl-PL' : 'en-US';
   const [packages, setPackages] = useState([]);
   const [packagesLoading, setPackagesLoading] = useState(true);
   const [packagesError, setPackagesError] = useState('');
@@ -978,7 +978,7 @@ export default function Home() {
                   )}
                   {partner.website && (
                     <a href={partner.website} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[#9c7a2b] hover:text-[#c9a24b] transition ${focus}`}>
-                      Visit website <ArrowUpRight className="h-3.5 w-3.5" />
+                      {t('Visit website')} <ArrowUpRight className="h-3.5 w-3.5" />
                     </a>
                   )}
                 </div>
@@ -1001,7 +1001,7 @@ export default function Home() {
             : POSTS
           ).map((p, i) => (
             <article key={p.id || p.title || i} className={`group overflow-hidden rounded-[2rem] bg-white ring-1 ring-[#0f3d2e]/10 transition hover:shadow-xl hover:shadow-[#0f3d2e]/10 ${i === 0 ? 'lg:row-span-2' : 'sm:flex'}`}>
-              <Photo src={p.coverImage || p.img} tone={p.tone || 'from-[#0f3d2e] to-[#c9a24b]'} alt={p.title} className={i === 0 ? 'h-72 lg:h-[26rem]' : 'h-48 sm:h-auto sm:w-2/5 sm:shrink-0'} />
+              <Photo src={p.coverImage || p.img} tone={p.tone || 'from-[#0f3d2e] to-[#c9a24b]'} alt={t(p.title)} className={i === 0 ? 'h-72 lg:h-[26rem]' : 'h-48 sm:h-auto sm:w-2/5 sm:shrink-0'} />
               <div className="flex flex-col justify-center p-6 lg:p-8">
                 <p className="text-xs text-slate-500">{p.publishedAt || p.date}, {p.readTime || p.read || '5 min'} {t('read')}</p>
                 <h3 className={`mt-2 leading-snug text-[#0a2a20] ${i === 0 ? 'text-3xl' : 'text-xl'}`} style={display}>

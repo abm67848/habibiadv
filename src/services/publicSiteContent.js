@@ -10,8 +10,8 @@ export const DEFAULT_CONTACT_CONTENT = {
   heroDescription: 'A real planner reads every message. Send your dates, your group and your ideas, and we’ll come back with a plan and a price.',
   waysHeading: 'Ways to reach us',
   channels: [
-    { type: 'phone', title: 'Call us', text: '+34 631 632 341', href: 'tel:+34631632341', note: 'Fastest for urgent trips' },
-    { type: 'whatsapp', title: 'WhatsApp', text: 'Chat with a planner', href: 'https://wa.me/34631632341', note: 'Share photos and dates easily' },
+    { type: 'phone', title: 'Call us', text: '+48 665 208 846 / +212 661-731123', href: 'tel:+48665208846', note: 'Fastest for urgent trips' },
+    { type: 'whatsapp', title: 'WhatsApp', text: '+48 665 208 846', href: 'https://wa.me/48665208846', note: 'Share photos and dates easily' },
     { type: 'email', title: 'Email', text: 'habibiadventure.26@gmail.com', href: 'mailto:habibiadventure.26@gmail.com', note: 'Best for itineraries and quotes' },
     { type: 'visit', title: 'Visit', text: 'Boulevard Mohammed V', href: 'https://www.google.com/maps/search/?api=1&query=Tangier+Morocco', note: 'Tangier 90000, Morocco' },
   ],

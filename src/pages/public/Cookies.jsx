@@ -169,7 +169,7 @@ export default function CookiesPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5">
-                        <h3 className="text-base font-bold text-slate-900">{cat.name}</h3>
+                        <h3 className="text-base font-bold text-slate-900">{t(cat.name)}</h3>
                         {isRequired ? (
                           <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
                             {t('Always Required')}
@@ -187,7 +187,7 @@ export default function CookiesPage() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
-                        {cat.description}
+                        {t(cat.description)}
                       </p>
                     </div>
 
@@ -221,15 +221,15 @@ export default function CookiesPage() {
 
                   {/* Cookie Details List */}
                   <div className="border-t border-slate-200/70 pt-3">
-                    <p className="text-[11px] font-semibold text-slate-500 mb-2">Cookies & storage tokens in this category:</p>
+                    <p className="text-[11px] font-semibold text-slate-500 mb-2">{t('Cookies & storage tokens in this category:')}</p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {cat.cookies?.map((c, i) => (
                         <div key={i} className="rounded-xl bg-white p-3 border border-slate-200 text-xs shadow-2xs">
                           <div className="flex items-center justify-between">
                             <span className="font-mono font-bold text-slate-900">{c.name}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">{c.expires}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{t(c.expires)}</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-1">{c.purpose}</p>
+                          <p className="text-[11px] text-slate-500 mt-1">{t(c.purpose)}</p>
                         </div>
                       ))}
                     </div>
@@ -257,48 +257,48 @@ export default function CookiesPage() {
           </h2>
 
           <div className="space-y-4">
-            <h3 className="text-base font-bold text-slate-900">1. What are cookies?</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('1. What are cookies?')}</h3>
             <p>
-              Cookies are small text files placed on your computer or mobile device when you visit websites. They are widely used to make websites work efficiently, provide security, remember your settings (such as project currency or selected excursions), and report usage analytics.
+              {t('Cookies are small text files placed on your computer or mobile device when you visit websites. They are widely used to make websites work efficiently, provide security, remember your settings (such as project currency or selected excursions), and report usage analytics.')}
             </p>
 
-            <h3 className="text-base font-bold text-slate-900">2. How Habibi Adventure uses cookies</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('2. How Habibi Adventure uses cookies')}</h3>
             <p>
-              We treat user privacy with the same integrity we bring to organizing trips. We do not sell your personal data or search habits to data brokers. Cookies are used strictly to:
+              {t('We treat user privacy with the same integrity we bring to organizing trips. We do not sell your personal data or search habits to data brokers. Cookies are used strictly to:')}
             </p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Keep you securely logged in to your account and administrative tools.</li>
-              <li>Preserve your selected trip request items when browsing packages and services.</li>
-              <li>Remember your display currency (e.g. Moroccan Dirhams MAD, Euros EUR, US Dollars USD).</li>
-              <li>Analyze aggregate traffic patterns so we can optimize itineraries and page load times.</li>
+              <li>{t('Keep you securely logged in to your account and administrative tools.')}</li>
+              <li>{t('Preserve your selected trip request items when browsing packages and services.')}</li>
+              <li>{t('Remember your display currency (e.g. Moroccan Dirhams MAD, Euros EUR, US Dollars USD).')}</li>
+              <li>{t('Analyze aggregate traffic patterns so we can optimize itineraries and page load times.')}</li>
             </ul>
 
-            <h3 className="text-base font-bold text-slate-900">3. Managing cookies in your web browser</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('3. Managing cookies in your web browser')}</h3>
             <p>
-              In addition to using the preference controls above, most modern web browsers allow you to control and delete cookies through their settings:
+              {t('In addition to using the preference controls above, most modern web browsers allow you to control and delete cookies through their settings:')}
             </p>
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
               <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 text-xs">
                 <span className="font-bold text-slate-800">Google Chrome</span>
-                <p className="text-slate-500 mt-0.5">Settings → Privacy and Security → Third-party cookies.</p>
+                <p className="text-slate-500 mt-0.5">{t('Settings → Privacy and Security → Third-party cookies.')}</p>
               </div>
               <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 text-xs">
                 <span className="font-bold text-slate-800">Apple Safari</span>
-                <p className="text-slate-500 mt-0.5">Preferences → Privacy → Block all cookies / Manage Website Data.</p>
+                <p className="text-slate-500 mt-0.5">{t('Preferences → Privacy → Block all cookies / Manage Website Data.')}</p>
               </div>
               <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 text-xs">
                 <span className="font-bold text-slate-800">Mozilla Firefox</span>
-                <p className="text-slate-500 mt-0.5">Options → Privacy & Security → Enhanced Tracking Protection.</p>
+                <p className="text-slate-500 mt-0.5">{t('Options → Privacy & Security → Enhanced Tracking Protection.')}</p>
               </div>
               <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 text-xs">
                 <span className="font-bold text-slate-800">Microsoft Edge</span>
-                <p className="text-slate-500 mt-0.5">Settings → Cookies and Site Permissions → Manage and delete cookies.</p>
+                <p className="text-slate-500 mt-0.5">{t('Settings → Cookies and Site Permissions → Manage and delete cookies.')}</p>
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-slate-900">4. Contact our privacy team</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('4. Contact our privacy team')}</h3>
             <p>
-              If you have any questions about our use of cookies or privacy practices, please contact our concierge team at <a href="mailto:concierge@skyview-travel.com" className="font-semibold text-amber-700 underline">concierge@skyview-travel.com</a> or visit our office at Boulevard Mohammed V, Tangier, Morocco.
+              {t('If you have any questions about our use of cookies or privacy practices, please contact our concierge team at')} <a href="mailto:habibiadventure.26@gmail.com" className="font-semibold text-amber-700 underline">habibiadventure.26@gmail.com</a> {t('or visit our office at Boulevard Mohammed V, Tangier, Morocco.')}
             </p>
           </div>
         </section>

@@ -594,14 +594,55 @@ export default function ReservationsPage() {
       if (customersRes.error) throw customersRes.error;
       if (paymentsRes.error) throw paymentsRes.error;
       if (financialsRes.error) throw financialsRes.error;
-      if (docsRes.error) throw docsRes.error;
+
+      // Handle table docs
+      const dbDocs = docsRes.data || [];
+
+      // Also list storage bucket files for all active bookings as a rock-solid dual sync
+      let storageDocs = [];
+      try {
+        const bookingsList = bookingsRes.data || [];
+        const storagePromises = bookingsList.map(async (b) => {
+          const { data: files } = await supabase.storage.from('booking-documents').list(b.id);
+          if (!files || files.length === 0) return [];
+          return files.map((f) => {
+            const { data: urlData } = supabase.storage.from('booking-documents').getPublicUrl(`${b.id}/${f.name}`);
+            const isImage = (f.metadata?.mimetype || '').startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(f.name);
+            return {
+              id: f.id || `${b.id}-${f.name}`,
+              booking_id: b.id,
+              file_name: f.name.replace(/^\d+-[a-z0-9]+\./i, ''),
+              file_url: urlData.publicUrl,
+              file_size: f.metadata?.size || 0,
+              file_type: f.metadata?.mimetype || (isImage ? 'image/png' : 'application/pdf'),
+              created_at: f.created_at || new Date().toISOString(),
+              isStorageItem: true,
+              storagePath: `${b.id}/${f.name}`,
+            };
+          });
+        });
+        const nested = await Promise.all(storagePromises);
+        storageDocs = nested.flat();
+      } catch (storageErr) {
+        console.warn('Storage files list notice:', storageErr);
+      }
+
+      // Merge docs avoiding duplicates
+      const mergedDocsMap = new Map();
+      dbDocs.forEach((d) => mergedDocsMap.set(d.file_url, d));
+      storageDocs.forEach((d) => {
+        if (!mergedDocsMap.has(d.file_url)) {
+          mergedDocsMap.set(d.file_url, d);
+        }
+      });
+      const allDocs = Array.from(mergedDocsMap.values());
 
       setReservations(bookingsRes.data || []);
       setCustomers(customersRes.data || []);
       setProfiles(profilesRes.data || []);
       setPayments(paymentsRes.data || []);
       setFinancials(financialsRes.data || []);
-      setDocuments(docsRes.data || []);
+      setDocuments(allDocs);
     } catch (err) {
       console.error('Error fetching reservations data:', err);
       setError('No se pudieron cargar las reservas. Comprueba que las migraciones del esquema de reservas estén aplicadas en Supabase.');
@@ -971,35 +1012,56 @@ export default function ReservationsPage() {
     const file = e.target.files?.[0];
     if (!file || !selectedReservation) return;
 
+    // Validate allowed file types: PDF, PNG, JPEG, JPG, WEBP
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
+    const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+    if (!allowedExtensions.includes(fileExt) && !file.type.match(/^(application\/pdf|image\/(png|jpeg|jpg|webp))$/)) {
+      setError('Formato no compatible. Por favor sube archivos en formato PDF, PNG o JPEG.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     try {
       setIsUploading(true);
       setError(null);
 
-      const fileExt = file.name.split('.').pop();
       const fileName = `${selectedReservation.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      let fileUrl = '';
       const { error: uploadError } = await supabase.storage
         .from('booking-documents')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          contentType: file.type || (fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt}`),
+          upsert: true,
+        });
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('booking-documents')
-        .getPublicUrl(fileName);
+      if (!uploadError) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('booking-documents')
+          .getPublicUrl(fileName);
+        fileUrl = publicUrl;
+      } else {
+        console.warn('Storage bucket upload failed, creating base64 data URL fallback:', uploadError.message);
+        fileUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
 
       const { error: dbError } = await supabase.from('booking_documents').insert([{
         booking_id: selectedReservation.id,
         file_name: file.name,
-        file_url: publicUrl,
+        file_url: fileUrl,
         file_size: file.size,
-        file_type: file.type,
+        file_type: file.type || (fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt}`),
         uploaded_by: user?.id,
       }]);
 
       if (dbError) throw dbError;
 
-      flash('Documento subido correctamente.');
+      flash('Documento guardado correctamente.');
       await fetchData();
     } catch (err) {
       console.error('Upload error:', err);
@@ -1495,7 +1557,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                           className="hidden"
                           ref={fileInputRef}
                           onChange={handleFileUpload}
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg"
                         />
                         <button
                           onClick={() => fileInputRef.current?.click()}

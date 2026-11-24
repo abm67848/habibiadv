@@ -145,7 +145,7 @@ function SkeletonCard() {
 /* ------------------------------------------------------------------ */
 export default function PackagesPage() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : 'en-US';
+  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : i18n.resolvedLanguage === 'pl' ? 'pl-PL' : 'en-US';
   const [params, setParams] = useSearchParams();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);

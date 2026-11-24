@@ -39,7 +39,7 @@ function Card({ children, className = '' }) {
 
 export default function PackageDetailsPage() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : 'en-US';
+  const locale = i18n.resolvedLanguage === 'fr' ? 'fr-FR' : i18n.resolvedLanguage === 'es' ? 'es-ES' : i18n.resolvedLanguage === 'pl' ? 'pl-PL' : 'en-US';
   const { packageId } = useParams();
   const [searchParams] = useSearchParams();
   const previewMode = searchParams.get('preview') === 'true';

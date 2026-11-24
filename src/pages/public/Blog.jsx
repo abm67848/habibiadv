@@ -152,7 +152,7 @@ export default function BlogPage() {
       <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 space-y-14">
         {/* FEATURED POST (Only shown when not searching and on 'All' category) */}
         {!searchQuery && selectedCategory === 'All' && featuredPost && (
-          <section aria-label="Featured Story">
+          <section aria-label={t('Featured Story')}>
             <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-[#0f3d2e]/5 ring-1 ring-[#0f3d2e]/10 transition duration-300 hover:shadow-2xl sm:grid sm:grid-cols-2">
               <div className="relative min-h-[18rem] sm:min-h-full">
                 <img
@@ -217,7 +217,7 @@ export default function BlogPage() {
         )}
 
         {/* ARTICLES GRID */}
-        <section aria-label="Article list">
+        <section aria-label={t('Article list')}>
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-[#0a2a20]" style={display}>
               {selectedCategory === 'All' ? t('Latest Travel Articles') : t(selectedCategory)}

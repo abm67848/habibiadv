@@ -94,7 +94,7 @@ export async function buildContractPdf({
   const agencyCif = contract.agency_tax_number || agencyConfig.taxNumber || headerSettings.agency_cif || 'C.I.F. B-70659918';
   const agencyCity = contract.agency_city || headerSettings.agency_city || 'Sevilla / Marrakech';
   const agencyCountry = contract.agency_country || headerSettings.agency_country || 'España / Marruecos';
-  const agencyPhone = contract.agency_phone || agencyConfig.phone || headerSettings.agency_phone || '+34 611 144 040 / +212 524-001122';
+  const agencyPhone = contract.agency_phone || agencyConfig.phone || headerSettings.agency_phone || '+48 665 208 846 / +212 661-731123';
   const agencyEmail = contract.agency_email || agencyConfig.email || headerSettings.agency_email || 'info@habibiadventure.com';
   const bankAcc = contract.bank_account_iban || headerSettings.bank_account_iban || 'ES18 0049 1573 5127 1099 7804';
   const swiftCode = contract.bank_account_swift || headerSettings.bank_account_swift || 'BSCH ES MM';

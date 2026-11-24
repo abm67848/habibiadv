@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ShieldCheck,
@@ -317,6 +318,259 @@ const sections = [
   },
 ];
 
+const polishSections = [
+  {
+    title: "1. Rezerwacja i potwierdzenie",
+    content: (
+      <>
+        <p>
+          Rezerwacje w HABIBI ADVENTURE HAFA S.L. są uzależnione od dostępności
+          i potwierdzenia przez agencję. Rezerwacja zostaje potwierdzona po
+          otrzymaniu wymaganej zaliczki i wystawieniu potwierdzenia.
+        </p>
+        <p>
+          Podróżny odpowiada za sprawdzenie planu podróży, terminów, szczegółów
+          zakwaterowania, usług wliczonych w cenę, usług niewliczonych oraz
+          warunków płatności przekazanych w chwili rezerwacji.
+        </p>
+        <p>
+          Szczegółowa umowa dotycząca podróży oraz potwierdzony plan podróży
+          stanowią część porozumienia między podróżnym a agencją.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "2. Warunki płatności",
+    content: (
+      <>
+        <p>
+          Warunki płatności są przekazywane w trakcie rezerwacji i potwierdzane
+          w indywidualnej umowie dotyczącej podróży.
+        </p>
+        <p>
+          Jeżeli umowa rezerwacyjna określa stosowany przez agencję sposób
+          płatności, rezerwacja może wymagać wpłaty zaliczki w wysokości 40%
+          w ciągu pięciu dni od złożenia wniosku o rezerwację, a pozostałe 60%
+          należy wpłacić w Maroku zgodnie z umową.
+        </p>
+        <p>
+          Harmonogram płatności, metody płatności i terminy właściwe dla każdej
+          podróży są określone w umowie dotyczącej podróży.
+        </p>
+        <p>
+          Brak płatności w uzgodnionym terminie może wpłynąć na rezerwację,
+          z zastrzeżeniem postanowień właściwej umowy i obowiązującego prawa.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "3. Anulowanie i zwroty",
+    content: (
+      <>
+        <p>
+          Wnioski o anulowanie należy składać na piśmie, korzystając z danych
+          kontaktowych HABIBI ADVENTURE HAFA S.L.
+        </p>
+        <p>
+          Przy ustalaniu właściwych warunków anulowania uwzględnia się datę
+          otrzymania przez agencję pisemnego zawiadomienia o anulowaniu.
+        </p>
+        <p>
+          Indywidualna umowa dotycząca podróży określa właściwe zasady
+          anulowania, uprawnienia do zwrotu, opłaty za anulowanie oraz
+          obowiązujące terminy.
+        </p>
+        <p>
+          W umowach, które wyraźnie zawierają warunek anulowania stosowany
+          we wzorze umowy agencji, zaliczka staje się bezzwrotna po upływie
+          21 dni kalendarzowych od jej wpłaty. Warunek ten obowiązuje wyłącznie
+          wtedy, gdy został wyraźnie uzgodniony w danej umowie, i z zastrzeżeniem
+          bezwzględnie obowiązujących przepisów prawa.
+        </p>
+        <p>
+          Prawa do anulowania, zwrotów i opłat nie ograniczają ochrony
+          przysługującej podróżnym na mocy obowiązującego prawa.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "4. Plan podróży i zmiany",
+    content: (
+      <>
+        <p>
+          HABIBI ADVENTURE HAFA S.L. dokłada starań, aby realizować wycieczki
+          zgodnie z planem podróży potwierdzonym z podróżnym.
+        </p>
+        <p>
+          Niektóre zmiany mogą być konieczne z powodu warunków pogodowych,
+          zamknięcia dróg, zakłóceń w transporcie, względów bezpieczeństwa,
+          lokalnych okoliczności lub innych zdarzeń pozostających poza
+          uzasadnioną kontrolą agencji.
+        </p>
+        <p>
+          W razie potrzeby agencja może zmienić plan podróży, ustalenia,
+          godziny wyjazdu lub aktywności, starając się zachować ogólną jakość
+          i charakter wycieczki.
+        </p>
+        <p>
+          Zmiany będą przekazywane podróżnym tak szybko, jak będzie to
+          rozsądnie możliwe. Podróżnym nadal przysługują prawa wynikające
+          z obowiązującego prawa.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "5. Zakwaterowanie",
+    content: (
+      <>
+        <p>
+          Informacje o zakwaterowaniu są podane w planie podróży i potwierdzeniu
+          rezerwacji.
+        </p>
+        <p>
+          Jeżeli z przyczyn pozostających poza uzasadnioną kontrolą agencji
+          konieczna będzie zmiana zakwaterowania, HABIBI ADVENTURE HAFA S.L.
+          postara się zapewnić zakwaterowanie zastępcze o porównywalnej
+          kategorii i standardzie, zależnie od dostępności i obowiązujących
+          wymogów prawnych.
+        </p>
+        <p>
+          Rodzaj pokoju, liczba osób, wyżywienie i wszelkie szczególne warunki
+          zakwaterowania zostaną określone w indywidualnej rezerwacji.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "6. Usługi wliczone w cenę i niewliczone",
+    content: (
+      <>
+        <p>
+          Usługi wliczone w cenę wycieczki to te, które zostały wymienione
+          w jej planie podróży i potwierdzeniu rezerwacji.
+        </p>
+        <p>W zależności od wycieczki usługi wliczone w cenę mogą obejmować:</p>
+        <ul>
+          <li>Transport wskazany w planie podróży.</li>
+          <li>Transfery lotniskowe lub do miejsca zakwaterowania, jeśli zostały wskazane.</li>
+          <li>Zakwaterowanie i posiłki wyraźnie wymienione w ofercie.</li>
+          <li>Usługi przewodnickie, jeśli zostały wyraźnie wymienione.</li>
+          <li>Aktywności wyraźnie uwzględnione w pakiecie.</li>
+        </ul>
+        <p>O ile wyraźnie nie wskazano, że są wliczone w cenę, podróżny może odpowiadać za:</p>
+        <ul>
+          <li>Napoje i posiłki niewymienione w planie podróży.</li>
+          <li>Opłaty za wstęp do zabytków, muzeów i atrakcji.</li>
+          <li>Wydatki osobiste i zakupy.</li>
+          <li>Aktywności fakultatywne i usługi dodatkowe.</li>
+          <li>Wszelkie usługi, które nie zostały wyraźnie wymienione jako wliczone w cenę.</li>
+        </ul>
+        <p>
+          Dokładny zakres usług wliczonych w cenę i wyłączonych z niej określa
+          indywidualny pakiet podróżny.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "7. Obowiązki podróżnych",
+    content: (
+      <>
+        <p>Podróżni odpowiadają za:</p>
+        <ul>
+          <li>Podanie prawidłowych danych rezerwacyjnych i osobowych.</li>
+          <li>Uzyskanie ważnych dokumentów podróży i spełnienie wymogów wjazdowych.</li>
+          <li>Przybycie w uzgodnione miejsce i godzinę odjazdu.</li>
+          <li>Stosowanie się do uzasadnionych poleceń przewodników i koordynatorów wycieczki.</li>
+          <li>Przestrzeganie zasad zakwaterowania, lokalnych zwyczajów i praw innych podróżnych.</li>
+          <li>Uregulowanie pozostałych należności wynikających z potwierdzonej rezerwacji.</li>
+          <li>Odpowiedzialne zachowanie podczas wycieczek i aktywności.</li>
+        </ul>
+        <p>
+          Zachowanie zagrażające bezpieczeństwu podróżnego, grupy lub innych
+          osób może skutkować podjęciem działań zgodnie z właściwą umową
+          i obowiązującym prawem.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "8. Ubezpieczenie i odpowiedzialność",
+    content: (
+      <>
+        <p>
+          HABIBI ADVENTURE HAFA S.L. posiada ubezpieczenie odpowiedzialności
+          cywilnej zawodowej zgodnie z umową ubezpieczenia i obowiązującymi
+          wymogami.
+        </p>
+        <p>
+          Ubezpieczenie odpowiedzialności zawodowej agencji samo w sobie nie
+          stanowi indywidualnego ubezpieczenia podróżnego dla podróżnych.
+        </p>
+        <p>
+          Zaleca się, aby podróżni wykupili odpowiednie ubezpieczenie podróżne
+          obejmujące koszty leczenia, pomoc, anulowanie, wypadki osobowe,
+          bagaż i inne ryzyka związane z podróżą.
+        </p>
+        <p>
+          Zakres ochrony ubezpieczeniowej zależy od warunków polisy, wyłączeń
+          i ubezpieczyciela.
+        </p>
+        <p>
+          Żadne postanowienie niniejszych warunków nie wyłącza ani nie
+          ogranicza odpowiedzialności, jeżeli takie wyłączenie lub
+          ograniczenie jest zabronione przez obowiązujące prawo.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "9. Siła wyższa",
+    content: (
+      <>
+        <p>
+          Siła wyższa lub wyjątkowe okoliczności mogą obejmować między innymi
+          trudne warunki pogodowe, burze, powodzie, trzęsienia ziemi, pandemie,
+          zamknięcia dróg, poważne zakłócenia w transporcie lub inne
+          okoliczności pozostające poza uzasadnioną kontrolą.
+        </p>
+        <p>
+          Jeżeli takie zdarzenia wpłyną na wycieczkę, agencja może być zmuszona
+          do zmiany ustaleń, aktywności, tras lub harmonogramów.
+        </p>
+        <p>
+          Agencja podejmie uzasadnione działania, aby poinformować o zmianach
+          i zapewnić odpowiednią pomoc, z zastrzeżeniem umowy rezerwacyjnej
+          i obowiązującego prawa.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "10. Reklamacje i obsługa klienta",
+    content: (
+      <>
+        <p>
+          Zachęcamy podróżnych do zgłaszania wszelkich problemów z usługami
+          w trakcie podróży, aby agencja miała możliwość ich rozwiązania.
+        </p>
+        <p>
+          Formalne reklamacje można składać na piśmie do HABIBI ADVENTURE HAFA
+          S.L., korzystając z poniższych danych kontaktowych.
+        </p>
+        <p>
+          Agencja rozpatrzy reklamację i odpowie w terminie określonym
+          obowiązującymi przepisami prawa.
+        </p>
+      </>
+    ),
+  },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Accordion item — premium card style                               */
 /* ------------------------------------------------------------------ */
@@ -358,7 +612,7 @@ function AccordionItem({ section, open, onToggle, index }) {
               {section.title}
             </span>
             <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.15em] text-slate-400">
-              {open ? "Tap to collapse" : "Tap to read more"}
+              {open ? (section.isPolish ? "Kliknij, aby zwinąć" : "Tap to collapse") : (section.isPolish ? "Kliknij, aby przeczytać więcej" : "Tap to read more")}
             </span>
           </span>
         </div>
@@ -395,6 +649,16 @@ function AccordionItem({ section, open, onToggle, index }) {
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
 export default function TermsPage() {
+  const { i18n } = useTranslation();
+  const isPolish = i18n.language?.toLowerCase().startsWith("pl");
+  const pageSections = isPolish
+    ? sections.map((section, index) => ({
+        ...section,
+        title: polishSections[index].title,
+        content: polishSections[index].content,
+        isPolish: true,
+      }))
+    : sections;
   const [openSections, setOpenSections] = useState(["booking"]);
 
   const toggleSection = (id) => {
@@ -403,7 +667,7 @@ export default function TermsPage() {
     );
   };
 
-  const openAll = () => setOpenSections(sections.map((s) => s.id));
+  const openAll = () => setOpenSections(pageSections.map((s) => s.id));
   const closeAll = () => setOpenSections([]);
 
   return (
@@ -443,31 +707,32 @@ export default function TermsPage() {
             <svg viewBox="0 0 64 64" className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M32 4l6 14 14-6-6 14 14 6-14 6 6 14-14-6-6 14-6-14-14 6 6-14-14-6 14-6-6-14 14 6z" />
             </svg>
-            <p className="text-sm tracking-[0.2em] uppercase">Travel & Booking Information</p>
+            <p className="text-sm tracking-[0.2em] uppercase">{isPolish ? "Informacje o podróży i rezerwacji" : "Travel & Booking Information"}</p>
             <span className="hidden h-px w-14 origin-left bg-[#e6c877]/70 sm:block" style={{ animation: "grow 1.2s ease .4s both" }} />
           </div>
 
           <h1 className="mt-8 max-w-3xl text-4xl leading-[1.05] tracking-tight sm:text-6xl" style={display}>
             <span className="block overflow-hidden pb-2">
               <span className="line" style={{ animationDelay: ".45s" }}>
-                Terms &amp; Conditions
+                {isPolish ? "Warunki korzystania z usług" : "Terms & Conditions"}
               </span>
             </span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg" style={{ animation: "fadeIn 1.4s ease 1s both" }}>
-            Everything you need to know about booking, payments, travel
-            arrangements and your journey with Habibi Adventure.
+            {isPolish
+              ? "Wszystko, co należy wiedzieć o rezerwacji, płatnościach, organizacji podróży i wyjeździe z Habibi Adventure."
+              : "Everything you need to know about booking, payments, travel arrangements and your journey with Habibi Adventure."}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-5" style={{ animation: "fadeIn 1.4s ease 1.3s both" }}>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#c9a24b]/40 bg-white/5 px-4 py-2 text-xs font-medium text-[#e6c877] backdrop-blur">
               <ShieldCheck className="h-4 w-4" />
-              Booking policies & traveler information
+              {isPolish ? "Zasady rezerwacji i informacje dla podróżnych" : "Booking policies & traveler information"}
             </span>
             <span className="inline-flex items-center gap-2 text-xs text-white/60">
               <FileText className="h-4 w-4 text-[#c9a24b]" />
-              Last updated · {new Date().getFullYear()}
+              {isPolish ? "Ostatnia aktualizacja ·" : "Last updated ·"} {new Date().getFullYear()}
             </span>
           </div>
         </div>
@@ -480,10 +745,10 @@ export default function TermsPage() {
           <div className="flex flex-col justify-between gap-5 border-b border-dashed border-[#0f3d2e]/15 pb-6 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl text-[#0a2a20] sm:text-3xl" style={display}>
-                General travel terms
+                {isPolish ? "Ogólne warunki podróży" : "General travel terms"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Please read these conditions carefully before confirming your booking.
+                {isPolish ? "Przed potwierdzeniem rezerwacji prosimy o uważne zapoznanie się z tymi warunkami." : "Please read these conditions carefully before confirming your booking."}
               </p>
             </div>
 
@@ -492,20 +757,20 @@ export default function TermsPage() {
                 onClick={openAll}
                 className={`rounded-full bg-[#0f3d2e] px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-[#0f3d2e]/20 transition hover:bg-[#1f6b4f] ${focus}`}
               >
-                Expand all
+                {isPolish ? "Rozwiń wszystkie" : "Expand all"}
               </button>
               <button
                 onClick={closeAll}
                 className={`rounded-full border border-[#0f3d2e]/15 px-4 py-2.5 text-sm font-medium text-[#0f3d2e] transition hover:bg-[#f3f6f1] ${focus}`}
               >
-                Collapse all
+                {isPolish ? "Zwiń wszystkie" : "Collapse all"}
               </button>
             </div>
           </div>
 
           {/* accordion list */}
           <div className="mt-6 space-y-3">
-            {sections.map((section, i) => (
+            {pageSections.map((section, i) => (
               <AccordionItem
                 key={section.id}
                 section={section}
@@ -524,7 +789,7 @@ export default function TermsPage() {
 
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-[#e6c877]">Contact us</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#e6c877]">{isPolish ? "Skontaktuj się z nami" : "Contact us"}</p>
               <h2 className="mt-3 text-2xl sm:text-3xl" style={display}>
                 HABIBI ADVENTURE HAFA S.L.
               </h2>
@@ -535,28 +800,29 @@ export default function TermsPage() {
           </div>
 
           <p className="mt-3 max-w-xl text-sm leading-7 text-white/70">
-            If you have questions regarding these terms, your booking or any
-            of our travel services, please contact our team.
+            {isPolish
+              ? "W przypadku pytań dotyczących niniejszych warunków, rezerwacji lub naszych usług turystycznych prosimy o kontakt z naszym zespołem."
+              : "If you have questions regarding these terms, your booking or any of our travel services, please contact our team."}
           </p>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             {[
               {
                 icon: MapPin,
-                label: "Registered address",
+                label: isPolish ? "Adres siedziby" : "Registered address",
                 body: (
                   <>
                     Avenida Rosita Ferrer nº 2,
                     <br />
                     04740 Roquetas de Mar,
                     <br />
-                    Spain
+                    {isPolish ? "Hiszpania" : "Spain"}
                   </>
                 ),
               },
               {
                 icon: Mail,
-                label: "Email",
+                label: isPolish ? "Adres email" : "Email",
                 body: (
                   <a
                     href="mailto:habibiadventure.26@gmail.com"
@@ -568,19 +834,19 @@ export default function TermsPage() {
               },
               {
                 icon: Phone,
-                label: "Telephone",
+                label: isPolish ? "Telefon" : "Telephone",
                 body: (
                   <a
-                    href="tel:+34631632341"
+                    href="tel:+48665208846"
                     className={`text-white/70 transition hover:text-[#e6c877] ${focus}`}
                   >
-                    +34 631 632 341
+                    +48 665 208 846 / +212 661-731123
                   </a>
                 ),
               },
               {
                 icon: FileText,
-                label: "Company identification",
+                label: isPolish ? "Dane identyfikacyjne firmy" : "Company identification",
                 body: <>CIF: B05593736</>,
               },
             ].map(({ icon: Icon, label, body }) => (
@@ -603,7 +869,7 @@ export default function TermsPage() {
             href="mailto:habibiadventure.26@gmail.com"
             className={`group mt-8 inline-flex items-center gap-2 rounded-full bg-[#c9a24b] py-3 pl-6 pr-3 text-sm font-semibold text-[#082a1f] transition hover:bg-[#e6c877] ${focus}`}
           >
-            Send us a message
+            {isPolish ? "Wyślij nam wiadomość" : "Send us a message"}
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#082a1f] text-[#e6c877] transition group-hover:rotate-45">
               <ArrowUpRight className="h-4 w-4" />
             </span>
@@ -616,10 +882,9 @@ export default function TermsPage() {
             <AlertCircle className="h-4 w-4" />
           </span>
           <p className="text-xs leading-6 text-slate-600">
-            These terms are intended to provide general booking information.
-            The specific travel contract, package details and mandatory
-            applicable law govern each reservation. These terms do not limit
-            mandatory traveler rights.
+            {isPolish
+              ? "Niniejsze warunki mają na celu przekazanie ogólnych informacji dotyczących rezerwacji. Każda rezerwacja podlega szczegółowej umowie dotyczącej podróży, informacjom o pakiecie oraz bezwzględnie obowiązującym przepisom prawa. Warunki te nie ograniczają bezwzględnie obowiązujących praw podróżnych."
+              : "These terms are intended to provide general booking information. The specific travel contract, package details and mandatory applicable law govern each reservation. These terms do not limit mandatory traveler rights."}
           </p>
         </div>
       </main>
@@ -628,13 +893,13 @@ export default function TermsPage() {
       <footer className="border-t border-[#0f3d2e]/10 bg-white px-5 py-10">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} HABIBI ADVENTURE HAFA S.L. All rights reserved.
+            © {new Date().getFullYear()} HABIBI ADVENTURE HAFA S.L. {isPolish ? "Wszelkie prawa zastrzeżone." : "All rights reserved."}
           </p>
           <a
             href="/"
             className={`inline-flex items-center gap-2 rounded-full bg-[#0f3d2e] px-4 py-2 text-xs font-medium text-[#e6c877] transition hover:bg-[#1f6b4f] ${focus}`}
           >
-            Back to home <ArrowRight className="h-3.5 w-3.5" />
+            {isPolish ? "Powrót do strony głównej" : "Back to home"} <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </footer>

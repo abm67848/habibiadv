@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, ArrowUp, Camera, UsersRound, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LOGO from '../../assets/logo.png';
+import { DEFAULT_CONTACT_CONTENT, fetchPublicSiteContent } from '@/services/publicSiteContent.js';
 
 const footerSections = [
   {
@@ -26,8 +28,8 @@ const footerSections = [
 
 /* Edit once: the footer reads everything from here. */
 const CONTACT = {
-  phone: '+34 631 632 341',
-  phoneHref: 'tel:+34631632341',
+  phone: '+48 665 208 846 / +212 661-731123',
+  phoneHref: 'tel:+48665208846',
   email: 'habibiadventure.26@gmail.com',
   address: 'Tangier, Morocco',
 };
@@ -44,6 +46,37 @@ const ring = 'focus-visible:outline focus-visible:outline-2 focus-visible:outlin
 
 export default function PublicFooter() {
   const { t } = useTranslation();
+  const [contactData, setContactData] = useState(DEFAULT_CONTACT_CONTENT);
+
+  useEffect(() => {
+    let active = true;
+    fetchPublicSiteContent()
+      .then((content) => {
+        if (active && content?.contact) {
+          setContactData(content.contact);
+        }
+      })
+      .catch((err) => console.error('Could not load footer contact:', err));
+    return () => { active = false; };
+  }, []);
+
+  const phoneChannel = contactData.channels?.find((c) => c.type === 'phone');
+  const emailChannel = contactData.channels?.find((c) => c.type === 'email');
+  const phoneText = phoneChannel?.text || CONTACT.phone;
+  const phoneHref = phoneChannel?.href || CONTACT.phoneHref;
+  const emailText = emailChannel?.text || CONTACT.email;
+  const addressText = Array.isArray(contactData.address) ? contactData.address.join(', ') : (contactData.address || CONTACT.address);
+
+  const socialsList = (contactData.socials && contactData.socials.length > 0)
+    ? contactData.socials.map((s) => {
+        const icon = s.label?.toLowerCase().includes('insta')
+          ? Camera
+          : s.label?.toLowerCase().includes('face')
+          ? UsersRound
+          : Play;
+        return { icon, label: s.label, href: s.href || '#' };
+      })
+    : SOCIALS;
 
   return (
     <footer className="bg-[#061f17] text-white/70" style={body}>
@@ -62,22 +95,22 @@ export default function PublicFooter() {
 
           <ul className="mt-6 space-y-3 text-sm">
             <li>
-              <a href={CONTACT.phoneHref} className={`inline-flex items-center gap-3 rounded transition hover:text-[#e6c877] ${ring}`}>
-                <Phone className="h-4 w-4 text-[#c9a24b]" /> {CONTACT.phone}
+              <a href={phoneHref} className={`inline-flex items-center gap-3 rounded transition hover:text-[#e6c877] ${ring}`}>
+                <Phone className="h-4 w-4 text-[#c9a24b]" /> {phoneText}
               </a>
             </li>
             <li>
-              <a href={`mailto:${CONTACT.email}`} className={`inline-flex items-center gap-3 rounded transition hover:text-[#e6c877] ${ring}`}>
-                <Mail className="h-4 w-4 text-[#c9a24b]" /> {CONTACT.email}
+              <a href={`mailto:${emailText}`} className={`inline-flex items-center gap-3 rounded transition hover:text-[#e6c877] ${ring}`}>
+                <Mail className="h-4 w-4 text-[#c9a24b]" /> {emailText}
               </a>
             </li>
             <li className="inline-flex items-center gap-3">
-              <MapPin className="h-4 w-4 text-[#c9a24b]" /> {t(CONTACT.address)}
+              <MapPin className="h-4 w-4 text-[#c9a24b]" /> {t(addressText)}
             </li>
           </ul>
 
           <div className="mt-6 flex gap-3">
-            {SOCIALS.map(({ icon: Icon, label, href }) => (
+            {socialsList.map(({ icon: Icon, label, href }) => (
               <a
                 key={label}
                 href={href}
