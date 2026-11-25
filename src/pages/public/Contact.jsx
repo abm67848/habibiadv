@@ -14,6 +14,8 @@ const ring = 'focus-visible:outline focus-visible:outline-2 focus-visible:outlin
 const inputBase =
   'w-full rounded-2xl border-0 bg-[#f3f6f1] px-4 py-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-[#c9a24b]';
 const MAX_MESSAGE = 1000;
+const CONTACT_ADDRESS = ['Calle Rosita Ferrer, Number 2', '04740'];
+const CONTACT_MAPS_HREF = 'https://www.google.com/maps/search/?api=1&query=Calle+Rosita+Ferrer+Number+2+04740';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -145,11 +147,19 @@ export default function ContactPage() {
   const orderedDays = useMemo(() => Object.entries(contact.hours), [contact.hours]);
 
   const channelIcons = { phone: Phone, whatsapp: MessageCircle, email: Mail, visit: MapPin };
-  const channels = contact.channels.map((channel) => ({
-    ...channel,
-    icon: channelIcons[channel.type] || Mail,
-    external: channel.type === 'whatsapp' || channel.type === 'visit',
-  }));
+  const channels = contact.channels.map((channel) => {
+    const isVisit = channel.type === 'visit';
+    return {
+      ...channel,
+      ...(isVisit ? {
+        text: 'Calle Rosita Ferrer, Number 2',
+        href: CONTACT_MAPS_HREF,
+        note: '04740',
+      } : {}),
+      icon: channelIcons[channel.type] || Mail,
+      external: channel.type === 'whatsapp' || isVisit,
+    };
+  });
   const phone = channels.find((channel) => channel.type === 'phone')?.text || '';
   const email = channels.find((channel) => channel.type === 'email')?.text || '';
 
@@ -339,9 +349,9 @@ export default function ContactPage() {
             <div className="p-6">
               <h2 className="text-xl text-[#0a2a20]" style={display}>{t(contact.visitHeading)}</h2>
               <address className="mt-2 text-sm not-italic leading-relaxed text-slate-600">
-                {contact.address.map((line, index) => <span key={`${line}-${index}`} className="block">{line}</span>)}
+                {CONTACT_ADDRESS.map((line, index) => <span key={`${line}-${index}`} className="block">{line}</span>)}
               </address>
-              <a href={contact.mapsHref} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>
+              <a href={CONTACT_MAPS_HREF} target="_blank" rel="noopener noreferrer" className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f3d2e] hover:text-[#9c7a2b] ${ring} rounded`}>
                 {t('Get directions')} <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>

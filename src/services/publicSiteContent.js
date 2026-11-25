@@ -13,7 +13,7 @@ export const DEFAULT_CONTACT_CONTENT = {
     { type: 'phone', title: 'Call us', text: '+48 665 208 846 / +212 661-731123', href: 'tel:+48665208846', note: 'Fastest for urgent trips' },
     { type: 'whatsapp', title: 'WhatsApp', text: '+48 665 208 846', href: 'https://wa.me/48665208846', note: 'Share photos and dates easily' },
     { type: 'email', title: 'Email', text: 'habibiadventure.26@gmail.com', href: 'mailto:habibiadventure.26@gmail.com', note: 'Best for itineraries and quotes' },
-    { type: 'visit', title: 'Visit', text: 'Boulevard Mohammed V', href: 'https://www.google.com/maps/search/?api=1&query=Tangier+Morocco', note: 'Tangier 90000, Morocco' },
+    { type: 'visit', title: 'Visit', text: 'Calle Rosita Ferrer, Number 2', href: 'https://www.google.com/maps/search/?api=1&query=Calle+Rosita+Ferrer+Number+2+04740', note: '04740' },
   ],
   topics: [
     'Plan a trip',
@@ -26,8 +26,8 @@ export const DEFAULT_CONTACT_CONTENT = {
   visitHeading: 'Visit the office',
   socialsHeading: 'Follow our trips',
   faqHeading: 'Before you write',
-  address: ['Boulevard Mohammed V', 'Tangier 90000, Morocco'],
-  mapsHref: 'https://www.google.com/maps/search/?api=1&query=Tangier+Morocco',
+  address: ['Calle Rosita Ferrer, Number 2', '04740'],
+  mapsHref: 'https://www.google.com/maps/search/?api=1&query=Calle+Rosita+Ferrer+Number+2+04740',
   timeZone: 'Africa/Casablanca',
   hours: {
     Mon: { open: '09:00', close: '18:00', closed: false },
@@ -56,6 +56,7 @@ export const DEFAULT_CONTACT_CONTENT = {
 /* ------------------------------------------------------------------ */
 export const DEFAULT_ABOUT_CONTENT = {
   location: 'Based in Tangier, Morocco',
+  fiscalNumber: 'NIF: B05593736',
   heroTitle: 'We’re the people behind your trip',
   heroDescription: 'A small team of planners, guides and hosts who grew up on these roads and still can’t stop showing them off.',
   stats: [

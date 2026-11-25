@@ -31,7 +31,8 @@ const CONTACT = {
   phone: '+48 665 208 846 / +212 661-731123',
   phoneHref: 'tel:+48665208846',
   email: 'habibiadventure.26@gmail.com',
-  address: 'Tangier, Morocco',
+  address: 'Calle Rosita Ferrer, Number 2, 04740',
+  fiscalNumber: 'NIF: B05593736',
 };
 
 const SOCIALS = [
@@ -65,7 +66,7 @@ export default function PublicFooter() {
   const phoneText = phoneChannel?.text || CONTACT.phone;
   const phoneHref = phoneChannel?.href || CONTACT.phoneHref;
   const emailText = emailChannel?.text || CONTACT.email;
-  const addressText = Array.isArray(contactData.address) ? contactData.address.join(', ') : (contactData.address || CONTACT.address);
+  const addressText = CONTACT.address;
 
   const socialsList = (contactData.socials && contactData.socials.length > 0)
     ? contactData.socials.map((s) => {
@@ -107,6 +108,7 @@ export default function PublicFooter() {
             <li className="inline-flex items-center gap-3">
               <MapPin className="h-4 w-4 text-[#c9a24b]" /> {t(addressText)}
             </li>
+            <li>{t(CONTACT.fiscalNumber)}</li>
           </ul>
 
           <div className="mt-6 flex gap-3">

@@ -115,6 +115,9 @@ export default function AboutPage() {
           <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/90 ring-1 ring-white/25 backdrop-blur">
             <MapPin className="h-3.5 w-3.5 text-[#e6c877]" /> {t(content.location)}
           </p>
+          <p className="rise mt-3 inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/90 ring-1 ring-white/25 backdrop-blur">
+            {t(content.fiscalNumber)}
+          </p>
           <h1 className="rise mt-6 max-w-3xl text-4xl leading-[1.05] sm:text-6xl lg:text-7xl" style={{ ...display, animationDelay: '.15s' }}>
             {t(content.heroTitle)}
           </h1>
