@@ -258,7 +258,7 @@ export default function SettingsPage() {
         agencyName: 'Habibi Adventure',
         contactEmail: 'habibiadventure.26@gmail.com',
         timezone: 'Africa/Casablanca (UTC+1)',
-        currency: 'MAD',
+        currency: 'EUR',
       });
       setInvoiceForm({ ...DEFAULT_INVOICE_SETTINGS });
       triggerSaveNotification('¡Configuración restablecida a los valores predeterminados!');

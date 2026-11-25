@@ -739,8 +739,8 @@ CREATE TABLE IF NOT EXISTS public.customer_documents (
   const statCards = [
     { label: 'Total de clientes', value: stats.total, icon: Users, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
     { label: 'Clientes activos', value: stats.active, icon: CheckCircle2, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Valor total reservado', value: `${fmtMoney(stats.value)} MAD`, icon: DollarSign, tone: 'text-slate-900', chip: 'bg-sky-50 text-sky-600' },
-    { label: 'Saldo pendiente', value: `${fmtMoney(stats.outstanding)} MAD`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
+    { label: 'Valor total reservado', value: `${fmtMoney(stats.value)} EUR`, icon: DollarSign, tone: 'text-slate-900', chip: 'bg-sky-50 text-sky-600' },
+    { label: 'Saldo pendiente', value: `${fmtMoney(stats.outstanding)} EUR`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
   ];
 
   /* ---------- Render ---------- */
@@ -922,14 +922,14 @@ CREATE TABLE IF NOT EXISTS public.customer_documents (
                         </td>
 
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <p className="font-semibold text-slate-900">{fmtMoney(c.summary.total_booking_value)} MAD</p>
+                          <p className="font-semibold text-slate-900">{fmtMoney(c.summary.total_booking_value)} EUR</p>
                           <p className="text-xs text-slate-400">
                             {c.summary.total_bookings} {Number(c.summary.total_bookings) === 1 ? 'reserva' : 'reservas'}
                           </p>
                         </td>
 
                         <td className={`py-3.5 px-4 text-right font-semibold whitespace-nowrap ${balance > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                          {fmtMoney(balance)} MAD
+                          {fmtMoney(balance)} EUR
                         </td>
 
                         <td className="py-3.5 px-4"><StatusBadge status={c.customer_status} /></td>

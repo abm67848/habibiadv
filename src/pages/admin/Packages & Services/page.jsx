@@ -71,7 +71,7 @@ const PAGE_SIZE = 15;
 /* ---------- Helpers ---------- */
 function formatCurrency(amount, currency) {
   if (amount == null || amount === '') return 'Sin precio';
-  const code = currency || 'MAD';
+  const code = currency === 'MAD' ? 'EUR' : (currency || 'EUR');
   try {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
@@ -932,7 +932,7 @@ export default function AdminPackagesAndServicesPage() {
         duration_nights: Number(offer.duration_nights) || 0,
         short_description: offer.short_description || null,
         starting_price: offer.starting_price ?? null,
-        default_currency: offer.default_currency || 'MAD',
+        default_currency: offer.default_currency === 'MAD' ? 'EUR' : (offer.default_currency || 'EUR'),
         status: 'draft',
         is_public: false,
         created_by: user?.id || null,
@@ -1094,7 +1094,7 @@ export default function AdminPackagesAndServicesPage() {
           cfg.activities || 0,
           upcomingByOffer[o.id] || 0,
           o.starting_price ?? '',
-          o.default_currency ?? 'MAD',
+          o.default_currency === 'MAD' ? 'EUR' : (o.default_currency ?? 'EUR'),
           o.status,
           isLiveOffer(o) ? 'yes' : 'no',
           o.updated_at,

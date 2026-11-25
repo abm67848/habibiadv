@@ -10,9 +10,9 @@ import {
 import { supabase } from '@/lib/supabase/client';
 
 /* ---------- Config ---------- */
-// Approximate conversion to MAD. Replace with live rates or an app setting when available.
-const RATES_TO_MAD = { MAD: 1, EUR: 10.8, USD: 10 };
-const toMAD = (n, c) => Number(n || 0) * (RATES_TO_MAD[c] ?? 1);
+// Approximate conversion to EUR. Replace with live rates or an app setting when available.
+const RATES_TO_EUR = { EUR: 1, MAD: 1 / 10.8, USD: 0.92, GBP: 1.17 };
+const toEUR = (n, c) => Number(n || 0) * (RATES_TO_EUR[c] ?? 1);
 const DAY = 86400000;
 
 const PRESETS = [
@@ -105,7 +105,7 @@ function TrendChart({ labels, series, prev, height = 240 }) {
           <g transform={`translate(${Math.min(Math.max(x(hover) - 70, pad.l), W - 150)},${pad.t})`}>
             <rect width="140" height={prev ? 52 : 36} rx="8" fill="#0f172a" />
             <text x="10" y="16" fontSize="10" fill="#cbd5e1">{labels[hover]}</text>
-            <text x="10" y="31" fontSize="12" fontWeight="600" fill="#fff">{fmt(series[hover])} MAD</text>
+            <text x="10" y="31" fontSize="12" fontWeight="600" fill="#fff">{fmt(series[hover])} EUR</text>
             {prev && <text x="10" y="45" fontSize="10" fill="#94a3b8">Ant.: {fmt(prev[hover])}</text>}
           </g>
         </g>
@@ -138,7 +138,7 @@ function Donut({ data, size = 150 }) {
   );
 }
 
-function HBars({ rows, unit = 'MAD', color = '#d97706', emptyText }) {
+function HBars({ rows, unit = 'EUR', color = '#d97706', emptyText }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   if (!rows.length) return <Empty text={emptyText || 'Sin datos en este periodo.'} />;
   return (
@@ -163,7 +163,7 @@ function Columns({ rows, height = 150 }) {
   return (
     <div className="flex items-end gap-2" style={{ height }}>
       {rows.map((r) => (
-        <div key={r.label} className="flex flex-1 flex-col items-center justify-end gap-1.5" title={`${r.label}: ${fmt(r.value)} MAD, ${r.count} salidas`}>
+        <div key={r.label} className="flex flex-1 flex-col items-center justify-end gap-1.5"         title={`${r.label}: ${fmt(r.value)} EUR, ${r.count} salidas`}>
           <span className="text-[11px] tabular-nums text-slate-500">{r.value ? fmtCompact(r.value) : ''}</span>
           <div className="w-full rounded-t-md bg-gradient-to-t from-amber-500 to-amber-300" style={{ height: `${Math.max(2, (r.value / max) * (height - 46))}px` }} />
           <span className="text-[11px] text-slate-400">{r.label}</span>
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
     const bookingById = Object.fromEntries(bookings.map((b) => [b.id, b]));
 
     const completed = payments.filter((p) => p.transaction_status === 'completed' && ids.has(p.booking_id));
-    const signed = (p) => (p.transaction_type === 'refund' ? -1 : 1) * toMAD(p.amount, p.currency);
+    const signed = (p) => (p.transaction_type === 'refund' ? -1 : 1) * toEUR(p.amount, p.currency);
 
     const paidByBooking = {};
     completed.forEach((p) => { paidByBooking[p.booking_id] = (paidByBooking[p.booking_id] || 0) + signed(p); });
@@ -391,10 +391,10 @@ export default function AnalyticsPage() {
 
     const sumRev = (list) => list.reduce((s, p) => s + signed(p), 0);
     const live = (list) => list.filter((b) => b.booking_status !== 'cancelled');
-    const booked = (list) => live(list).reduce((s, b) => s + toMAD(b.total_amount, b.currency), 0);
+    const booked = (list) => live(list).reduce((s, b) => s + toEUR(b.total_amount, b.currency), 0);
     const cancelRate = (list) => pct(list.filter((b) => b.booking_status === 'cancelled').length, list.length);
     const avgVal = (list) => (live(list).length ? booked(list) / live(list).length : 0);
-    const collected = (list) => live(list).reduce((s, b) => s + Math.min(paidByBooking[b.id] || 0, toMAD(b.total_amount, b.currency)), 0);
+    const collected = (list) => live(list).reduce((s, b) => s + Math.min(paidByBooking[b.id] || 0, toEUR(b.total_amount, b.currency)), 0);
     const collectRate = (list) => pct(collected(list), booked(list));
     const insureRate = (list) => pct(list.filter((b) => b.extra_insurance).length, list.length);
     const lead = (list) => {
@@ -406,7 +406,7 @@ export default function AnalyticsPage() {
     const aging = { overdue: 0, d30: 0, d90: 0, later: 0 };
     let outstandingTotal = 0, overdueCount = 0;
     scoped.filter((b) => ['pending', 'confirmed', 'in_progress', 'completed'].includes(b.booking_status)).forEach((b) => {
-      const due = toMAD(b.total_amount, b.currency) - (paidByBooking[b.id] || 0);
+      const due = toEUR(b.total_amount, b.currency) - (paidByBooking[b.id] || 0);
       if (due <= 0.5) return;
       outstandingTotal += due;
       const days = b.departure_date ? (new Date(b.departure_date) - Date.now()) / DAY : 999;
@@ -426,8 +426,8 @@ export default function AnalyticsPage() {
       revenuePrev: bucketVals(completed, dateOf, signed, -shift),
       bookings: bucketVals(scoped, (b) => new Date(b.created_at).getTime(), () => 1),
       bookingsPrev: bucketVals(scoped, (b) => new Date(b.created_at).getTime(), () => 1, -shift),
-      value: bucketVals(live(scoped), (b) => new Date(b.created_at).getTime(), (b) => toMAD(b.total_amount, b.currency)),
-      valuePrev: bucketVals(live(scoped), (b) => new Date(b.created_at).getTime(), (b) => toMAD(b.total_amount, b.currency), -shift),
+      value: bucketVals(live(scoped), (b) => new Date(b.created_at).getTime(), (b) => toEUR(b.total_amount, b.currency)),
+      valuePrev: bucketVals(live(scoped), (b) => new Date(b.created_at).getTime(), (b) => toEUR(b.total_amount, b.currency), -shift),
     };
 
     /* Breakdowns */
@@ -437,13 +437,13 @@ export default function AnalyticsPage() {
       list.forEach((r) => { const k = keyFn(r); if (!k) return; m[k] = m[k] || { value: 0, count: 0 }; m[k].value += valFn(r); m[k].count++; });
       return Object.entries(m).map(([k, v]) => ({ label: k, ...v }));
     };
-    const topDest = group(live(cur), (b) => b.destination, (b) => toMAD(b.total_amount, b.currency))
+    const topDest = group(live(cur), (b) => b.destination, (b) => toEUR(b.total_amount, b.currency))
       .sort((x, y) => y.value - x.value).slice(0, 7).map((r) => ({ ...r, note: `${r.count} reservas` }));
     const methods = group(curPay.filter((p) => p.transaction_type === 'payment'), (p) => label(p.payment_method || 'otro'), signed)
       .sort((x, y) => y.value - x.value).map((r, i) => ({ ...r, color: METHOD_COLORS[i % METHOD_COLORS.length] }));
     const countries = (() => {
       const cMap = Object.fromEntries(customers.map((c) => [c.id, c]));
-      return group(live(cur), (b) => cMap[b.customer_id]?.country, (b) => toMAD(b.total_amount, b.currency))
+      return group(live(cur), (b) => cMap[b.customer_id]?.country, (b) => toEUR(b.total_amount, b.currency))
         .sort((x, y) => y.value - x.value).slice(0, 6).map((r) => ({ ...r, note: `${r.count}` }));
     })();
 
@@ -490,8 +490,8 @@ export default function AnalyticsPage() {
     const dRev = delta(k.revenue, k.revenuePrev);
     if (dRev != null && Math.abs(dRev) >= 5) insights.push({ tone: dRev > 0 ? 'good' : 'bad', text: `Los ingresos netos ${dRev > 0 ? 'suben' : 'bajan'} un ${Math.abs(dRev).toFixed(0)}% frente al periodo anterior.` });
     if (topDest[0] && booked(cur) > 0) insights.push({ tone: 'info', text: `${topDest[0].label} concentra el ${pct(topDest[0].value, booked(cur)).toFixed(0)}% del valor reservado${pct(topDest[0].value, booked(cur)) > 50 ? ', lo que supone un riesgo de concentración' : ''}.` });
-    if (aging.overdue > 0) insights.push({ tone: 'bad', text: `${fmt(aging.overdue)} MAD pendientes de cobro en ${overdueCount} reservas cuya fecha de salida ya pasó.` });
-    if (aging.d30 > 0) insights.push({ tone: 'warn', text: `${fmt(aging.d30)} MAD vencen antes de las salidas en los próximos 30 días.` });
+    if (aging.overdue > 0) insights.push({ tone: 'bad', text: `${fmt(aging.overdue)} EUR pendientes de cobro en ${overdueCount} reservas cuya fecha de salida ya pasó.` });
+    if (aging.d30 > 0) insights.push({ tone: 'warn', text: `${fmt(aging.d30)} EUR vencen antes de las salidas en los próximos 30 días.` });
     if (k.cancel > k.cancelPrev + 3) insights.push({ tone: 'bad', text: `La tasa de cancelación sube al ${k.cancel.toFixed(1)}% desde ${k.cancelPrev.toFixed(1)}%.` });
     if (k.insure < 25 && k.bookings > 4) insights.push({ tone: 'warn', text: `Solo el ${k.insure.toFixed(0)}% de las reservas incluyen seguro extra. Ofrecerlo en el checkout es un upsell sencillo.` });
     const slow = forecast.slice(0, 3).filter((f) => f.count === 0).length;
@@ -504,7 +504,7 @@ export default function AnalyticsPage() {
     const esc = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
     const head = ['reference', 'created_at', 'destination', 'status', 'departure_date', 'total', 'currency', 'total_mad', 'paid_mad', 'insurance'];
     const rows = a.cur.map((b) => [b.booking_reference, b.created_at, b.destination, b.booking_status, b.departure_date, b.total_amount, b.currency,
-      toMAD(b.total_amount, b.currency).toFixed(2), (a.paidByBooking[b.id] || 0).toFixed(2), b.extra_insurance ? 'yes' : 'no']);
+      toEUR(b.total_amount, b.currency).toFixed(2), (a.paidByBooking[b.id] || 0).toFixed(2), b.extra_insurance ? 'yes' : 'no']);
     const blob = new Blob([[head, ...rows].map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -541,7 +541,7 @@ export default function AnalyticsPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{translate('Analíticas')}</h1>
-            <p className="mt-1 text-sm text-slate-500">{translate('Ingresos, reservas, cobros y rendimiento del equipo. Importes convertidos a MAD.')}</p>
+            <p className="mt-1 text-sm text-slate-500">{translate('Ingresos, reservas, cobros y rendimiento del equipo. Importes convertidos a EUR.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select aria-label="Periodo" value={preset} onChange={(e) => setPreset(e.target.value)} className={selectCls}>
@@ -582,11 +582,11 @@ export default function AnalyticsPage() {
           <>
             {/* KPIs */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Kpi label="Ingresos netos" value={fmt(k.revenue)} unit="MAD" delta={delta(k.revenue, k.revenuePrev)} icon={Wallet} chip="bg-emerald-50 text-emerald-600" hint="vs periodo anterior" />
-              <Kpi label="Nuevas reservas" value={fmt(k.bookings)} delta={delta(k.bookings, k.bookingsPrev)} icon={CalendarDays} chip="bg-sky-50 text-sky-600" hint={`${fmt(k.booked)} MAD reservados`} />
-              <Kpi label="Valor medio por reserva" value={fmt(k.avg)} unit="MAD" delta={delta(k.avg, k.avgPrev)} icon={Target} chip="bg-violet-50 text-violet-600" />
+              <Kpi label="Ingresos netos" value={fmt(k.revenue)} unit="EUR" delta={delta(k.revenue, k.revenuePrev)} icon={Wallet} chip="bg-emerald-50 text-emerald-600" hint="vs periodo anterior" />
+              <Kpi label="Nuevas reservas" value={fmt(k.bookings)} delta={delta(k.bookings, k.bookingsPrev)} icon={CalendarDays} chip="bg-sky-50 text-sky-600" hint={`${fmt(k.booked)} EUR reservados`} />
+              <Kpi label="Valor medio por reserva" value={fmt(k.avg)} unit="EUR" delta={delta(k.avg, k.avgPrev)} icon={Target} chip="bg-violet-50 text-violet-600" />
               <Kpi label="Tasa de cobro" value={k.collect.toFixed(1)} unit="%" delta={delta(k.collect, k.collectPrev)} icon={BarChart3} chip="bg-amber-50 text-amber-600" hint="cobrado vs reservado" />
-              <Kpi label="Saldo pendiente" value={fmt(k.outstanding)} unit="MAD" icon={Clock} chip="bg-rose-50 text-rose-600" hint={`${k.overdueCount} con salida pasada`} />
+              <Kpi label="Saldo pendiente" value={fmt(k.outstanding)} unit="EUR" icon={Clock} chip="bg-rose-50 text-rose-600" hint={`${k.overdueCount} con salida pasada`} />
               <Kpi label="Tasa de cancelación" value={k.cancel.toFixed(1)} unit="%" delta={delta(k.cancel, k.cancelPrev)} invert icon={XCircle} chip="bg-rose-50 text-rose-600" />
               <Kpi label="Tasa de seguro" value={k.insure.toFixed(1)} unit="%" delta={delta(k.insure, k.insurePrev)} icon={ShieldCheck} chip="bg-emerald-50 text-emerald-600" />
               <Kpi label="Antelación media" value={fmt(k.lead)} unit="días" delta={delta(k.lead, k.leadPrev)} icon={Users} chip="bg-slate-100 text-slate-600" hint={`${k.repeat.toFixed(0)}% clientes recurrentes`} />
@@ -645,7 +645,7 @@ export default function AnalyticsPage() {
                 <HBars rows={a.methods} />
               </Card>
 
-              <Card title="Antigüedad de cobros" subtitle="Saldo pendiente agrupado por fecha de salida." right={<span className="text-xs font-semibold text-rose-600 tabular-nums">{fmt(k.outstanding)} MAD</span>}>
+              <Card title="Antigüedad de cobros" subtitle="Saldo pendiente agrupado por fecha de salida." right={<span className="text-xs font-semibold text-rose-600 tabular-nums">{fmt(k.outstanding)} EUR</span>}>
                 <HBars rows={agingRows} />
               </Card>
 
@@ -681,8 +681,8 @@ export default function AnalyticsPage() {
                           <button onClick={() => setEmployee(t.id)} className="text-left hover:text-amber-700 hover:underline" title="Filtrar por este empleado">{t.name}</button>
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums">{t.bookings}</td>
-                        <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-slate-900">{fmt(t.value)} MAD</td>
-                        <td className="px-4 py-3.5 text-right tabular-nums">{fmt(t.avg)} MAD</td>
+                        <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-slate-900">{fmt(t.value)} EUR</td>
+                        <td className="px-4 py-3.5 text-right tabular-nums">{fmt(t.avg)} EUR</td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${t.conv}%` }} /></div>
@@ -698,7 +698,7 @@ export default function AnalyticsPage() {
             </Card>
 
             <p className="text-xs text-slate-400">
-              Tipos de conversión: 1 EUR = {RATES_TO_MAD.EUR} MAD, 1 USD = {RATES_TO_MAD.USD} MAD. Edita <code className="rounded bg-slate-100 px-1">{translate('RATES_TO_MAD')}</code> al inicio de este archivo para cambiarlos.{' '}
+              Tipos de conversión: 1 MAD = {RATES_TO_EUR.MAD.toFixed(4)} EUR, 1 USD = {RATES_TO_EUR.USD.toFixed(2)} EUR, 1 GBP = {RATES_TO_EUR.GBP.toFixed(2)} EUR.{' '}
               <button onClick={() => navigate('/admin/payments-transactions')} className="font-medium text-amber-700 underline underline-offset-2">{translate('Abrir libro de pagos')}</button>
             </p>
           </>

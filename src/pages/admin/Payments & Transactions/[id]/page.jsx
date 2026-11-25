@@ -66,7 +66,7 @@ const REASON_PRESETS = [
 /* ================================================================== */
 /*  Utilities                                                          */
 /* ================================================================== */
-const fmtMoney = (n, currency = 'MAD') => {
+const fmtMoney = (n, currency = 'EUR') => {
   const v = Number(n || 0);
   if (!Number.isFinite(v)) return '—';
   try {

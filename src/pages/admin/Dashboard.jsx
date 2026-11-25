@@ -42,7 +42,7 @@ const PAYMENT_META = {
 /* ================================================================== */
 /*  Utilities                                                          */
 /* ================================================================== */
-const fmtMoney = (n, currency = 'MAD') => {
+const fmtMoney = (n, currency = 'EUR') => {
   const v = Number(n || 0);
   if (!Number.isFinite(v)) return '—';
   try {
@@ -989,7 +989,7 @@ export default function AdminDashboardPage() {
             className="lg:col-span-2"
             action={<span className="text-xs font-medium text-slate-500 shrink-0">{rangeText}</span>}
           >
-            <RevenueTrend series={revenueSeries} previous={previousSeries} currency="MAD" />
+            <RevenueTrend series={revenueSeries} previous={previousSeries} currency="EUR" />
           </SectionCard>
 
           <SectionCard title="Distribución por estado" icon={Layers} subtitle="Reservas de este periodo">

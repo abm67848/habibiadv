@@ -40,7 +40,7 @@ const PAYMENT_STATUS = {
 
 const BOOKING_STATUS_OPTIONS = Object.entries(BOOKING_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
 const PAYMENT_STATUS_OPTIONS = Object.entries(PAYMENT_STATUS).map(([value, v]) => ({ value, label: v.label, dot: v.dot }));
-const CURRENCY_OPTIONS = ['MAD', 'EUR', 'USD'].map((c) => ({ value: c, label: c }));
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP'].map((c) => ({ value: c, label: c }));
 const METHOD_OPTIONS = [
   { value: 'bank_transfer', label: 'Transferencia bancaria' },
   { value: 'cash', label: 'Efectivo' },
@@ -66,7 +66,7 @@ const INSURANCE_TYPE_OPTIONS = [
 
 const EMPTY_FORM = (userId) => ({
   customer_id: '', destination: '', departure_date: '', return_date: '', traveler_count: 1,
-  total_amount: '', currency: 'MAD', booking_status: 'pending', assigned_to: userId || '',
+  total_amount: '', currency: 'EUR', booking_status: 'pending', assigned_to: userId || '',
   special_requests: '', internal_notes: '', initial_payment_amount: '',
   payment_method: 'bank_transfer', payment_notes: 'Depósito inicial de la reserva',
   /* SEGURO */
@@ -417,7 +417,7 @@ function InsuranceBlock({ formData, setFormData }) {
             />
           </div>
           <div>
-            <label className={labelCls}>Prima ({formData.currency || 'MAD'})</label>
+            <label className={labelCls}>Prima ({formData.currency === 'MAD' ? 'EUR' : (formData.currency || 'EUR')})</label>
             <input
               type="number"
               step="0.01"
@@ -697,7 +697,7 @@ export default function ReservationsPage() {
       const insurancePremium = Number(res.insurance_premium || 0);
       const insurancePlanLabel = res.insurance_plan_label || null;
       const insurancePricingModel = res.insurance_pricing_model || null;
-      const insuranceCurrency = res.insurance_currency || res.currency || 'MAD';
+      const insuranceCurrency = res.insurance_currency === 'MAD' ? 'EUR' : (res.insurance_currency || (res.currency === 'MAD' ? 'EUR' : (res.currency || 'EUR')));
 
       return {
         ...res,
@@ -871,7 +871,7 @@ export default function ReservationsPage() {
           return_date: formData.return_date || null,
           traveler_count: Number(formData.traveler_count) || 1,
           total_amount: Number(formData.total_amount),
-          currency: formData.currency || 'MAD',
+          currency: formData.currency === 'MAD' ? 'EUR' : (formData.currency || 'EUR'),
           booking_status: formData.booking_status || 'pending',
           assigned_to: formData.assigned_to || user?.id || null,
           special_requests: formData.special_requests || null,
@@ -888,7 +888,7 @@ export default function ReservationsPage() {
           booking_id: insertedBooking.id,
           transaction_type: 'payment',
           amount: Number(formData.initial_payment_amount),
-          currency: formData.currency || 'MAD',
+          currency: formData.currency === 'MAD' ? 'EUR' : (formData.currency || 'EUR'),
           payment_method: formData.payment_method,
           transaction_status: 'completed',
           notes: formData.payment_notes,
@@ -924,7 +924,7 @@ export default function ReservationsPage() {
         return_date: formData.return_date || null,
         traveler_count: Number(formData.traveler_count) || 1,
         total_amount: Number(formData.total_amount),
-        currency: formData.currency || 'MAD',
+        currency: formData.currency === 'MAD' ? 'EUR' : (formData.currency || 'EUR'),
         booking_status: formData.booking_status,
         assigned_to: formData.assigned_to || null,
         special_requests: formData.special_requests || null,
@@ -973,7 +973,7 @@ export default function ReservationsPage() {
         booking_id: selectedReservation.id,
         transaction_type: paymentData.transaction_type,
         amount: Number(paymentData.amount),
-        currency: selectedReservation.currency || 'MAD',
+        currency: selectedReservation.currency === 'MAD' ? 'EUR' : (selectedReservation.currency || 'EUR'),
         payment_method: paymentData.payment_method,
         transaction_status: paymentData.transaction_status,
         transaction_reference: paymentData.transaction_reference || null,
@@ -1112,7 +1112,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
     { label: 'Total reservas', value: stats.total, icon: CalendarIcon, tone: 'text-slate-900', chip: 'bg-slate-100 text-slate-600' },
     { label: 'Confirmadas', value: stats.confirmed, icon: CheckCircle2, tone: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-600' },
     { label: 'Pendientes', value: stats.pending, icon: Clock, tone: 'text-amber-600', chip: 'bg-amber-50 text-amber-600' },
-    { label: 'Saldo pendiente', value: `${fmtMoney(stats.outstanding)} MAD`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
+    { label: 'Saldo pendiente', value: `${fmtMoney(stats.outstanding, 'EUR')} EUR`, icon: Wallet, tone: 'text-slate-900', chip: 'bg-violet-50 text-violet-600' },
   ];
 
   /* ---------- Render ---------- */
@@ -1395,7 +1395,7 @@ UPDATE bookings SET extra_insurance = false WHERE extra_insurance IS NULL;
                     return_date: selectedReservation.return_date || '',
                     traveler_count: selectedReservation.traveler_count || 1,
                     total_amount: selectedReservation.total_amount || '',
-                    currency: selectedReservation.currency || 'MAD',
+                    currency: selectedReservation.currency === 'MAD' ? 'EUR' : (selectedReservation.currency || 'EUR'),
                     booking_status: selectedReservation.booking_status || 'pending',
                     assigned_to: selectedReservation.assigned_to || '',
                     special_requests: selectedReservation.special_requests || '',

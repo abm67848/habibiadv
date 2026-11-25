@@ -47,9 +47,8 @@ export const ADMIN_LANGUAGES = [
 
 // Available Currencies
 export const CURRENCY_LIST = [
-  { code: 'MAD', symbol: 'DH', name: 'Moroccan Dirham', locale: 'fr-MA' },
-  { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US' },
   { code: 'EUR', symbol: '€', name: 'Euro', locale: 'fr-FR' },
+  { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US' },
   { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB' },
   { code: 'SAR', symbol: 'SAR', name: 'Saudi Riyal', locale: 'ar-SA' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham', locale: 'ar-AE' },
@@ -437,7 +436,7 @@ export function AppSettingsProvider({ children }) {
           agencyName: parsed.agencyName || 'Habibi Adventure',
           contactEmail: parsed.contactEmail || 'habibiadventure.26@gmail.com',
           timezone: parsed.timezone || 'Africa/Casablanca (UTC+1)',
-          currency: parsed.currency || 'MAD',
+          currency: parsed.currency === 'MAD' ? 'EUR' : (parsed.currency || 'EUR'),
           adminLanguage: parsed.adminLanguage || 'en',
           invoice: mergeInvoiceSettings(parsed.invoice),
         };
@@ -450,7 +449,7 @@ export function AppSettingsProvider({ children }) {
       agencyName: 'Habibi Adventure',
       contactEmail: 'habibiadventure.26@gmail.com',
       timezone: 'Africa/Casablanca (UTC+1)',
-      currency: 'MAD',
+      currency: 'EUR',
       adminLanguage: 'en',
       invoice: { ...DEFAULT_INVOICE_SETTINGS },
     };
@@ -467,7 +466,7 @@ export function AppSettingsProvider({ children }) {
           agencyName: saved.agencyName || current.agencyName,
           contactEmail: saved.contactEmail || current.contactEmail,
           timezone: saved.timezone || current.timezone,
-          currency: saved.currency || current.currency,
+          currency: saved.currency === 'MAD' ? 'EUR' : (saved.currency || current.currency),
           adminLanguage: saved.adminLanguage || current.adminLanguage,
           invoice: mergeInvoiceSettings(saved.invoice || current.invoice),
         }));
@@ -531,7 +530,7 @@ export function AppSettingsProvider({ children }) {
       agencyName: 'Habibi Adventure',
       contactEmail: 'habibiadventure.26@gmail.com',
       timezone: 'Africa/Casablanca (UTC+1)',
-      currency: 'MAD',
+      currency: 'EUR',
       adminLanguage: 'en',
       invoice: { ...DEFAULT_INVOICE_SETTINGS },
     };
@@ -560,7 +559,7 @@ export function AppSettingsProvider({ children }) {
 
   // Currency Formatter helper based on global project currency
   const formatMoney = (amount, customCurrency) => {
-    const code = customCurrency || settings.currency || 'MAD';
+    const code = customCurrency === 'MAD' ? 'EUR' : (customCurrency || settings.currency || 'EUR');
     const num = Number(amount || 0);
     const currMeta = CURRENCY_LIST.find((c) => c.code === code);
     try {

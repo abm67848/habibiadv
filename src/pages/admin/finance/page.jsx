@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase/client';
 
 // --- Utilidades ---
 const LOCALE = 'es-ES';
-const fmtMoney = (amount, currency = 'MAD') =>
+const fmtMoney = (amount, currency = 'EUR') =>
   new Intl.NumberFormat(LOCALE, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount || 0);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString(LOCALE) : '-');
 const toISO = (d) => {
@@ -291,7 +291,7 @@ export default function FinancePage() {
 
   const deleteCustomerPayment = async (payment) => {
     const type = payment.transaction_type === 'refund' ? 'reembolso' : 'pago';
-    const amount = fmtMoney(payment.amount, payment.currency || 'MAD');
+    const amount = fmtMoney(payment.amount, payment.currency === 'MAD' ? 'EUR' : (payment.currency || 'EUR'));
     if (!window.confirm(`¿Eliminar definitivamente este ${type} de ${amount}? Esta acción no se puede deshacer.`)) return;
 
     setDeletingPaymentId(payment.id);
@@ -601,7 +601,7 @@ export default function FinancePage() {
                           <td className="px-5 py-3">{TYPE_ES[payment.transaction_type || 'payment'] || payment.transaction_type}</td>
                           <td className="px-5 py-3 capitalize text-slate-600">{METHOD_ES[method] || method.replace(/_/g, ' ')}</td>
                           <td className={`px-5 py-3 text-right font-semibold ${isRefund ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {isRefund ? '−' : '+'}{fmtMoney(payment.amount, payment.currency || 'MAD')}
+                            {isRefund ? '−' : '+'}{fmtMoney(payment.amount, payment.currency === 'MAD' ? 'EUR' : (payment.currency || 'EUR'))}
                           </td>
                           <td className="px-5 py-3 text-right">
                             <button

@@ -59,7 +59,7 @@ const METHOD_OPTIONS = [
 
 const EMPTY_FORM = {
   booking_id: '', transaction_type: 'payment', payment_method: 'card', amount: '',
-  currency: 'MAD', transaction_status: 'completed', transaction_reference: '', notes: '',
+  currency: 'EUR', transaction_status: 'completed', transaction_reference: '', notes: '',
 };
 
 /* ---------- Small presentational pieces ---------- */

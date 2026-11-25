@@ -274,7 +274,7 @@ const EMPTY_OVERVIEW = {
   short_description: '', full_description: '', destination_country: '',
   duration_days: '', duration_nights: '', cover_image_url: '',
   gallery: [], highlights: [], min_travelers: '', max_travelers: '',
-  default_currency: 'MAD', starting_price: '', price_display_mode: 'starting_from',
+  default_currency: 'EUR', starting_price: '', price_display_mode: 'starting_from',
   booking_deadline_days: '',
 };
 
@@ -514,10 +514,10 @@ function RecordManager({
       ...recordFixedValues,
       offer_id: offerId,
       ...(orderField ? { [orderField]: records.length + 1 } : {}),
-      ...(sectionKey === 'activities' ? { is_included: true, currency: 'MAD' } : {}),
-      ...(sectionKey === 'pricingRules' ? { currency: 'MAD' } : {}),
-      ...(sectionKey === 'costs' ? { currency: 'MAD', unit: 'per_person' } : {}),
-      ...(sectionKey === 'departures' ? { status: 'open', currency: 'MAD', reserved_capacity: 0 } : {}),
+      ...(sectionKey === 'activities' ? { is_included: true, currency: 'EUR' } : {}),
+      ...(sectionKey === 'pricingRules' ? { currency: 'EUR' } : {}),
+      ...(sectionKey === 'costs' ? { currency: 'EUR', unit: 'per_person' } : {}),
+      ...(sectionKey === 'departures' ? { status: 'open', currency: 'EUR', reserved_capacity: 0 } : {}),
       ...extraDefaults,
     };
     config.fields.forEach((f) => {
@@ -546,7 +546,7 @@ function RecordManager({
         if (f.name in draft) payload[f.name] = serializeField(f, draft[f.name]);
       });
       if (payload.currency && !/^[A-Z]{3}$/.test(payload.currency)) {
-        throw new Error('La moneda debe ser un código ISO de tres letras (p. ej., MAD, EUR).');
+        throw new Error('La moneda debe ser EUR, USD o GBP.');
       }
       if (draft.__isNew) {
         const tempId = globalThis.crypto?.randomUUID?.() || `tmp-${Date.now()}-${Math.random()}`;
@@ -705,7 +705,7 @@ function InsurancePlansEditor({ offerId, plans, onChange, canWrite, defaultCurre
       description: '',
       pricing_model: 'per_traveler',
       premium: '',
-      currency: defaultCurrency || 'MAD',
+      currency: defaultCurrency === 'MAD' ? 'EUR' : (defaultCurrency || 'EUR'),
       min_travelers: '',
       is_default: plans.length === 0,
       sort_order: nextSortOrder(),
@@ -882,7 +882,7 @@ function InsurancePlansEditor({ offerId, plans, onChange, canWrite, defaultCurre
                 maxLength={3}
                 value={draft.currency}
                 onChange={(e) => setDraft((c) => ({ ...c, currency: e.target.value.toUpperCase() }))}
-                placeholder="MAD"
+                placeholder="EUR"
                 className={`${inputClass} uppercase`}
               />
             </label>
@@ -1263,7 +1263,7 @@ export default function PackageDetailPage() {
       highlights: overview.highlights || [],
       min_travelers: overview.min_travelers === '' ? null : Number(overview.min_travelers),
       max_travelers: overview.max_travelers === '' ? null : Number(overview.max_travelers),
-      default_currency: (overview.default_currency || 'MAD').trim().toUpperCase(),
+      default_currency: ((overview.default_currency || 'EUR').trim().toUpperCase() === 'MAD' ? 'EUR' : (overview.default_currency || 'EUR').trim().toUpperCase()),
       starting_price: overview.starting_price === '' ? null : Number(overview.starting_price),
       price_display_mode: overview.price_display_mode || null,
       booking_deadline_days: overview.booking_deadline_days === '' ? null : Number(overview.booking_deadline_days),
@@ -1335,7 +1335,7 @@ export default function PackageDetailPage() {
         description: plan.description || null,
         pricing_model: plan.pricing_model,
         premium: Number(plan.premium) || 0,
-        currency: (plan.currency || 'MAD').toUpperCase(),
+        currency: ((plan.currency || 'EUR').toUpperCase() === 'MAD' ? 'EUR' : (plan.currency || 'EUR').toUpperCase()),
         min_travelers: plan.min_travelers === '' || plan.min_travelers == null ? null : Number(plan.min_travelers),
         is_default: Boolean(plan.is_default),
         sort_order: Number(plan.sort_order) || 0,
@@ -1501,7 +1501,7 @@ export default function PackageDetailPage() {
           description: p.description || null,
           pricing_model: p.pricing_model,
           premium: Number(p.premium) || 0,
-          currency: (p.currency || 'MAD').toUpperCase(),
+          currency: ((p.currency || 'EUR').toUpperCase() === 'MAD' ? 'EUR' : (p.currency || 'EUR').toUpperCase()),
           min_travelers: p.min_travelers ?? null,
           is_default: Boolean(p.is_default),
           sort_order: Number(p.sort_order) || 0,
@@ -1893,7 +1893,7 @@ function PricingSection({
 }) {
   const costs = children.offer_costs || [];
   const rules = children.offer_pricing_rules || [];
-  const currency = overview.default_currency || 'MAD';
+  const currency = overview.default_currency === 'MAD' ? 'EUR' : (overview.default_currency || 'EUR');
   const adultRule = rules.find((r) => r.price_type === 'adult' && Number(r.amount) > 0);
   const selling = Number(overview.starting_price) || Number(adultRule?.amount) || 0;
   const totalCost = costs

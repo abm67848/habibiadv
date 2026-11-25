@@ -58,7 +58,7 @@ const METHOD_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 const PAY_METHOD_OPTIONS = METHOD_OPTIONS.filter((o) => o.value);
-const CURRENCY_OPTIONS = ['MAD', 'EUR', 'USD'].map((c) => ({ value: c, label: c }));
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP'].map((c) => ({ value: c, label: c }));
 const FREQUENCY_OPTIONS = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'monthly', label: 'Monthly' },
@@ -97,7 +97,7 @@ const isOverdue = (e) => Boolean(e.due_date) && e.payment_status !== 'cancelled'
 
 const EMPTY_FORM = () => ({
   title: '', description: '', category: 'other', expense_type: 'operational',
-  amount: '', tax_amount: '', currency: 'MAD',
+  amount: '', tax_amount: '', currency: 'EUR',
   supplier_id: '', payee_name: '', booking_id: '',
   expense_date: todayISO(), due_date: '',
   paid_amount: '', payment_method: '', paid_date: todayISO(),
@@ -710,7 +710,7 @@ export default function ExpensesPage() {
     expenses.forEach((e) => counts.set(e.currency, (counts.get(e.currency) || 0) + 1));
     return [...counts].sort((a, b) => b[1] - a[1]).map(([c]) => c);
   }, [expenses]);
-  const activeCurrency = viewCurrency && currencies.includes(viewCurrency) ? viewCurrency : currencies[0] || 'MAD';
+  const activeCurrency = viewCurrency && currencies.includes(viewCurrency) ? viewCurrency : currencies[0] || 'EUR';
 
   const stats = useMemo(() => {
     const live = enriched.filter((e) => e.currency === activeCurrency && e.payment_status !== 'cancelled');
@@ -836,7 +836,7 @@ export default function ExpensesPage() {
       expense_type: e.expense_type || 'operational',
       amount: String(e.amount ?? ''),
       tax_amount: Number(e.tax_amount) ? String(e.tax_amount) : '',
-      currency: e.currency || 'MAD',
+      currency: e.currency === 'MAD' ? 'EUR' : (e.currency || 'EUR'),
       supplier_id: s?.id || '',
       payee_name: s ? '' : e.supplier_name || '',
       booking_id: e.booking_id || '',

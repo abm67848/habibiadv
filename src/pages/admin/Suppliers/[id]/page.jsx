@@ -45,10 +45,10 @@ const STATUS = {
   terminated: { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 ring-slate-200', label: 'Terminado' },
 };
 
-const EMPTY_SERVICE = { service_name: '', service_category: 'accommodation', description: '', unit: 'per_night', base_price: '', currency: 'MAD', status: 'active' };
+const EMPTY_SERVICE = { service_name: '', service_category: 'accommodation', description: '', unit: 'per_night', base_price: '', currency: 'EUR', status: 'active' };
 const EMPTY_CONTACT = { full_name: '', position: '', email: '', phone: '', is_primary: false, notes: '' };
 const EMPTY_LOCATION = { location_name: '', country: '', city: '', address: '', latitude: '', longitude: '', notes: '' };
-const EMPTY_CONTRACT = { contract_reference: '', contract_type: 'Master Service Agreement', start_date: '', end_date: '', payment_terms: 'Net 30', currency: 'MAD', status: 'active', notes: '' };
+const EMPTY_CONTRACT = { contract_reference: '', contract_type: 'Master Service Agreement', start_date: '', end_date: '', payment_terms: 'Net 30', currency: 'EUR', status: 'active', notes: '' };
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('es-ES') : '—');
 const daysUntil = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
@@ -399,7 +399,7 @@ export default function SupplierDetailsPage() {
             currency: service.currency,
             status: service.status,
           }
-        : { ...EMPTY_SERVICE, currency: supplier.preferred_currency || 'MAD' },
+        : { ...EMPTY_SERVICE, currency: supplier.preferred_currency === 'MAD' ? 'EUR' : (supplier.preferred_currency || 'EUR') },
     );
     setServiceModalOpen(true);
   };
@@ -416,7 +416,7 @@ export default function SupplierDetailsPage() {
         description: serviceForm.description || null,
         unit: serviceForm.unit || null,
         base_price: serviceForm.base_price === '' || isNaN(serviceForm.base_price) ? null : Number(serviceForm.base_price),
-        currency: serviceForm.currency || 'MAD',
+        currency: serviceForm.currency === 'MAD' ? 'EUR' : (serviceForm.currency || 'EUR'),
         status: serviceForm.status,
       },
       okAdd: 'Servicio añadido correctamente',
@@ -574,7 +574,7 @@ export default function SupplierDetailsPage() {
         : {
             ...EMPTY_CONTRACT,
             contract_reference: `CTR-${Math.floor(1000 + Math.random() * 9000)}`,
-            currency: supplier.preferred_currency || 'MAD',
+            currency: supplier.preferred_currency === 'MAD' ? 'EUR' : (supplier.preferred_currency || 'EUR'),
           },
     );
     setContractModalOpen(true);
@@ -1177,7 +1177,7 @@ export default function SupplierDetailsPage() {
             </Field>
             <Field label="Moneda">
               <select value={serviceForm.currency} onChange={(e) => setServiceForm({ ...serviceForm, currency: e.target.value })} className={inputCls}>
-                <option value="MAD">MAD</option><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option>
+                <option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option>
               </select>
             </Field>
             <Field label="Unidad">
@@ -1338,7 +1338,7 @@ export default function SupplierDetailsPage() {
             </Field>
             <Field label="Moneda">
               <select value={contractForm.currency} onChange={(e) => setContractForm({ ...contractForm, currency: e.target.value })} className={inputCls}>
-                <option value="MAD">MAD</option><option value="EUR">EUR</option><option value="USD">USD</option>
+                <option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option>
               </select>
             </Field>
             <Field label="Estado">
